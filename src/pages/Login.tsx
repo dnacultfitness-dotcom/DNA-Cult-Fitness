@@ -16,6 +16,7 @@ const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [authLoading, setAuthLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const [showVerificationMessage, setShowVerificationMessage] = useState(false);
   const [registeredEmail, setRegisteredEmail] = useState('');
 
@@ -64,12 +65,25 @@ const Login = () => {
   };
 
   const handleGoogleLogin = async () => {
+    setGoogleLoading(true);
     try {
       await signInWithPopup(auth, googleProvider);
       toast.success('Successfully logged in!');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Login error:', error);
-      toast.error('Failed to login with Google.');
+      let errorMessage = 'Failed to login with Google.';
+      
+      if (error.code === 'auth/popup-blocked') {
+        errorMessage = 'SignIn popup was blocked by your browser. Please allow popups for this site.';
+      } else if (error.code === 'auth/unauthorized-domain') {
+        errorMessage = 'This domain is not authorized for Google Sign-In. Please contact the administrator.';
+      } else if (error.message) {
+        errorMessage = `Login failed: ${error.message}`;
+      }
+      
+      toast.error(errorMessage);
+    } finally {
+      setGoogleLoading(false);
     }
   };
 
@@ -169,15 +183,20 @@ const Login = () => {
 
         <button
           onClick={handleGoogleLogin}
-          className="w-full flex items-center justify-center space-x-3 bg-white border border-gray-200 py-3 rounded-xl font-semibold text-gray-700 hover:bg-gray-50 transition-all shadow-sm mb-6"
+          disabled={googleLoading || authLoading}
+          className="w-full flex items-center justify-center space-x-3 bg-white border border-gray-200 py-3 rounded-xl font-semibold text-gray-700 hover:bg-gray-50 transition-all shadow-sm mb-6 disabled:opacity-50"
         >
-          <img 
-            src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" 
-            alt="Google" 
-            className="w-5 h-5"
-            referrerPolicy="no-referrer"
-          />
-          <span>Google</span>
+          {googleLoading ? (
+            <Loader2 className="animate-spin text-gray-400" size={20} />
+          ) : (
+            <img 
+              src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" 
+              alt="Google" 
+              className="w-5 h-5"
+              referrerPolicy="no-referrer"
+            />
+          )}
+          <span>{googleLoading ? 'Connecting...' : 'Google'}</span>
         </button>
 
         <div className="text-center">
