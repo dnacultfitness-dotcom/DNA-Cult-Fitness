@@ -1,0 +1,250 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: users
+    // Document ID: {userId}
+    // Fields:
+    //   - displayName: string (optional)
+    //   - email: string (required)
+    //   - photoURL: string (optional)
+    //   - createdAt: timestamp (required)
+    //   - lastActive: timestamp (optional)
+    //   - totalTimeOnSite: number (optional)
+    //   - role: string (optional, 'user' or 'admin')
+    //   - customerId: string (optional)
+    //
+    // Sub-collection: details
+    // Document ID: personal
+    // Fields:
+    //   - name: string
+    //   - phone: string
+    //   - height: number
+    //   - weight: number
+    //   - gender: string
+    //   - injury: string
+    //   - lifestyleDisease: string
+    //   - goal: string
+    //   - updatedAt: timestamp
+    //
+    // Collection: aiPlans
+    // Document ID: {planId}
+    // Fields:
+    //   - userId: string (required, must match creator)
+    //   - userName: string
+    //   - planData: map (required)
+    //   - isActive: boolean (optional)
+    //   - createdAt: timestamp (required)
+    //
+    // Collection: weeklyReports
+    // Document ID: {reportId}
+    // Fields:
+    //   - userId: string (required, must match creator)
+    //   - weight: number (required)
+    //   - notes: string (optional)
+    //   - createdAt: timestamp (required)
+    //
+    // Collection: memberships
+    // Document ID: {membershipId}
+    // Fields:
+    //   - userId: string (required, must match creator)
+    //   - name: string
+    //   - email: string
+    //   - phone: string
+    //   - program: string
+    //   - message: string
+    //   - status: string ('pending', 'approved', 'rejected')
+    //   - currentWorkoutIndex: int (default 0)
+    //   - expiryDate: timestamp (optional)
+    //   - createdAt: timestamp (required)
+    //
+    // Collection: dailyWorkouts
+    // Document ID: {workoutId}
+    // Fields:
+    //   - userId: string (required)
+    //   - userName: string
+    //   - date: string (YYYY-MM-DD)
+    //   - status: string ('pending', 'approved', 'denied')
+    //   - action: string ('done', 'skipped')
+    //   - workoutIndex: int
+    //   - adminMessage: string
+    //   - createdAt: timestamp (required)
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && 
+        ((request.auth.token.email == "dnacultfitness@gmail.com" && request.auth.token.email_verified == true) ||
+         (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'));
+    }
+
+    function isValidUser(data) {
+      let allowedFields = ['email', 'displayName', 'photoURL', 'createdAt', 'lastActive', 'totalTimeOnSite', 'role', 'customerId'];
+      return data.keys().hasAll(['email', 'createdAt']) &&
+             data.keys().hasOnly(allowedFields) &&
+             data.email is string &&
+             (data.createdAt is timestamp || data.createdAt == request.time) &&
+             (data.displayName is string || !('displayName' in data)) &&
+             (data.photoURL is string || !('photoURL' in data)) &&
+             (data.role in ['user', 'admin'] || !('role' in data)) &&
+             (data.customerId is string || !('customerId' in data));
+    }
+
+    function isValidPersonalDetails(data) {
+      let allowedFields = ['name', 'phone', 'height', 'weight', 'gender', 'injury', 'lifestyleDisease', 'goal', 'updatedAt'];
+      return data.keys().hasOnly(allowedFields) &&
+             (data.name is string || !('name' in data)) &&
+             (data.phone is string || !('phone' in data)) &&
+             (data.height is number || !('height' in data)) &&
+             (data.weight is number || !('weight' in data)) &&
+             (data.gender is string || !('gender' in data)) &&
+             (data.injury is string || !('injury' in data)) &&
+             (data.lifestyleDisease is string || !('lifestyleDisease' in data)) &&
+             (data.goal is string || !('goal' in data)) &&
+             (data.updatedAt is timestamp || data.updatedAt == request.time || !('updatedAt' in data));
+    }
+
+    function isValidAIPlan(data) {
+      let allowedFields = ['userId', 'userName', 'planData', 'isActive', 'createdAt'];
+      return data.keys().hasAll(['userId', 'planData', 'createdAt']) &&
+             data.keys().hasOnly(allowedFields) &&
+             data.userId is string &&
+             data.planData is map &&
+             (data.isActive is bool || !('isActive' in data)) &&
+             (data.userName is string || !('userName' in data)) &&
+             (data.createdAt is timestamp || data.createdAt == request.time);
+    }
+
+    function isValidWeeklyReport(data) {
+      let allowedFields = ['userId', 'weight', 'notes', 'createdAt'];
+      return data.keys().hasAll(['userId', 'weight', 'createdAt']) &&
+             data.keys().hasOnly(allowedFields) &&
+             data.userId is string &&
+             data.weight is number &&
+             (data.notes is string || !('notes' in data)) &&
+             (data.createdAt is timestamp || data.createdAt == request.time);
+    }
+
+    function isValidMembership(data) {
+      let requiredFields = ['userId', 'email', 'program', 'createdAt', 'status'];
+      let allowedFields = ['userId', 'name', 'email', 'phone', 'program', 'message', 'status', 'createdAt', 'currentWorkoutIndex', 'expiryDate'];
+      return data.keys().hasAll(requiredFields) &&
+             data.keys().hasOnly(allowedFields) &&
+             data.userId is string &&
+             data.email is string &&
+             data.program is string &&
+             data.status in ['pending', 'approved', 'rejected'] &&
+             (data.createdAt is timestamp || data.createdAt == request.time) &&
+             (data.name is string || !('name' in data)) &&
+             (data.phone is string || !('phone' in data)) &&
+             (data.message is string || !('message' in data)) &&
+             (data.currentWorkoutIndex is number || !('currentWorkoutIndex' in data)) &&
+             (data.expiryDate is timestamp || !('expiryDate' in data));
+    }
+
+    function isValidDailyWorkout(data) {
+      let requiredFields = ['userId', 'date', 'status', 'createdAt'];
+      let allowedFields = ['userId', 'userName', 'date', 'status', 'createdAt', 'action', 'workoutIndex', 'adminMessage'];
+      return data.keys().hasAll(requiredFields) &&
+             data.keys().hasOnly(allowedFields) &&
+             data.userId is string &&
+             data.date is string &&
+             data.status in ['pending', 'approved', 'denied'] &&
+             (data.createdAt is timestamp || data.createdAt == request.time) &&
+             (data.userName is string || !('userName' in data)) &&
+             (data.action in ['done', 'skipped'] || !('action' in data)) &&
+             (data.workoutIndex is number || !('workoutIndex' in data)) &&
+             (data.adminMessage is string || !('adminMessage' in data));
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /users/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow create: if isOwner(userId) && isValidUser(request.resource.data);
+      allow update: if (isOwner(userId) || isAdmin()) && isValidUser(request.resource.data);
+      allow delete: if isAdmin();
+      
+      match /details/personal {
+        allow read: if isOwner(userId) || isAdmin();
+        allow write: if (isOwner(userId) || isAdmin()) && isValidPersonalDetails(request.resource.data);
+      }
+    }
+
+    match /aiPlans/{planId} {
+      allow read: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow create: if isAuthenticated() && 
+                      request.resource.data.userId == request.auth.uid &&
+                      isValidAIPlan(request.resource.data);
+      allow update: if isAuthenticated() && 
+                      (isOwner(resource.data.userId) || isAdmin()) && 
+                      request.resource.data.userId == resource.data.userId &&
+                      isValidAIPlan(request.resource.data);
+      allow delete: if isAdmin();
+    }
+
+    match /memberships/{membershipId} {
+      allow read: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow create: if isAuthenticated() && 
+                      request.resource.data.userId == request.auth.uid && 
+                      request.resource.data.status == 'pending' &&
+                      isValidMembership(request.resource.data);
+      allow update: if isAdmin() && 
+                      request.resource.data.userId == resource.data.userId &&
+                      isValidMembership(request.resource.data);
+      allow delete: if isAdmin();
+    }
+
+    match /weeklyReports/{reportId} {
+      allow read: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow create: if isAuthenticated() && 
+                      request.resource.data.userId == request.auth.uid &&
+                      isValidWeeklyReport(request.resource.data);
+      allow update: if isAuthenticated() && 
+                      (isOwner(resource.data.userId) || isAdmin()) && 
+                      request.resource.data.userId == resource.data.userId &&
+                      isValidWeeklyReport(request.resource.data);
+      allow delete: if isAdmin();
+    }
+
+    match /membershipPlans/{planId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /dailyWorkouts/{workoutId} {
+      allow read: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow create: if isAuthenticated() && 
+                      (request.resource.data.userId == request.auth.uid || isAdmin()) && 
+                      request.resource.data.status == 'pending' &&
+                      isValidDailyWorkout(request.resource.data);
+      allow update: if isAdmin() && 
+                      request.resource.data.userId == resource.data.userId &&
+                      isValidDailyWorkout(request.resource.data);
+      allow delete: if isAdmin();
+    }
+    
+    // Default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

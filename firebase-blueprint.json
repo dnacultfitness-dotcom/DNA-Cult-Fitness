@@ -1,0 +1,141 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "User Profile",
+      "description": "Stores user basic information and site usage stats.",
+      "type": "object",
+      "properties": {
+        "displayName": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "photoURL": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "lastActive": { "type": "string", "format": "date-time" },
+        "totalTimeOnSite": { "type": "integer", "description": "Total minutes spent on site" },
+        "role": { "type": "string", "enum": ["user", "admin"] },
+        "customerId": { "type": "string", "description": "Unique customer ID assigned by admin" }
+      },
+      "required": ["email", "createdAt"]
+    },
+    "PersonalDetails": {
+      "title": "Personal Details",
+      "description": "Stores user's physical and health details for AI generation.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "phone": { "type": "string" },
+        "height": { "type": "number" },
+        "weight": { "type": "number" },
+        "gender": { "type": "string" },
+        "injury": { "type": "string" },
+        "lifestyleDisease": { "type": "string" },
+        "goal": { "type": "string" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "AIPlan": {
+      "title": "AI Workout & Diet Plan",
+      "description": "Stores the generated plans for a user.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "userName": { "type": "string" },
+        "planData": { "type": "object" },
+        "isActive": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "planData", "createdAt"]
+    },
+    "WeeklyReport": {
+      "title": "Weekly Progress Report",
+      "description": "Stores user's weekly weight and progress notes.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "weight": { "type": "number" },
+        "notes": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "weight", "createdAt"]
+    },
+    "Membership": {
+      "title": "Membership Application",
+      "description": "Stores membership program applications.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "name": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "phone": { "type": "string" },
+        "program": { "type": "string" },
+        "message": { "type": "string" },
+        "status": { "type": "string", "enum": ["pending", "approved", "rejected"] },
+        "currentWorkoutIndex": { "type": "integer", "description": "Index of the current workout in the plan" },
+        "expiryDate": { "type": "string", "format": "date-time", "description": "Membership expiration date" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "email", "program", "createdAt"]
+    },
+    "MembershipPlan": {
+      "title": "Membership Plan",
+      "description": "Stores details of membership plans including pricing and features.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "features": { "type": "array", "items": { "type": "string" } },
+        "actualPrice": { "type": "number" },
+        "offerPrice": { "type": "number" },
+        "duration": { "type": "string", "description": "e.g., 1 month, 3 months" },
+        "category": { "type": "string", "enum": ["membership", "silver", "gold", "platinum", "kickboxing", "hybrid"] },
+        "order": { "type": "integer" }
+      },
+      "required": ["name", "actualPrice", "offerPrice", "category"]
+    },
+    "DailyWorkout": {
+      "title": "Daily Workout Submission",
+      "description": "Stores user's daily workout completion status for admin verification.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "userName": { "type": "string" },
+        "date": { "type": "string", "description": "YYYY-MM-DD" },
+        "status": { "type": "string", "enum": ["pending", "approved", "denied"] },
+        "action": { "type": "string", "enum": ["done", "skipped"] },
+        "workoutIndex": { "type": "integer" },
+        "adminMessage": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "date", "status", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "User profile document"
+    },
+    "/users/{userId}/details/personal": {
+      "schema": "PersonalDetails",
+      "description": "User's personal health and physical details"
+    },
+    "/aiPlans/{planId}": {
+      "schema": "AIPlan",
+      "description": "Generated AI plans"
+    },
+    "/memberships/{membershipId}": {
+      "schema": "Membership",
+      "description": "Membership applications"
+    },
+    "/weeklyReports/{reportId}": {
+      "schema": "WeeklyReport",
+      "description": "Weekly progress reports"
+    },
+    "/membershipPlans/{planId}": {
+      "schema": "MembershipPlan",
+      "description": "Configurable membership plans"
+    },
+    "/dailyWorkouts/{workoutId}": {
+      "schema": "DailyWorkout",
+      "description": "Daily workout completion logs"
+    }
+  }
+}
