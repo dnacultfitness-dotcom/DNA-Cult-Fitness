@@ -1,5 +1,5 @@
-import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { auth, onAuthStateChanged, User, db, doc, onSnapshot, setDoc, serverTimestamp, handleFirestoreError, OperationType } from '../firebase';
+import React, { createContext, useContext, useEffect, useState, ReactNode, useMemo } from 'react';
+import { auth, onAuthStateChanged, User, db, doc, onSnapshot, setDoc, serverTimestamp, handleFirestoreError, OperationType, query, collection, where } from '../firebase';
 
 interface UserProfile {
   displayName: string | null;
@@ -8,7 +8,7 @@ interface UserProfile {
   createdAt: any;
   lastActive: any;
   totalTimeOnSite: number;
-  role: 'user' | 'admin';
+  role: 'customer' | 'admin' | 'trainer' | 'user';
 }
 
 interface PersonalDetails {
@@ -29,6 +29,8 @@ interface FirebaseContextType {
   personalDetails: PersonalDetails | null;
   loading: boolean;
   isAdmin: boolean;
+  isTrainer: boolean;
+  trainerData: any | null;
 }
 
 const FirebaseContext = createContext<FirebaseContextType | undefined>(undefined);
@@ -38,7 +40,7 @@ export function FirebaseProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [personalDetails, setPersonalDetails] = useState<PersonalDetails | null>(null);
   const [loading, setLoading] = useState(true);
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [trainerData, setTrainerData] = useState<any | null>(null);
 
   useEffect(() => {
     const unsubscribeAuth = onAuthStateChanged(auth, async (currentUser) => {
@@ -52,7 +54,6 @@ export function FirebaseProvider({ children }: { children: ReactNode }) {
           if (snapshot.exists()) {
             const data = snapshot.data() as UserProfile;
             setProfile(data);
-            setIsAdmin(data.role === 'admin' || currentUser.email === 'dnacultfitness@gmail.com');
           } else {
             // Create profile if it doesn't exist
             const newProfile: UserProfile = {
@@ -62,7 +63,7 @@ export function FirebaseProvider({ children }: { children: ReactNode }) {
               createdAt: serverTimestamp(),
               lastActive: serverTimestamp(),
               totalTimeOnSite: 0,
-              role: currentUser.email === 'dnacultfitness@gmail.com' ? 'admin' : 'user'
+              role: currentUser.email === 'dnacultfitness@gmail.com' ? 'admin' : 'customer'
             };
             setDoc(userDocRef, newProfile).catch(err => handleFirestoreError(err, OperationType.WRITE, `users/${currentUser.uid}`));
           }
@@ -76,15 +77,26 @@ export function FirebaseProvider({ children }: { children: ReactNode }) {
           }
         }, (err) => handleFirestoreError(err, OperationType.GET, `users/${currentUser.uid}/details/personal`));
 
+        // Check if user is a trainer
+        const trainerQuery = query(collection(db, 'trainers'), where('email', '==', currentUser.email));
+        const unsubscribeTrainer = onSnapshot(trainerQuery, (snapshot) => {
+          if (!snapshot.empty) {
+            setTrainerData({ id: snapshot.docs[0].id, ...snapshot.docs[0].data() });
+          } else {
+            setTrainerData(null);
+          }
+        }, (err) => handleFirestoreError(err, OperationType.LIST, 'trainers'));
+
         setLoading(false);
         return () => {
           unsubscribeProfile();
           unsubscribeDetails();
+          unsubscribeTrainer();
         };
       } else {
         setProfile(null);
         setPersonalDetails(null);
-        setIsAdmin(false);
+        setTrainerData(null);
         setLoading(false);
       }
     });
@@ -92,8 +104,16 @@ export function FirebaseProvider({ children }: { children: ReactNode }) {
     return () => unsubscribeAuth();
   }, []);
 
+  const isAdmin = useMemo(() => {
+    return profile?.role === 'admin' || user?.email === 'dnacultfitness@gmail.com';
+  }, [profile, user]);
+
+  const isTrainer = useMemo(() => {
+    return !!trainerData || profile?.role === 'trainer';
+  }, [trainerData, profile]);
+
   return (
-    <FirebaseContext.Provider value={{ user, profile, personalDetails, loading, isAdmin }}>
+    <FirebaseContext.Provider value={{ user, profile, personalDetails, loading, isAdmin, isTrainer, trainerData }}>
       {children}
     </FirebaseContext.Provider>
   );

@@ -38,6 +38,7 @@ import { toast } from 'sonner';
 import { cn } from '../lib/utils';
 import PhoneInput from '../components/PhoneInput';
 import { auth, signOut } from '../firebase';
+import { NotificationBell } from '../components/NotificationBell';
 
 const Profile = () => {
   const { user, profile, personalDetails, loading: authLoading } = useFirebase();
@@ -45,6 +46,12 @@ const Profile = () => {
   const [success, setSuccess] = useState(false);
   const [activeTab, setActiveTab] = useState<'overview' | 'settings' | 'workout'>('overview');
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!authLoading && !user) {
+      navigate('/login');
+    }
+  }, [user, authLoading, navigate]);
 
   // Dashboard States
   const [activePlan, setActivePlan] = useState<any>(null);
@@ -300,7 +307,6 @@ const Profile = () => {
   }
 
   if (!user) {
-    navigate('/login');
     return null;
   }
 
@@ -311,10 +317,18 @@ const Profile = () => {
         <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-6">
           <div>
             <span className="text-brand font-black uppercase tracking-widest text-xs mb-3 block">Member Portal</span>
-            <h1 className="text-3xl font-bold text-gray-900">Your Dashboard</h1>
+            <div className="flex items-center justify-between">
+              <h1 className="text-3xl font-bold text-gray-900">Your Dashboard</h1>
+              <div className="md:hidden">
+                <NotificationBell />
+              </div>
+            </div>
           </div>
           <div className="flex flex-col sm:flex-row items-center gap-4">
-            <div className="flex bg-white p-1 rounded-xl border border-gray-200 w-full sm:w-auto overflow-x-auto">
+            <div className="hidden md:block">
+              <NotificationBell />
+            </div>
+            <div className="flex bg-white p-1 rounded-xl border border-gray-200">
               <button
                 onClick={() => setActiveTab('overview')}
                 className={cn(
@@ -516,12 +530,18 @@ const Profile = () => {
 
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                           <div className="p-5 bg-gray-50 rounded-2xl border border-gray-100">
-                            <p className="text-[10px] text-gray-400 uppercase font-black tracking-widest mb-2">Duration</p>
-                            <p className="font-black text-gray-900 uppercase">4-6 Weeks</p>
+                            <p className="text-[10px] text-gray-400 uppercase font-black tracking-widest mb-2">Tier</p>
+                            <p className="font-black text-gray-900 uppercase">
+                              {membership?.approvedAiPlan 
+                                ? membership.approvedAiPlan.replace(/_/g, ' ') 
+                                : 'Demo Tier'}
+                            </p>
                           </div>
                           <div className="p-5 bg-gray-50 rounded-2xl border border-gray-100">
-                            <p className="text-[10px] text-gray-400 uppercase font-black tracking-widest mb-2">Difficulty</p>
-                            <p className="font-black text-gray-900 uppercase">Intermediate</p>
+                            <p className="text-[10px] text-gray-400 uppercase font-black tracking-widest mb-2">Duration</p>
+                            <p className="font-black text-gray-900 uppercase">
+                              {membership?.approvedAiPlan?.includes('1_month') ? '1 Month' : '1 Week'}
+                            </p>
                           </div>
                           <div className="p-5 bg-gray-50 rounded-2xl border border-gray-100">
                             <p className="text-[10px] text-gray-400 uppercase font-black tracking-widest mb-2">Focus</p>

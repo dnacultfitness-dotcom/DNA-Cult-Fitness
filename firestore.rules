@@ -73,6 +73,16 @@ service cloud.firestore {
     //   - adminMessage: string
     //   - createdAt: timestamp (required)
     //
+    // Collection: trainers
+    // Document ID: {trainerId}
+    // Fields:
+    //   - name: string
+    //   - staffId: string
+    //   - speciality: string
+    //   - numberOfClients: number
+    //   - email: string
+    //   - createdAt: timestamp
+    //
     // ===============================================================
 
     // ===============================================================
@@ -94,15 +104,20 @@ service cloud.firestore {
           get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'));
     }
 
+    function isTrainer() {
+      return isAuthenticated() && 
+             (isAdmin() || 
+              get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'trainer');
+    }
+
     function isValidUser(data) {
       let allowedFields = ['email', 'displayName', 'photoURL', 'createdAt', 'lastActive', 'totalTimeOnSite', 'role', 'customerId'];
-      return data.keys().hasAll(['email', 'createdAt']) &&
-             data.keys().hasOnly(allowedFields) &&
-             data.email is string &&
-             (data.createdAt is timestamp || data.createdAt == request.time) &&
+      return data.keys().hasOnly(allowedFields) &&
+             (data.email is string || !('email' in data)) &&
+             (data.createdAt is timestamp || data.createdAt == request.time || !('createdAt' in data)) &&
              (data.displayName is string || !('displayName' in data)) &&
              (data.photoURL is string || !('photoURL' in data)) &&
-             (data.role in ['user', 'admin'] || !('role' in data)) &&
+             (data.role in ['user', 'admin', 'trainer', 'customer'] || !('role' in data)) &&
              (data.customerId is string || !('customerId' in data));
     }
 
@@ -121,14 +136,15 @@ service cloud.firestore {
     }
 
     function isValidAIPlan(data) {
-      let allowedFields = ['userId', 'userName', 'planData', 'isActive', 'createdAt'];
+      let allowedFields = ['userId', 'userName', 'planData', 'isActive', 'createdAt', 'updatedAt'];
       return data.keys().hasAll(['userId', 'planData', 'createdAt']) &&
              data.keys().hasOnly(allowedFields) &&
              data.userId is string &&
              data.planData is map &&
              (data.isActive is bool || !('isActive' in data)) &&
              (data.userName is string || !('userName' in data)) &&
-             (data.createdAt is timestamp || data.createdAt == request.time);
+             (data.createdAt is timestamp || data.createdAt == request.time) &&
+             (data.updatedAt is timestamp || data.updatedAt == request.time || !('updatedAt' in data));
     }
 
     function isValidWeeklyReport(data) {
@@ -143,7 +159,7 @@ service cloud.firestore {
 
     function isValidMembership(data) {
       let requiredFields = ['userId', 'email', 'program', 'createdAt', 'status'];
-      let allowedFields = ['userId', 'name', 'email', 'phone', 'program', 'message', 'status', 'createdAt', 'currentWorkoutIndex', 'expiryDate'];
+      let allowedFields = ['userId', 'name', 'email', 'phone', 'program', 'message', 'status', 'createdAt', 'currentWorkoutIndex', 'expiryDate', 'approvedAiPlan', 'lastWorkoutDate', 'lastWorkoutStatus', 'trainerId'];
       return data.keys().hasAll(requiredFields) &&
              data.keys().hasOnly(allowedFields) &&
              data.userId is string &&
@@ -155,7 +171,11 @@ service cloud.firestore {
              (data.phone is string || !('phone' in data)) &&
              (data.message is string || !('message' in data)) &&
              (data.currentWorkoutIndex is number || !('currentWorkoutIndex' in data)) &&
-             (data.expiryDate is timestamp || !('expiryDate' in data));
+             (data.expiryDate is timestamp || !('expiryDate' in data)) &&
+             (data.approvedAiPlan is string || !('approvedAiPlan' in data)) &&
+             (data.lastWorkoutDate is string || !('lastWorkoutDate' in data)) &&
+             (data.lastWorkoutStatus is string || !('lastWorkoutStatus' in data)) &&
+             (data.trainerId is string || data.trainerId == null || !('trainerId' in data));
     }
 
     function isValidDailyWorkout(data) {
@@ -173,24 +193,67 @@ service cloud.firestore {
              (data.adminMessage is string || !('adminMessage' in data));
     }
 
+    function isValidTrainer(data) {
+      let requiredFields = ['name', 'staffId', 'email', 'createdAt'];
+      let allowedFields = ['name', 'staffId', 'speciality', 'numberOfClients', 'email', 'createdAt'];
+      return data.keys().hasAll(requiredFields) &&
+             data.keys().hasOnly(allowedFields) &&
+             data.name is string &&
+             data.staffId is string &&
+             data.email is string &&
+             data.numberOfClients is number &&
+             (data.speciality is string || !('speciality' in data)) &&
+             (data.createdAt is timestamp || data.createdAt == request.time);
+    }
+
+    function isValidPlanApprovalRequest(data) {
+      let requiredFields = ['userId', 'planId', 'trainerId', 'requestedPlanData', 'status', 'createdAt'];
+      let allowedFields = ['userId', 'userName', 'planId', 'trainerId', 'trainerName', 'requestedPlanData', 'status', 'adminMessage', 'createdAt'];
+      return data.keys().hasAll(requiredFields) &&
+             data.keys().hasOnly(allowedFields) &&
+             data.userId is string &&
+             data.planId is string &&
+             data.trainerId is string &&
+             data.requestedPlanData is map &&
+             data.status in ['pending', 'approved', 'rejected'] &&
+             (data.createdAt is timestamp || data.createdAt == request.time) &&
+             (data.userName is string || !('userName' in data)) &&
+             (data.trainerName is string || !('trainerName' in data)) &&
+             (data.adminMessage is string || !('adminMessage' in data));
+    }
+
+    function isValidNotification(data) {
+      let requiredFields = ['userId', 'title', 'message', 'read', 'createdAt'];
+      let allowedFields = ['userId', 'title', 'message', 'read', 'createdAt', 'type', 'link'];
+      return data.keys().hasAll(requiredFields) &&
+             data.keys().hasOnly(allowedFields) &&
+             data.userId is string &&
+             data.title is string &&
+             data.message is string &&
+             data.read is bool &&
+             (data.createdAt is timestamp || data.createdAt == request.time) &&
+             (data.type in ['info', 'success', 'warning', 'error'] || !('type' in data)) &&
+             (data.link is string || !('link' in data));
+    }
+
     // ===============================================================
     // Rules
     // ===============================================================
 
     match /users/{userId} {
-      allow read: if isOwner(userId) || isAdmin();
+      allow read: if isOwner(userId) || isAdmin() || isTrainer();
       allow create: if isOwner(userId) && isValidUser(request.resource.data);
       allow update: if (isOwner(userId) || isAdmin()) && isValidUser(request.resource.data);
       allow delete: if isAdmin();
       
       match /details/personal {
-        allow read: if isOwner(userId) || isAdmin();
+        allow read: if isOwner(userId) || isAdmin() || isTrainer();
         allow write: if (isOwner(userId) || isAdmin()) && isValidPersonalDetails(request.resource.data);
       }
     }
 
     match /aiPlans/{planId} {
-      allow read: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow read: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin() || isTrainer());
       allow create: if isAuthenticated() && 
                       request.resource.data.userId == request.auth.uid &&
                       isValidAIPlan(request.resource.data);
@@ -242,6 +305,26 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
     
+    match /trainers/{trainerId} {
+      allow read: if true;
+      allow write: if isAdmin() && isValidTrainer(request.resource.data);
+    }
+
+    match /planApprovalRequests/{requestId} {
+      allow read: if isAdmin() || (isAuthenticated() && resource.data.trainerId == request.auth.uid);
+      allow create: if isTrainer() && request.resource.data.trainerId == request.auth.uid && isValidPlanApprovalRequest(request.resource.data);
+      allow update: if isAdmin() && isValidPlanApprovalRequest(request.resource.data);
+      allow delete: if isAdmin();
+    }
+    
+    match /notifications/{notificationId} {
+      allow read: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow create: if isAuthenticated(); // Any internal process can create
+      allow update: if isAuthenticated() && resource.data.userId == request.auth.uid && 
+                      request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read']);
+      allow delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
+    }
+
     // Default deny
     match /{document=**} {
       allow read, write: if false;

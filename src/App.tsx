@@ -15,13 +15,14 @@ import Services from './pages/Services';
 import Membership from './pages/Membership';
 import Contact from './pages/Contact';
 import AdminDashboard from './pages/AdminDashboard';
+import TrainerDashboard from './pages/TrainerDashboard';
 import Login from './pages/Login';
 import AIAssistant from './pages/AIAssistant';
 import Profile from './pages/Profile';
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = React.useState(false);
-  const { user, profile } = useFirebase();
+  const { user, profile, isAdmin, isTrainer } = useFirebase();
   const location = useLocation();
 
   const navLinks = [
@@ -33,6 +34,12 @@ const Navbar = () => {
   ];
 
   if (user) {
+    if (isAdmin) {
+      navLinks.push({ name: 'Admin', path: '/admin' });
+    }
+    if (isTrainer) {
+      navLinks.push({ name: 'Trainer Hub', path: '/trainer' });
+    }
     navLinks.splice(3, 0, { name: 'Profile', path: '/profile' });
   }
 
@@ -93,7 +100,7 @@ const Navbar = () => {
 
           {/* Mobile Menu Button */}
           <div className="md:hidden flex items-center">
-            <button onClick={() => setIsOpen(!isOpen)} className="text-gray-300 p-2 hover:text-brand-green">
+            <button onClick={() => setIsOpen(!isOpen)} className="text-gray-300 p-2 hover:text-brand-green transition-colors">
               {isOpen ? <X size={24} /> : <Menu size={24} />}
             </button>
           </div>
@@ -240,6 +247,7 @@ export default function App() {
               <Route path="/login" element={<Login />} />
               <Route path="/dashboard" element={<Profile />} />
               <Route path="/profile" element={<Profile />} />
+              <Route path="/trainer/*" element={<TrainerDashboard />} />
               <Route path="/admin/*" element={<AdminDashboard />} />
             </Routes>
           </main>

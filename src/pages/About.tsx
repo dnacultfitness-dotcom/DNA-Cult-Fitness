@@ -16,24 +16,6 @@ const About = () => {
     }
   ];
 
-  const trainers = [
-    {
-      name: "Alex Johnson",
-      specialty: "Strength & Conditioning",
-      image: "https://images.unsplash.com/photo-1567013127542-490d757e51fe?q=80&w=1974&auto=format&fit=crop"
-    },
-    {
-      name: "Sarah Miller",
-      specialty: "CrossFit & Mobility",
-      image: "https://images.unsplash.com/photo-1548690312-e3b507d17a47?q=80&w=1974&auto=format&fit=crop"
-    },
-    {
-      name: "Mike Chen",
-      specialty: "Kick-Boxing & HIIT",
-      image: "https://images.unsplash.com/photo-1583454110551-21f2fa2ae617?q=80&w=2070&auto=format&fit=crop"
-    }
-  ];
-
   return (
     <div className="pt-20">
       {/* Hero Section */}
@@ -115,39 +97,6 @@ const About = () => {
         </div>
       </section>
 
-      {/* Trainers */}
-      <section className="py-24 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-5xl font-bold tracking-tight text-gray-900 mb-4">Meet Our Elite Trainers</h2>
-            <p className="text-gray-600 max-w-2xl mx-auto">
-              Our coaches are more than just trainers; they are mentors dedicated to your success.
-            </p>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
-            {trainers.map((trainer, index) => (
-              <motion.div
-                key={index}
-                whileHover={{ y: -10 }}
-                className="group"
-              >
-                <div className="relative h-[400px] rounded-3xl overflow-hidden mb-6">
-                  <img 
-                    src={trainer.image} 
-                    alt={trainer.name} 
-                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                    referrerPolicy="no-referrer"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                </div>
-                <h3 className="text-2xl font-bold text-gray-900">{trainer.name}</h3>
-                <p className="text-brand-green font-medium">{trainer.specialty}</p>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
     </div>
   );
 };

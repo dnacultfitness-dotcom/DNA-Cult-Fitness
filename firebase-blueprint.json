@@ -69,8 +69,10 @@
         "program": { "type": "string" },
         "message": { "type": "string" },
         "status": { "type": "string", "enum": ["pending", "approved", "rejected"] },
+        "approvedAiPlan": { "type": "string", "description": "Type of AI plan granted (e.g., silver_1_month, gold_1_month)" },
         "currentWorkoutIndex": { "type": "integer", "description": "Index of the current workout in the plan" },
         "expiryDate": { "type": "string", "format": "date-time", "description": "Membership expiration date" },
+        "trainerId": { "type": "string", "description": "ID of the assigned trainer" },
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["userId", "email", "program", "createdAt"]
@@ -106,6 +108,52 @@
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["userId", "date", "status", "createdAt"]
+    },
+    "Trainer": {
+      "title": "Trainer",
+      "description": "Stores trainer information for staff management.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "staffId": { "type": "string" },
+        "speciality": { "type": "string" },
+        "numberOfClients": { "type": "integer" },
+        "email": { "type": "string", "format": "email" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "staffId", "email", "createdAt"]
+    },
+    "PlanApprovalRequest": {
+      "title": "Plan Approval Request",
+      "description": "Stores requests from trainers to update a user's AI plan.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "userName": { "type": "string" },
+        "planId": { "type": "string", "description": "Original plan document ID" },
+        "trainerId": { "type": "string" },
+        "trainerName": { "type": "string" },
+        "requestedPlanData": { "type": "object" },
+        "status": { "type": "string", "enum": ["pending", "approved", "rejected"] },
+        "adminMessage": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "planId", "trainerId", "requestedPlanData", "status", "createdAt"]
+    },
+    "Notification": {
+      "title": "Notification",
+      "description": "Stores notifications for users and staff.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "The recipient of the notification" },
+        "title": { "type": "string" },
+        "message": { "type": "string" },
+        "type": { "type": "string", "enum": ["info", "success", "warning", "error"] },
+        "read": { "type": "boolean" },
+        "link": { "type": "string", "description": "Optional navigation link" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "title", "message", "read", "createdAt"]
     }
   },
   "firestore": {
@@ -136,6 +184,18 @@
     "/dailyWorkouts/{workoutId}": {
       "schema": "DailyWorkout",
       "description": "Daily workout completion logs"
+    },
+    "/trainers/{trainerId}": {
+      "schema": "Trainer",
+      "description": "Trainer information"
+    },
+    "/planApprovalRequests/{requestId}": {
+      "schema": "PlanApprovalRequest",
+      "description": "Trainer requests for plan modifications"
+    },
+    "/notifications/{notificationId}": {
+      "schema": "Notification",
+      "description": "System and user notifications"
     }
   }
 }

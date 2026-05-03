@@ -4,7 +4,7 @@ import { auth, googleProvider, signInWithPopup, createUserWithEmailAndPassword, 
 import { useFirebase } from '../components/FirebaseProvider';
 import { toast } from 'sonner';
 import { motion } from 'motion/react';
-import { LogIn, ShieldCheck, Mail, Lock, UserPlus, CheckCircle } from 'lucide-react';
+import { LogIn, ShieldCheck, Mail, Lock, UserPlus, CheckCircle, Loader2 } from 'lucide-react';
 
 const Login = () => {
   const { user, loading } = useFirebase();
@@ -66,19 +66,28 @@ const Login = () => {
 
   const handleGoogleLogin = async () => {
     setGoogleLoading(true);
+    console.log('Starting Google Login...');
     try {
-      await signInWithPopup(auth, googleProvider);
+      const result = await signInWithPopup(auth, googleProvider);
+      console.log('Google Login Result:', result.user.email);
       toast.success('Successfully logged in!');
     } catch (error: any) {
-      console.error('Login error:', error);
+      console.error('Google Login error details:', error);
       let errorMessage = 'Failed to login with Google.';
       
       if (error.code === 'auth/popup-blocked') {
         errorMessage = 'SignIn popup was blocked by your browser. Please allow popups for this site.';
+        toast.error(errorMessage, { duration: 10000 });
       } else if (error.code === 'auth/unauthorized-domain') {
-        errorMessage = 'This domain is not authorized for Google Sign-In. Please contact the administrator.';
+        errorMessage = 'This domain is not authorized for Google Sign-In. Administrator needs to add this domain to Firebase Console Authorized Domains.';
+        toast.error(errorMessage, { duration: 10000 });
+        console.warn('Unauthorized Domain:', window.location.hostname);
+      } else if (error.code === 'auth/cancelled-popup-request') {
+        errorMessage = 'Login cancelled. Only one login popup can be opened at a time.';
+      } else if (error.code === 'auth/popup-closed-by-user') {
+        errorMessage = 'Login popup was closed before completion.';
       } else if (error.message) {
-        errorMessage = `Login failed: ${error.message}`;
+        errorMessage = `Login error (${error.code || 'unknown'}): ${error.message}`;
       }
       
       toast.error(errorMessage);
@@ -198,6 +207,16 @@ const Login = () => {
           )}
           <span>{googleLoading ? 'Connecting...' : 'Google'}</span>
         </button>
+
+        {window.location.hostname.includes('aistudio.google') || window.location.hostname.includes('run.app') ? (
+          <div className="bg-blue-50 border border-blue-100 p-4 rounded-xl mb-6">
+            <p className="text-[10px] text-blue-800 font-medium leading-relaxed">
+              <span className="font-bold">Note:</span> If Google Login fails on this preview site, ensure you have:
+              <br />1. Enabled Google Auth in Firebase Console.
+              <br />2. Added <code className="bg-blue-100 px-1 rounded">{window.location.hostname}</code> to <b>Authorized Domains</b> in Firebase Authentication settings.
+            </p>
+          </div>
+        ) : null}
 
         <div className="text-center">
           <button

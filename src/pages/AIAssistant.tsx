@@ -46,12 +46,13 @@ const ProgressTracker = () => {
 
     const q = query(
       collection(db, 'weeklyReports'),
-      where('userId', '==', user.uid),
-      orderBy('createdAt', 'desc')
+      where('userId', '==', user.uid)
     );
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      setReports(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      let data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as any));
+      data.sort((a, b) => (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0));
+      setReports(data);
       setLoading(false);
     }, (err) => {
       handleFirestoreError(err, OperationType.LIST, 'weeklyReports');
@@ -176,7 +177,7 @@ const AIAssistant = () => {
   const [result, setResult] = useState<PlanData | null>(null);
   const [currentPlanId, setCurrentPlanId] = useState<string | null>(null);
   const [history, setHistory] = useState<any[]>([]);
-  const [membershipStatus, setMembershipStatus] = useState<'pending' | 'approved' | 'rejected' | 'none'>('none');
+  const [membershipInfo, setMembershipInfo] = useState<{ status: string, approvedAiPlan?: string }>({ status: 'none' });
   const resultRef = useRef<HTMLDivElement>(null);
   const [formData, setFormData] = useState({
     name: '',
@@ -233,9 +234,12 @@ const AIAssistant = () => {
         const expiryDate = data.expiryDate?.toDate();
         const isExpired = expiryDate ? expiryDate < new Date() : false;
         
-        setMembershipStatus(isExpired ? 'expired' : status);
+        setMembershipInfo({ 
+          status: isExpired ? 'expired' : status, 
+          approvedAiPlan: data.approvedAiPlan 
+        });
       } else {
-        setMembershipStatus('none');
+        setMembershipInfo({ status: 'none' });
       }
     }, (err) => handleFirestoreError(err, OperationType.LIST, 'memberships'));
 
@@ -284,11 +288,39 @@ const AIAssistant = () => {
       const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || '' });
       const model = "gemini-3-flash-preview";
       
-      const isMember = membershipStatus === 'approved';
-      const planDuration = isMember ? "1-month" : "demo 1-week";
-      const planInstructions = isMember 
-        ? "Provide a structured weekly plan (7 days) that can be repeated for 4 weeks."
-        : "Provide a structured 1-week demo plan (7 days). This is a trial version.";
+      const isApproved = membershipInfo.status === 'approved';
+      const aiPlanTier = isApproved ? membershipInfo.approvedAiPlan : 'demo';
+
+      let planDuration = "1-week demo";
+      let planInstructions = "Provide a structured 1-week demo workout plan (7 days). This is a trial version.";
+
+      if (isApproved) {
+        switch (aiPlanTier) {
+          case 'new_user_1_week':
+            planDuration = "1-week starter";
+            planInstructions = "Provide a structured 1-week beginner plan for a new user. Focus on fundamentals.";
+            break;
+          case 'normal_1_week':
+            planDuration = "1-week";
+            planInstructions = "Provide a structured 1-week plan for a regular member. Balanced workout and basic diet.";
+            break;
+          case 'silver_1_month':
+            planDuration = "1-month beginner";
+            planInstructions = "Provide a structured 1-month beginner workout and diet plan. Split into a 7-day routine that should be followed for 4 weeks.";
+            break;
+          case 'gold_1_month':
+            planDuration = "1-month transformation";
+            planInstructions = "Provide a high-intensity 1-month transformation workout and diet plan. Focus on significant body recomposition.";
+            break;
+          case 'platinum_1_month':
+            planDuration = "1-month advanced transformation";
+            planInstructions = "Provide a professional-grade 1-month advanced transformation, recovery, and diet plan. Include specific recovery protocols and advanced nutritional timing.";
+            break;
+          default:
+            planDuration = "1-week demo";
+            planInstructions = "Provide a basic 1-week demo plan as no specific tier was assigned.";
+        }
+      }
 
       const prompt = `
         Generate a comprehensive ${planDuration} personalized diet and workout plan for the following individual:
@@ -300,7 +332,7 @@ const AIAssistant = () => {
         Lifestyle Diseases: ${formData.lifestyleDisease || 'None'}
         Goal: ${formData.goal || 'General fitness'}
 
-        ${planInstructions}
+        TIER SETTINGS: ${planInstructions}
       `;
 
       const response = await ai.models.generateContent({
@@ -412,7 +444,7 @@ const AIAssistant = () => {
     
     doc.setFontSize(16);
     doc.setTextColor(0, 0, 0);
-    const pdfTitle = membershipStatus === 'approved' 
+    const pdfTitle = membershipInfo.status === 'approved' 
       ? "Personalized 1-Month Fitness & Diet Plan" 
       : "Personalized 1-Week Demo Fitness & Diet Plan";
     doc.text(pdfTitle, pageWidth / 2, 30, { align: 'center' });
@@ -503,13 +535,13 @@ const AIAssistant = () => {
             AI DIET & <span className="text-brand">WORKOUT</span>
           </h1>
           <p className="text-lg font-bold text-gray-400 max-w-2xl mx-auto uppercase tracking-wide">
-            {membershipStatus === 'approved' 
+            {membershipInfo.status === 'approved' 
               ? "Get your personalized 1-month professional plan."
-              : membershipStatus === 'expired'
+              : membershipInfo.status === 'expired'
               ? "Your membership has expired. Renew to access 1-month plans."
               : "Generate a 1-week demo plan to experience our AI training."}
           </p>
-          {!loading && membershipStatus !== 'approved' && (
+          {!loading && membershipInfo.status !== 'approved' && (
             <div className="mt-6">
               <Link 
                 to="/membership" 
@@ -806,7 +838,7 @@ const AIAssistant = () => {
                     <div className="flex items-center justify-between mb-6">
                       <h2 className="text-2xl font-bold text-gray-900 flex items-center">
                         <Calendar className="mr-3 text-green-600" /> 
-                        {membershipStatus === 'approved' ? "Your 1-Month Plan" : "Your 1-Week Demo Plan"}
+                        {membershipInfo.status === 'approved' ? "Your Professional AI Plan" : "Your 1-Week Demo Plan"}
                       </h2>
                       <div className="flex items-center space-x-3">
                         {currentPlanId && (

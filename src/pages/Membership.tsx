@@ -8,6 +8,7 @@ import { CheckCircle2, ShieldCheck, Zap, Users, Award, Star, Crown, Shield, Zap 
 import { useFirebase } from '../components/FirebaseProvider';
 import { db, collection, addDoc, serverTimestamp, handleFirestoreError, OperationType, query, orderBy, onSnapshot } from '../firebase';
 import PhoneInput from '../components/PhoneInput';
+import { notifyAdmins, NotificationType } from '../utils/notifications';
 
 const membershipSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
@@ -61,6 +62,14 @@ const Membership = () => {
         status: 'pending',
         createdAt: serverTimestamp()
       });
+      
+      // Notify Admins
+      await notifyAdmins(
+        'New Membership Application',
+        `${data.name} has applied for the ${data.program} program.`,
+        NotificationType.INFO,
+        '/admin/memberships'
+      );
       
       toast.success('Application submitted successfully! We will contact you soon.');
       reset();
