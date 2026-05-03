@@ -11,7 +11,7 @@ import {
   sendEmailVerification
 } from 'firebase/auth';
 import { 
-  getFirestore, 
+  initializeFirestore,
   collection, 
   getDocs, 
   query, 
@@ -40,21 +40,31 @@ if (!firebaseConfig.apiKey || !firebaseConfig.authDomain) {
 
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
-export const db = getFirestore(app, (firebaseConfig as any).firestoreDatabaseId || '(default)');
+
+// Use initializeFirestore instead of getFirestore to enable long polling
+export const db = initializeFirestore(app, {
+  experimentalForceLongPolling: true,
+}, (firebaseConfig as any).firestoreDatabaseId || '(default)');
 export const googleProvider = new GoogleAuthProvider();
 googleProvider.setCustomParameters({ prompt: 'select_account' });
 
-// Connection test
+// Connection test with better guidance
 async function testConnection() {
   try {
     // Try to fetch a non-existent doc just to check connectivity
     await getDocFromServer(doc(db, '_connection_test_', 'ping'));
-    console.log("Firebase connection test successful.");
-  } catch (error) {
-    if (error instanceof Error && error.message.includes('the client is offline')) {
-      console.error("Firebase connection failed: The client is offline. Please check your Firebase configuration or internet connection.");
+    console.log("Firebase Firestore connection successful.");
+  } catch (error: any) {
+    if (error.code === 'failed-precondition') {
+      console.warn("Firestore: Failed precondition. This usually means the database is not enabled or index is missing.");
+    } else if (error.message && error.message.includes('the client is offline')) {
+      console.error("Firebase connection failed: The client is offline.");
+      console.info("TIP: Check if Firestore is enabled in your Firebase Console (dna-users) and that you've selected a region.");
+    } else if (error.code === 'permission-denied') {
+      console.log("Firestore connection test: Rules are working (Permission Denied as expected for test doc).");
+    } else {
+      console.log("Firestore connection test result:", error.code || error.message);
     }
-    // Other errors (like permission denied) are fine for a connection test
   }
 }
 testConnection();
