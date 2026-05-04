@@ -160,6 +160,9 @@ const ClientDetail = ({ client, onBack }: { client: any, onBack: () => void }) =
   const [isEditing, setIsEditing] = useState(false);
   const [editData, setEditData] = useState<any | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [showAppointments, setShowAppointments] = useState(false);
+  const [appointments, setAppointments] = useState<any[]>([]);
+  const [bookingLoading, setBookingLoading] = useState(false);
 
   useEffect(() => {
     // Fetch AI Plan
@@ -183,8 +186,58 @@ const ClientDetail = ({ client, onBack }: { client: any, onBack: () => void }) =
       setDailyWorkouts(data);
     });
 
-    return () => { unsubPlan(); unsubWorkouts(); };
-  }, [client]);
+    // Fetch Appointments
+    const qAppts = query(collection(db, 'appointments'), where('trainerId', '==', user.uid));
+    const unsubAppts = onSnapshot(qAppts, (snap) => {
+      let data = snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as any));
+      data.sort((a, b) => (b.date?.toMillis() || 0) - (a.date?.toMillis() || 0));
+      setAppointments(data);
+    });
+
+    return () => { unsubPlan(); unsubWorkouts(); unsubAppts(); };
+  }, [client, user.uid]);
+
+  const handleBookAppointment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const target = e.target as HTMLFormElement;
+    const date = target.date.value;
+    const time = target.time.value;
+    const notes = target.notes.value;
+
+    if (!date || !time) return;
+
+    setBookingLoading(true);
+    const loadingToast = toast.loading('Booking appointment...');
+
+    try {
+      await addDoc(collection(db, 'appointments'), {
+        userId: client.id,
+        userName: client.displayName || client.email,
+        trainerId: user.uid,
+        trainerName: trainerData.name,
+        date: new Date(`${date}T${time}`),
+        notes,
+        status: 'confirmed',
+        createdAt: serverTimestamp()
+      });
+
+      await createNotification(
+        client.id,
+        'Appointment Booked',
+        `Your trainer ${trainerData.name} has scheduled a session for ${date} at ${time}.`,
+        NotificationType.SUCCESS,
+        '/profile'
+      );
+
+      toast.success('Appointment booked successfully!', { id: loadingToast });
+      setShowAppointments(false);
+      target.reset();
+    } catch (err) {
+      handleFirestoreError(err, OperationType.CREATE, 'appointments');
+    } finally {
+      setBookingLoading(false);
+    }
+  };
 
   const handleSubmitForApproval = async () => {
     if (!editData || !selectedPlan || submitting) return;
@@ -279,28 +332,99 @@ const ClientDetail = ({ client, onBack }: { client: any, onBack: () => void }) =
                 </h3>
                 <p className="text-xs text-gray-400 font-bold uppercase tracking-widest mt-1">Status: Active Program</p>
               </div>
-              {!isEditing ? (
-                <button 
-                  onClick={() => setIsEditing(true)}
-                  className="px-6 py-2 bg-black text-white rounded-full font-bold text-sm flex items-center hover:bg-brand-green transition-all shadow-lg active:scale-95"
-                >
-                  <Edit2 size={16} className="mr-2" />
-                  Modify Plan
-                </button>
-              ) : (
-                <div className="flex items-center space-x-3">
-                  <button onClick={() => setIsEditing(false)} className="px-6 py-2 text-gray-400 font-bold text-sm">Cancel</button>
+              <div className="flex items-center gap-4">
+                {!isEditing ? (
                   <button 
-                    onClick={handleSubmitForApproval}
-                    disabled={submitting}
-                    className="px-6 py-2 bg-brand-green text-white rounded-full font-bold text-sm flex items-center shadow-lg hover:shadow-brand-green/20 disabled:opacity-50"
+                    onClick={() => setIsEditing(true)}
+                    className="px-6 py-2 bg-black text-white rounded-full font-bold text-sm flex items-center hover:bg-brand-green transition-all shadow-lg active:scale-95"
                   >
-                    {submitting ? <Loader2 size={16} className="animate-spin mr-2" /> : <Send size={16} className="mr-2" />}
-                    Submit for Approval
+                    <Edit2 size={16} className="mr-2" />
+                    Modify Plan
                   </button>
-                </div>
-              )}
+                ) : (
+                  <div className="flex items-center space-x-3">
+                    <button onClick={() => setIsEditing(false)} className="px-6 py-2 text-gray-400 font-bold text-sm">Cancel</button>
+                    <button 
+                      onClick={handleSubmitForApproval}
+                      disabled={submitting}
+                      className="px-6 py-2 bg-brand-green text-white rounded-full font-bold text-sm flex items-center shadow-lg hover:shadow-brand-green/20 disabled:opacity-50"
+                    >
+                      {submitting ? <Loader2 size={16} className="animate-spin mr-2" /> : <Send size={16} className="mr-2" />}
+                      Submit for Approval
+                    </button>
+                  </div>
+                )}
+                <button
+                  onClick={() => setShowAppointments(!showAppointments)}
+                  className="px-6 py-2 bg-blue-600 text-white rounded-full font-bold text-sm flex items-center hover:bg-blue-700 transition-all shadow-lg"
+                >
+                  <Clock size={16} className="mr-2" />
+                  Appointments
+                </button>
+              </div>
             </div>
+
+            <AnimatePresence>
+              {showAppointments && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="mb-8 overflow-hidden bg-blue-50/30 rounded-3xl border border-blue-100 p-6"
+                >
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div>
+                      <h4 className="text-sm font-black text-blue-900 uppercase tracking-widest mb-4">Book New Session</h4>
+                      <form onSubmit={handleBookAppointment} className="space-y-4 text-left">
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-[10px] font-black text-blue-400 uppercase tracking-widest mb-1.5">Date</label>
+                            <input type="date" name="date" required className="w-full px-4 py-2 bg-white border border-blue-100 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 text-xs font-bold" />
+                          </div>
+                          <div>
+                            <label className="block text-[10px] font-black text-blue-400 uppercase tracking-widest mb-1.5">Time</label>
+                            <input type="time" name="time" required className="w-full px-4 py-2 bg-white border border-blue-100 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 text-xs font-bold" />
+                          </div>
+                        </div>
+                        <div>
+                          <label className="block text-[10px] font-black text-blue-400 uppercase tracking-widest mb-1.5">Notes</label>
+                          <input type="text" name="notes" placeholder="Focus areas..." className="w-full px-4 py-2 bg-white border border-blue-100 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 text-xs" />
+                        </div>
+                        <button type="submit" disabled={bookingLoading} className="w-full py-2.5 bg-blue-600 text-white rounded-xl font-bold uppercase tracking-widest text-xs flex items-center justify-center gap-2">
+                          {bookingLoading ? <Loader2 size={14} className="animate-spin" /> : <Clock size={14} />}
+                          Confirm Session
+                        </button>
+                      </form>
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-black text-blue-900 uppercase tracking-widest mb-4">Upcoming sessions</h4>
+                      <div className="space-y-3 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
+                        {appointments.filter(a => a.userId === client.id).length === 0 ? (
+                          <p className="text-xs text-gray-400 italic">No sessions booked yet.</p>
+                        ) : (
+                          appointments.filter(a => a.userId === client.id).map(appt => (
+                            <div key={appt.id} className="bg-white p-3 rounded-2xl border border-blue-50 flex items-center justify-between">
+                              <div className="flex items-center space-x-3">
+                                <div className="text-center min-w-[40px]">
+                                  <p className="text-xs font-black text-gray-900 leading-none">{appt.date?.toDate().toLocaleDateString('en-US', { day: '2-digit' })}</p>
+                                  <p className="text-[8px] font-bold text-blue-500 uppercase">{appt.date?.toDate().toLocaleDateString('en-US', { month: 'short' })}</p>
+                                </div>
+                                <div className="h-4 w-px bg-gray-100" />
+                                <div>
+                                  <p className="text-xs font-bold text-gray-700">{appt.date?.toDate().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</p>
+                                  {appt.notes && <p className="text-[9px] text-gray-400 truncate max-w-[100px]">{appt.notes}</p>}
+                                </div>
+                              </div>
+                              <span className="px-2 py-0.5 bg-green-50 text-green-600 text-[8px] font-black uppercase rounded-full border border-green-100">Confirmed</span>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
             {loading ? (
               <div className="flex items-center justify-center p-12"><Loader2 size={24} className="animate-spin text-brand-green" /></div>

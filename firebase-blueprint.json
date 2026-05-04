@@ -11,10 +11,27 @@
         "createdAt": { "type": "string", "format": "date-time" },
         "lastActive": { "type": "string", "format": "date-time" },
         "totalTimeOnSite": { "type": "integer", "description": "Total minutes spent on site" },
-        "role": { "type": "string", "enum": ["user", "admin"] },
+        "role": { "type": "string", "enum": ["client", "trainer", "admin"] },
         "customerId": { "type": "string", "description": "Unique customer ID assigned by admin" }
       },
       "required": ["email", "createdAt"]
+    },
+    "Appointment": {
+      "title": "Appointment Booking",
+      "description": "Stores details of appointment bookings between clients and trainers.",
+      "type": "object",
+      "properties": {
+        "clientId": { "type": "string" },
+        "clientName": { "type": "string" },
+        "trainerId": { "type": "string" },
+        "trainerName": { "type": "string" },
+        "date": { "type": "string", "format": "date" },
+        "time": { "type": "string" },
+        "status": { "type": "string", "enum": ["scheduled", "completed", "cancelled"] },
+        "notes": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["clientId", "trainerId", "date", "time", "status", "createdAt"]
     },
     "PersonalDetails": {
       "title": "Personal Details",
@@ -79,19 +96,40 @@
     },
     "MembershipPlan": {
       "title": "Membership Plan",
-      "description": "Stores details of membership plans including pricing and features.",
+      "description": "Stores details of membership plans including pricing options and features.",
       "type": "object",
       "properties": {
         "name": { "type": "string" },
         "description": { "type": "string" },
         "features": { "type": "array", "items": { "type": "string" } },
-        "actualPrice": { "type": "number" },
-        "offerPrice": { "type": "number" },
-        "duration": { "type": "string", "description": "e.g., 1 month, 3 months" },
-        "category": { "type": "string", "enum": ["membership", "silver", "gold", "platinum", "kickboxing", "hybrid"] },
+        "priceOptions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "duration": { "type": "string" },
+              "actualPrice": { "type": "number" },
+              "offerPrice": { "type": "number" }
+            }
+          }
+        },
+        "imageUrl": { "type": "string", "description": "URL of the plan image (1080x1080)" },
         "order": { "type": "integer" }
       },
-      "required": ["name", "actualPrice", "offerPrice", "category"]
+      "required": ["name", "priceOptions"]
+    },
+    "GymService": {
+      "title": "Gym Service",
+      "description": "Stores details of training programs and services shown on the services page.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "imageUrl": { "type": "string" },
+        "features": { "type": "array", "items": { "type": "string" } },
+        "order": { "type": "integer" }
+      },
+      "required": ["title", "description"]
     },
     "DailyWorkout": {
       "title": "Daily Workout Submission",
@@ -181,6 +219,10 @@
       "schema": "MembershipPlan",
       "description": "Configurable membership plans"
     },
+    "/gymServices/{serviceId}": {
+      "schema": "GymService",
+      "description": "Training programs and gym services"
+    },
     "/dailyWorkouts/{workoutId}": {
       "schema": "DailyWorkout",
       "description": "Daily workout completion logs"
@@ -196,6 +238,10 @@
     "/notifications/{notificationId}": {
       "schema": "Notification",
       "description": "System and user notifications"
+    },
+    "/appointments/{appointmentId}": {
+      "schema": "Appointment",
+      "description": "Appointment bookings"
     }
   }
 }

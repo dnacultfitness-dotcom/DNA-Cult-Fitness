@@ -11,7 +11,7 @@ import {
   sendEmailVerification
 } from 'firebase/auth';
 import { 
-  initializeFirestore,
+  getFirestore,
   collection, 
   getDocs, 
   query, 
@@ -29,6 +29,7 @@ import {
   writeBatch,
   getDocFromServer
 } from 'firebase/firestore';
+import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 // Import the Firebase configuration
 import firebaseConfig from '../firebase-applet-config.json';
@@ -39,35 +40,56 @@ if (!firebaseConfig.apiKey || !firebaseConfig.authDomain) {
 }
 
 const app = initializeApp(firebaseConfig);
-export const auth = getAuth(app);
+const auth = getAuth(app);
 
-// Use initializeFirestore instead of getFirestore to enable long polling
-export const db = initializeFirestore(app, {
-  experimentalForceLongPolling: true,
-}, (firebaseConfig as any).firestoreDatabaseId || '(default)');
-export const googleProvider = new GoogleAuthProvider();
+// Standard getFirestore
+const db = getFirestore(app);
+
+let storage: any;
+try {
+  if (firebaseConfig.storageBucket) {
+    storage = getStorage(app);
+    console.log("Firebase Storage initialized with bucket:", firebaseConfig.storageBucket);
+  } else {
+    console.warn("Firebase Storage: No storageBucket found in config.");
+  }
+} catch (error) {
+  console.error("Failed to initialize Firebase Storage:", error);
+}
+
+const googleProvider = new GoogleAuthProvider();
 googleProvider.setCustomParameters({ prompt: 'select_account' });
 
 // Connection test with better guidance
 async function testConnection() {
+  console.log(`[Firebase] Testing connection to project: ${firebaseConfig.projectId}...`);
+  
+  if (firebaseConfig.appId.length < 30) {
+    console.warn("WARNING: appId seems unusually short. Please double-check it in Firebase Console.");
+  }
+
   try {
-    // Try to fetch a non-existent doc just to check connectivity
+    // Try a simple server-side fetch to verify connectivity
     await getDocFromServer(doc(db, '_connection_test_', 'ping'));
-    console.log("Firebase Firestore connection successful.");
+    console.log("[Firebase] Firestore connection test successful.");
   } catch (error: any) {
-    if (error.code === 'failed-precondition') {
-      console.warn("Firestore: Failed precondition. This usually means the database is not enabled or index is missing.");
-    } else if (error.message && error.message.includes('the client is offline')) {
-      console.error("Firebase connection failed: The client is offline.");
-      console.info("TIP: Check if Firestore is enabled in your Firebase Console (dna-users) and that you've selected a region.");
+    const isOffline = error.message?.includes('the client is offline') || error.code === 'unavailable';
+    
+    if (isOffline) {
+      console.error("[Firebase] connection failed: The client is offline.");
+      console.info("%c ACTION REQUIRED: %c", "background: #f44336; color: white; font-weight: bold; padding: 2px 5px; border-radius: 2px;", "color: #f44336; font-weight: bold;");
+      console.info(`The project '${firebaseConfig.projectId}' is unreachable.`);
+      console.info("1. Ensure 'Cloud Firestore' is ENABLED in Firebase Console.");
+      console.info("2. Go to https://console.firebase.google.com/project/dna-users/firestore and click 'Create Database'.");
+      console.info("3. Ensure you have selected a location (e.g., asia-southeast1) and started in 'Production' or 'Test' mode.");
     } else if (error.code === 'permission-denied') {
-      console.log("Firestore connection test: Rules are working (Permission Denied as expected for test doc).");
+      console.log("[Firebase] Firestore connection test: Permission denied (this is expected for test doc). Rules are working.");
     } else {
-      console.log("Firestore connection test result:", error.code || error.message);
+      console.log("[Firebase] Firestore test result:", error.code || error.message);
     }
   }
 }
-testConnection();
+setTimeout(testConnection, 3000); // Delay test to allow initial startup
 
 export enum OperationType {
   CREATE = 'create',
@@ -121,6 +143,10 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
 }
 
 export {
+  auth,
+  db,
+  storage,
+  googleProvider,
   signInWithPopup,
   signOut,
   onAuthStateChanged,
@@ -141,6 +167,9 @@ export {
   serverTimestamp,
   increment,
   where,
-  writeBatch
+  writeBatch,
+  ref,
+  uploadBytes,
+  getDownloadURL
 };
 export type { User };

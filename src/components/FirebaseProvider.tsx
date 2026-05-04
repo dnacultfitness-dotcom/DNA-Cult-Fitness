@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode, useMemo } from 'react';
-import { auth, onAuthStateChanged, User, db, doc, onSnapshot, setDoc, serverTimestamp, handleFirestoreError, OperationType, query, collection, where } from '../firebase';
+import { auth, onAuthStateChanged, User, db, doc, onSnapshot, setDoc, serverTimestamp, handleFirestoreError, OperationType, query, collection, where, updateDoc, getDocs } from '../firebase';
 
 interface UserProfile {
   displayName: string | null;
@@ -8,7 +8,9 @@ interface UserProfile {
   createdAt: any;
   lastActive: any;
   totalTimeOnSite: number;
-  role: 'customer' | 'admin' | 'trainer' | 'user';
+  role: 'client' | 'trainer' | 'admin';
+  trainerDocId?: string | null;
+  assignedTrainerUid?: string | null;
 }
 
 interface PersonalDetails {
@@ -47,15 +49,40 @@ export function FirebaseProvider({ children }: { children: ReactNode }) {
       setUser(currentUser);
       
       if (currentUser) {
+        // Check if user is a trainer first to determine role on creation
+        const trainerQuery = query(collection(db, 'trainers'), where('email', '==', currentUser.email));
+        const unsubscribeTrainer = onSnapshot(trainerQuery, async (snapshot) => {
+          let tData = null;
+          if (!snapshot.empty) {
+            tData = { id: snapshot.docs[0].id, ...snapshot.docs[0].data() };
+            setTrainerData(tData);
+            
+            // Update role if user is client but exists in trainers table
+            if (profile && profile.role === 'client') {
+               updateDoc(doc(db, 'users', currentUser.uid), { 
+                 role: 'trainer',
+                 trainerDocId: tData.id
+               }).catch(err => handleFirestoreError(err, OperationType.UPDATE, `users/${currentUser.uid}`));
+            }
+          } else {
+            setTrainerData(null);
+          }
+        }, (err) => handleFirestoreError(err, OperationType.LIST, 'trainers'));
+
         // Sync user profile
         const userDocRef = doc(db, 'users', currentUser.uid);
-        
-        const unsubscribeProfile = onSnapshot(userDocRef, (snapshot) => {
+        const unsubscribeProfile = onSnapshot(userDocRef, async (snapshot) => {
           if (snapshot.exists()) {
             const data = snapshot.data() as UserProfile;
             setProfile(data);
           } else {
             // Create profile if it doesn't exist
+            const isDefaultAdmin = currentUser.email === 'dnacultfitness@gmail.com';
+            // We need to check trainers again synchronously or use a getDoc
+            const tSnap = await getDocs(query(collection(db, 'trainers'), where('email', '==', currentUser.email)));
+            const isTrainerInTable = !tSnap.empty;
+            const tDocId = isTrainerInTable ? tSnap.docs[0].id : null;
+
             const newProfile: UserProfile = {
               displayName: currentUser.displayName,
               email: currentUser.email,
@@ -63,7 +90,8 @@ export function FirebaseProvider({ children }: { children: ReactNode }) {
               createdAt: serverTimestamp(),
               lastActive: serverTimestamp(),
               totalTimeOnSite: 0,
-              role: currentUser.email === 'dnacultfitness@gmail.com' ? 'admin' : 'customer'
+              role: isDefaultAdmin ? 'admin' : (isTrainerInTable ? 'trainer' : 'client'),
+              trainerDocId: tDocId
             };
             setDoc(userDocRef, newProfile).catch(err => handleFirestoreError(err, OperationType.WRITE, `users/${currentUser.uid}`));
           }
@@ -76,16 +104,6 @@ export function FirebaseProvider({ children }: { children: ReactNode }) {
             setPersonalDetails(snapshot.data() as PersonalDetails);
           }
         }, (err) => handleFirestoreError(err, OperationType.GET, `users/${currentUser.uid}/details/personal`));
-
-        // Check if user is a trainer
-        const trainerQuery = query(collection(db, 'trainers'), where('email', '==', currentUser.email));
-        const unsubscribeTrainer = onSnapshot(trainerQuery, (snapshot) => {
-          if (!snapshot.empty) {
-            setTrainerData({ id: snapshot.docs[0].id, ...snapshot.docs[0].data() });
-          } else {
-            setTrainerData(null);
-          }
-        }, (err) => handleFirestoreError(err, OperationType.LIST, 'trainers'));
 
         setLoading(false);
         return () => {

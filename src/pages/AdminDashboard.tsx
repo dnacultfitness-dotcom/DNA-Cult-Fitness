@@ -25,7 +25,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
-import { db, collection, query, orderBy, onSnapshot, deleteDoc, doc, updateDoc, addDoc, handleFirestoreError, OperationType, where, getDocs, serverTimestamp } from '../firebase';
+import { db, collection, query, orderBy, onSnapshot, deleteDoc, doc, updateDoc, addDoc, handleFirestoreError, OperationType, where, getDocs, serverTimestamp, storage, ref, uploadBytes, getDownloadURL } from '../firebase';
 import { useFirebase } from '../components/FirebaseProvider';
 import { toast } from 'sonner';
 import { NotificationBell } from '../components/NotificationBell';
@@ -225,7 +225,7 @@ const MemberTypeSelect = ({ membershipId, currentProgram, availablePlans }: { me
   );
 };
 
-const TrainerSelect = ({ membershipId, currentTrainerId, trainers }: { membershipId: string, currentTrainerId?: string, trainers: any[] }) => {
+const TrainerSelect = ({ membershipId, userId, currentTrainerId, trainers }: { membershipId: string, userId?: string, currentTrainerId?: string, trainers: any[] }) => {
   const [loading, setLoading] = useState(false);
 
   const handleUpdate = async (trainerId: string) => {
@@ -234,6 +234,25 @@ const TrainerSelect = ({ membershipId, currentTrainerId, trainers }: { membershi
       await updateDoc(doc(db, 'memberships', membershipId), {
         trainerId: trainerId || null
       });
+
+      // If we have a userId and a trainerId, also link them for Security Rules
+      if (userId && trainerId) {
+        const trainerDoc = trainers.find(t => t.id === trainerId);
+        if (trainerDoc?.email) {
+          const uSnap = await getDocs(query(collection(db, 'users'), where('email', '==', trainerDoc.email)));
+          if (!uSnap.empty) {
+            const trainerUid = uSnap.docs[0].id;
+            await updateDoc(doc(db, 'users', userId), {
+              assignedTrainerUid: trainerUid
+            });
+          }
+        }
+      } else if (userId && !trainerId) {
+        await updateDoc(doc(db, 'users', userId), {
+          assignedTrainerUid: null
+        });
+      }
+
       toast.success('Trainer assigned successfully');
     } catch (err: any) {
       handleFirestoreError(err, OperationType.UPDATE, `memberships/${membershipId}`);
@@ -495,10 +514,13 @@ const UserManager = () => {
                       <CustomerIdInput userId={user.id} initialValue={user.customerId} />
                     </td>
                     <td className="px-6 py-4">
-                      {trainer ? (
-                        <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-blue-50 text-blue-700 border border-blue-100">
-                          {trainer.name}
-                        </span>
+                      {membership ? (
+                        <TrainerSelect 
+                          membershipId={membership.id} 
+                          userId={user.id}
+                          currentTrainerId={membership.trainerId} 
+                          trainers={trainers} 
+                        />
                       ) : (
                         <span className="text-[10px] font-bold text-gray-300 uppercase tracking-widest">Not Assigned</span>
                       )}
@@ -760,6 +782,7 @@ const MembershipManager = () => {
                 <div className="flex space-x-2 items-center pt-4 md:pt-0">
                   <TrainerSelect 
                     membershipId={m.id} 
+                    userId={m.userId}
                     currentTrainerId={m.trainerId} 
                     trainers={trainers} 
                   />
@@ -1747,13 +1770,29 @@ const MembershipPlanManager = () => {
   const { isAdmin } = useFirebase();
   const [newPlan, setNewPlan] = useState({
     name: '',
-    category: 'membership',
-    duration: '',
-    actualPrice: '',
-    offerPrice: '',
+    priceOptions: [
+      { duration: '1 Month', actualPrice: '', offerPrice: '' },
+      { duration: '3 Months', actualPrice: '', offerPrice: '' },
+      { duration: '6 Months', actualPrice: '', offerPrice: '' },
+      { duration: '12 Months', actualPrice: '', offerPrice: '' }
+    ],
     features: '',
-    order: 0
+    order: 0,
+    imageUrl: ''
   });
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setImageFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => setImagePreview(reader.result as string);
+      reader.readAsDataURL(file);
+    }
+  };
 
   useEffect(() => {
     if (!isAdmin) return;
@@ -1780,19 +1819,35 @@ const MembershipPlanManager = () => {
 
   const startEdit = (plan: any) => {
     setEditingId(plan.id);
-    setEditForm({ ...plan });
+    // Ensure priceOptions exists
+    const defaultOptions = [
+      { duration: '1 Month', actualPrice: '', offerPrice: '' },
+      { duration: '3 Months', actualPrice: '', offerPrice: '' },
+      { duration: '6 Months', actualPrice: '', offerPrice: '' },
+      { duration: '12 Months', actualPrice: '', offerPrice: '' }
+    ];
+    setEditForm({ 
+      ...plan, 
+      priceOptions: plan.priceOptions || defaultOptions 
+    });
   };
 
   const saveEdit = async () => {
     if (!editingId) return;
     try {
+      const sanitizedOptions = editForm.priceOptions.map((opt: any) => ({
+        duration: opt.duration,
+        actualPrice: opt.actualPrice === '' ? 0 : Number(opt.actualPrice),
+        offerPrice: opt.offerPrice === '' ? 0 : Number(opt.offerPrice)
+      })).filter((opt: any) => !isNaN(opt.actualPrice) && (opt.actualPrice > 0 || opt.offerPrice > 0));
+
       await updateDoc(doc(db, 'membershipPlans', editingId), {
-        actualPrice: parseFloat(editForm.actualPrice),
-        offerPrice: parseFloat(editForm.offerPrice),
-        name: editForm.name,
-        duration: editForm.duration || ''
+        name: editForm.name.trim(),
+        priceOptions: sanitizedOptions,
+        order: Number(editForm.order) || 0,
+        updatedAt: serverTimestamp()
       });
-      toast.success('Plan updated');
+      toast.success('Membership plan updated successfully');
       setEditingId(null);
     } catch (err) {
       handleFirestoreError(err, OperationType.UPDATE, `membershipPlans/${editingId}`);
@@ -1801,51 +1856,140 @@ const MembershipPlanManager = () => {
 
   const handleAddPlan = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (uploading) return;
+    
+    setUploading(true);
+    const loadingToast = toast.loading('Creating membership plan...');
     try {
+      let finalImageUrl = '';
+
+      if (imageFile) {
+        if (!storage) {
+          throw new Error('Firebase Storage is not available. Please ensure "Cloud Storage" is enabled in your Firebase Console and the configuration is correct.');
+        }
+        const fileExt = imageFile.name.split('.').pop();
+        const fileName = `plans/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+        const storageRef = ref(storage, fileName);
+        const snapshot = await uploadBytes(storageRef, imageFile);
+        finalImageUrl = await getDownloadURL(snapshot.ref);
+      }
+
+      console.log('[Admin] Raw price options:', newPlan.priceOptions);
+      const sanitizedOptions = newPlan.priceOptions.map(opt => ({
+        duration: opt.duration,
+        actualPrice: opt.actualPrice === '' || opt.actualPrice === null ? 0 : Number(opt.actualPrice),
+        offerPrice: opt.offerPrice === '' || opt.offerPrice === null ? 0 : Number(opt.offerPrice)
+      })).filter(opt => !isNaN(opt.actualPrice) && (opt.actualPrice > 0 || opt.offerPrice > 0));
+
+      console.log('[Admin] Sanitized price options:', sanitizedOptions);
+
+      if (sanitizedOptions.length === 0) {
+        throw new Error('Please add at least one valid price option with a value greater than 0');
+      }
+
+      if (!newPlan.name.trim()) {
+        throw new Error('Please enter a plan name');
+      }
+
       const planData = {
-        ...newPlan,
-        actualPrice: parseFloat(newPlan.actualPrice),
-        offerPrice: parseFloat(newPlan.offerPrice),
+        name: newPlan.name.trim(),
+        priceOptions: sanitizedOptions,
+        imageUrl: finalImageUrl,
         features: newPlan.features.split(',').map(f => f.trim()).filter(f => f !== ''),
-        order: parseInt(newPlan.order.toString())
+        order: Number(newPlan.order) || 0,
+        createdAt: serverTimestamp()
       };
-      await addDoc(collection(db, 'membershipPlans'), planData);
-      toast.success('New plan added successfully');
+      
+      console.log('[Admin] Final plan data:', planData);
+      const docRef = await addDoc(collection(db, 'membershipPlans'), planData);
+      console.log('[Admin] Plan created with ID:', docRef.id);
+      
+      toast.success('New membership plan created successfully!', { id: loadingToast });
       setShowAddForm(false);
+      setImageFile(null);
+      setImagePreview(null);
       setNewPlan({
         name: '',
-        category: 'membership',
-        duration: '',
-        actualPrice: '',
-        offerPrice: '',
+        priceOptions: [
+          { duration: '1 Month', actualPrice: '', offerPrice: '' },
+          { duration: '3 Months', actualPrice: '', offerPrice: '' },
+          { duration: '6 Months', actualPrice: '', offerPrice: '' },
+          { duration: '12 Months', actualPrice: '', offerPrice: '' }
+        ],
         features: '',
-        order: plans.length + 1
+        order: plans.length + 1,
+        imageUrl: ''
       });
-    } catch (err) {
+    } catch (err: any) {
+      console.error('[Admin] Failed to create plan:', err);
+      toast.error('Failed to create plan: ' + err.message, { id: loadingToast });
       handleFirestoreError(err, OperationType.CREATE, 'membershipPlans');
+    } finally {
+      setUploading(false);
     }
   };
 
   const seedPlans = async () => {
-    if (!window.confirm('This will seed initial plans. Continue?')) return;
+    if (!window.confirm('This will seed the standard membership protocols. Continue?')) return;
+    const loadingToast = toast.loading('Seeding membership protocols...');
+    
     const initialPlans = [
-      { name: '1 Month Membership', category: 'membership', duration: '1 Month', actualPrice: 2000, offerPrice: 1500, order: 1, features: ['Gym Access', 'Locker Room'] },
-      { name: '3 Months Membership', category: 'membership', duration: '3 Months', actualPrice: 5000, offerPrice: 4000, order: 2, features: ['Gym Access', 'Locker Room'] },
-      { name: '6 Months Membership', category: 'membership', duration: '6 Months', actualPrice: 9000, offerPrice: 7500, order: 3, features: ['Gym Access', 'Locker Room'] },
-      { name: '1 Year Membership', category: 'membership', duration: '1 Year', actualPrice: 15000, offerPrice: 12000, order: 4, features: ['Gym Access', 'Locker Room'] },
-      { name: 'Silver Plan', category: 'silver', actualPrice: 3000, offerPrice: 2500, order: 5, features: ['12 DAYS CARDIO', '12 DAYS PERSONAL SESSION', 'BEGINNER DIET PLAN', '10% DISCOUNT ON ADDONS', 'PROTIEN BAR AND CAFE', '₹100/- VOUCHER OF HAIRBAY STUDIO'] },
-      { name: 'Gold Plan', category: 'gold', actualPrice: 5000, offerPrice: 4500, order: 6, features: ['15 DAYS TRANSFORMATION', '15 DAYS ALTERNATIVE CARDIO & conditioning', 'TRANSFORMATION DIET PLAN', '15% DISCOUNT ON ADDONS', 'PROTIEN BAR AND CAFE', '₹200/- VOUCHER OF HAIRBAY STUDIO'] },
-      { name: 'Platinum Plan', category: 'platinum', actualPrice: 8000, offerPrice: 7000, order: 7, features: ['15 DAYS INJURY', '15 DAYS ALTERNATIVE TRANSFORMATION CARDIO & conditioning', 'TRANSFORMATION & RECOVERY DIET PLAN', '20% DISCOUNT ADDONS', 'PROTIEN BAR AND CAFE', '₹300/- VOUCHER OF HAIRBAY STUDIO'] },
-      { name: 'Kick Boxing', category: 'kickboxing', actualPrice: 4000, offerPrice: 3500, order: 8, features: ['Striking Technique', 'Bag Work', 'Partner Drills', 'High-Intensity Cardio'] },
-      { name: 'Hybrid Plan', category: 'hybrid', actualPrice: 12000, offerPrice: 10000, order: 9, features: ['Pre bridal and groom package for three month', 'Collab with hairbay studio salon & spa', 'Complete fitness and wellness program'] },
+      { 
+        name: 'Silver Protocol', 
+        priceOptions: [
+          { duration: '1 Month', actualPrice: 3500, offerPrice: 3000 },
+          { duration: '3 Months', actualPrice: 9000, offerPrice: 8000 }
+        ],
+        order: 1, 
+        features: ['12 DAYS CARDIO', '12 DAYS PERSONAL SESSION', 'BEGINNER DIET PLAN', '10% DISCOUNT ON ADDONS', 'PROTIEN BAR AND CAFE', '₹100/- VOUCHER OF HAIRBAY STUDIO'] 
+      },
+      { 
+        name: 'Gold Protocol', 
+        priceOptions: [
+          { duration: '1 Month', actualPrice: 5500, offerPrice: 5000 },
+          { duration: '3 Months', actualPrice: 15000, offerPrice: 13500 }
+        ],
+        order: 2, 
+        features: ['15 DAYS TRANSFORMATION', '15 DAYS ALTERNATIVE CARDIO & conditioning', 'TRANSFORMATION DIET PLAN', '15% DISCOUNT ON ADDONS', 'PROTIEN BAR AND CAFE', '₹200/- VOUCHER OF HAIRBAY STUDIO'] 
+      },
+      { 
+        name: 'Platinum Protocol', 
+        priceOptions: [
+          { duration: '1 Month', actualPrice: 8500, offerPrice: 8000 },
+          { duration: '3 Months', actualPrice: 24000, offerPrice: 21500 }
+        ],
+        order: 3, 
+        features: ['15 DAYS INJURY', '15 DAYS ALTERNATIVE TRANSFORMATION CARDIO & conditioning', 'TRANSFORMATION & RECOVERY DIET PLAN', '20% DISCOUNT ADDONS', 'PROTIEN BAR AND CAFE', '₹300/- VOUCHER OF HAIRBAY STUDIO'] 
+      },
+      { 
+        name: 'Kick Boxing', 
+        priceOptions: [
+          { duration: '1 Month', actualPrice: 4500, offerPrice: 4000 }
+        ],
+        order: 4, 
+        features: ['Striking Technique', 'Bag Work', 'Partner Drills', 'High-Intensity Cardio'] 
+      },
+      { 
+        name: 'Hybrid Protocol', 
+        priceOptions: [
+          { duration: '3 Months', actualPrice: 15000, offerPrice: 12000 }
+        ],
+        order: 5, 
+        features: ['Pre bridal and groom package for three month', 'Collab with hairbay studio salon & spa', 'Complete fitness and wellness program'] 
+      },
     ];
 
     try {
       for (const plan of initialPlans) {
-        await addDoc(collection(db, 'membershipPlans'), plan);
+        await addDoc(collection(db, 'membershipPlans'), {
+          ...plan,
+          createdAt: serverTimestamp(),
+          imageUrl: ''
+        });
       }
-      toast.success('Initial plans seeded!');
+      toast.success('Membership protocols seeded successfully!', { id: loadingToast });
     } catch (err) {
+      toast.error('Failed to seed protocols', { id: loadingToast });
       handleFirestoreError(err, OperationType.CREATE, 'membershipPlans');
     }
   };
@@ -1931,31 +2075,6 @@ const MembershipPlanManager = () => {
               />
             </div>
             <div>
-              <label className="block text-sm font-bold text-gray-700 mb-2">Category</label>
-              <select 
-                value={newPlan.category} 
-                onChange={e => setNewPlan({...newPlan, category: e.target.value})}
-                className="w-full px-4 py-2 border rounded-xl outline-none focus:ring-2 focus:ring-green-500 bg-white"
-              >
-                <option value="membership">Membership</option>
-                <option value="silver">Silver</option>
-                <option value="gold">Gold</option>
-                <option value="platinum">Platinum</option>
-                <option value="kickboxing">Kick Boxing</option>
-                <option value="hybrid">Hybrid</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-bold text-gray-700 mb-2">Duration</label>
-              <input 
-                type="text" 
-                value={newPlan.duration} 
-                onChange={e => setNewPlan({...newPlan, duration: e.target.value})}
-                className="w-full px-4 py-2 border rounded-xl outline-none focus:ring-2 focus:ring-green-500"
-                placeholder="e.g. 3 Months"
-              />
-            </div>
-            <div>
               <label className="block text-sm font-bold text-gray-700 mb-2">Display Order</label>
               <input 
                 type="number" 
@@ -1964,27 +2083,75 @@ const MembershipPlanManager = () => {
                 className="w-full px-4 py-2 border rounded-xl outline-none focus:ring-2 focus:ring-green-500"
               />
             </div>
-            <div>
-              <label className="block text-sm font-bold text-gray-700 mb-2">Actual Price (₹)</label>
-              <input 
-                required
-                type="number" 
-                value={newPlan.actualPrice} 
-                onChange={e => setNewPlan({...newPlan, actualPrice: e.target.value})}
-                className="w-full px-4 py-2 border rounded-xl outline-none focus:ring-2 focus:ring-green-500"
-                placeholder="5000"
-              />
+            <div className="md:col-span-2 border-t pt-6">
+              <h3 className="font-bold text-gray-800 mb-4">Pricing Options</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                {newPlan.priceOptions.map((opt, index) => (
+                  <div key={index} className="bg-gray-50 p-4 rounded-2xl border border-gray-100">
+                    <p className="font-bold text-sm text-gray-700 mb-3">{opt.duration}</p>
+                    <div className="space-y-3">
+                      <div>
+                        <label className="text-[10px] uppercase font-bold text-gray-400">Actual Price</label>
+                        <input 
+                          type="number"
+                          value={opt.actualPrice}
+                          onChange={e => {
+                            const updated = [...newPlan.priceOptions];
+                            updated[index].actualPrice = e.target.value;
+                            setNewPlan({...newPlan, priceOptions: updated});
+                          }}
+                          className="w-full px-3 py-1.5 border rounded-lg text-sm"
+                          placeholder="e.g. 5000"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[10px] uppercase font-bold text-gray-400">Offer Price</label>
+                        <input 
+                          type="number"
+                          value={opt.offerPrice}
+                          onChange={e => {
+                            const updated = [...newPlan.priceOptions];
+                            updated[index].offerPrice = e.target.value;
+                            setNewPlan({...newPlan, priceOptions: updated});
+                          }}
+                          className="w-full px-3 py-1.5 border rounded-lg text-sm"
+                          placeholder="e.g. 4500"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
-            <div>
-              <label className="block text-sm font-bold text-gray-700 mb-2">Offer Price (₹)</label>
-              <input 
-                required
-                type="number" 
-                value={newPlan.offerPrice} 
-                onChange={e => setNewPlan({...newPlan, offerPrice: e.target.value})}
-                className="w-full px-4 py-2 border rounded-xl outline-none focus:ring-2 focus:ring-green-500"
-                placeholder="4500"
-              />
+            <div className="md:col-span-2">
+              <label className="block text-sm font-bold text-gray-700 mb-2">Plan Image (Recommended 1080x1080px)</label>
+              <div className="flex items-center space-x-6">
+                <div className="w-24 h-24 bg-gray-50 border-2 border-dashed border-gray-200 rounded-2xl overflow-hidden flex items-center justify-center group relative">
+                  {imagePreview ? (
+                    <>
+                      <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
+                      <button 
+                        type="button"
+                        onClick={() => { setImageFile(null); setImagePreview(null); }}
+                        className="absolute inset-0 bg-black/40 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <Trash2 size={20} />
+                      </button>
+                    </>
+                  ) : (
+                    <Dumbbell size={24} className="text-gray-300" />
+                  )}
+                </div>
+                <div className="flex-1">
+                  <input 
+                    type="file" 
+                    accept="image/*"
+                    onChange={handleImageChange}
+                    className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100 transition-all cursor-pointer"
+                  />
+                  <p className="mt-1 text-xs text-gray-400">High quality 1:1 aspect ratio image looks best.</p>
+                </div>
+              </div>
             </div>
             <div className="md:col-span-2">
               <label className="block text-sm font-bold text-gray-700 mb-2">Features (Comma separated)</label>
@@ -1998,9 +2165,11 @@ const MembershipPlanManager = () => {
             <div className="md:col-span-2">
               <button 
                 type="submit"
-                className="w-full bg-green-600 text-white py-3 rounded-xl font-bold hover:bg-green-700 transition-all"
+                disabled={uploading}
+                className="w-full bg-green-600 text-white py-3 rounded-xl font-bold hover:bg-green-700 transition-all disabled:opacity-50 flex items-center justify-center space-x-2"
               >
-                Create Plan
+                {uploading ? <Loader2 size={20} className="animate-spin" /> : null}
+                <span>{uploading ? 'Processing...' : 'Create Plan'}</span>
               </button>
             </div>
           </form>
@@ -2014,10 +2183,10 @@ const MembershipPlanManager = () => {
           <table className="w-full text-left">
             <thead className="bg-gray-50 border-b border-gray-100">
               <tr>
+                <th className="px-6 py-4 text-sm font-bold text-gray-500 uppercase">Image</th>
                 <th className="px-6 py-4 text-sm font-bold text-gray-500 uppercase">Plan Name</th>
-                <th className="px-6 py-4 text-sm font-bold text-gray-500 uppercase">Duration</th>
-                <th className="px-6 py-4 text-sm font-bold text-gray-500 uppercase">Actual Price</th>
-                <th className="px-6 py-4 text-sm font-bold text-gray-500 uppercase">Offer Price</th>
+                <th className="px-6 py-4 text-sm font-bold text-gray-500 uppercase">Pricing Options</th>
+                <th className="px-6 py-4 text-sm font-bold text-gray-500 uppercase">Order</th>
                 <th className="px-6 py-4 text-sm font-bold text-gray-500 uppercase">Actions</th>
               </tr>
             </thead>
@@ -2032,6 +2201,15 @@ const MembershipPlanManager = () => {
                 filteredPlans.map((plan) => (
                   <tr key={plan.id} className="hover:bg-gray-50 transition-colors">
                   <td className="px-6 py-4">
+                    <div className="w-12 h-12 bg-gray-50 rounded-lg overflow-hidden border border-gray-100 flex items-center justify-center">
+                      {plan.imageUrl ? (
+                        <img src={plan.imageUrl} alt={plan.name} className="w-full h-full object-cover" />
+                      ) : (
+                        <Dumbbell size={16} className="text-gray-300" />
+                      )}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4">
                     {editingId === plan.id ? (
                       <input 
                         type="text" 
@@ -2043,40 +2221,58 @@ const MembershipPlanManager = () => {
                       <span className="font-bold text-gray-900">{plan.name}</span>
                     )}
                   </td>
+                  <td className="px-6 py-4">
+                    {editingId === plan.id ? (
+                      <div className="space-y-2">
+                        {editForm.priceOptions.map((opt: any, idx: number) => (
+                          <div key={idx} className="flex gap-2 items-center text-[10px]">
+                            <span className="w-12 font-bold">{opt.duration}:</span>
+                            <input 
+                              type="number" 
+                              value={opt.actualPrice} 
+                              onChange={e => {
+                                const updated = [...editForm.priceOptions];
+                                updated[idx].actualPrice = e.target.value;
+                                setEditForm({...editForm, priceOptions: updated});
+                              }}
+                              className="w-16 border rounded p-1"
+                              placeholder="Act"
+                            />
+                            <input 
+                              type="number" 
+                              value={opt.offerPrice} 
+                              onChange={e => {
+                                const updated = [...editForm.priceOptions];
+                                updated[idx].offerPrice = e.target.value;
+                                setEditForm({...editForm, priceOptions: updated});
+                              }}
+                              className="w-16 border rounded p-1"
+                              placeholder="Off"
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="space-y-1">
+                        {(plan.priceOptions || []).map((opt: any, i: number) => (
+                          <div key={i} className="text-[10px] flex justify-between gap-4">
+                            <span className="font-bold text-gray-500">{opt.duration}:</span>
+                            <span className="font-black text-gray-900">₹{opt.offerPrice} <span className="line-through text-gray-400 font-normal">₹{opt.actualPrice}</span></span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </td>
                   <td className="px-6 py-4 text-sm text-gray-500">
                     {editingId === plan.id ? (
                       <input 
-                        type="text" 
-                        value={editForm.duration} 
-                        onChange={e => setEditForm({...editForm, duration: e.target.value})}
-                        className="px-2 py-1 border rounded w-24"
-                      />
-                    ) : (
-                      plan.duration || 'N/A'
-                    )}
-                  </td>
-                  <td className="px-6 py-4 text-sm font-bold text-gray-900">
-                    {editingId === plan.id ? (
-                      <input 
                         type="number" 
-                        value={editForm.actualPrice} 
-                        onChange={e => setEditForm({...editForm, actualPrice: e.target.value})}
-                        className="px-2 py-1 border rounded w-24"
+                        value={editForm.order} 
+                        onChange={e => setEditForm({...editForm, order: e.target.value})}
+                        className="px-2 py-1 border rounded w-16"
                       />
                     ) : (
-                      `₹${plan.actualPrice}`
-                    )}
-                  </td>
-                  <td className="px-6 py-4 text-sm font-bold text-green-600">
-                    {editingId === plan.id ? (
-                      <input 
-                        type="number" 
-                        value={editForm.offerPrice} 
-                        onChange={e => setEditForm({...editForm, offerPrice: e.target.value})}
-                        className="px-2 py-1 border rounded w-24"
-                      />
-                    ) : (
-                      `₹${plan.offerPrice}`
+                      plan.order || 0
                     )}
                   </td>
                   <td className="px-6 py-4">
@@ -2125,6 +2321,389 @@ const MembershipPlanManager = () => {
               )))}
             </tbody>
           </table>
+        )}
+      </div>
+    </div>
+  );
+};
+
+const ServiceManager = () => {
+  const [services, setServices] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState<any>(null);
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const { isAdmin } = useFirebase();
+  const [newService, setNewService] = useState({
+    title: '',
+    description: '',
+    features: '',
+    order: 0,
+    imageUrl: ''
+  });
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setImageFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => setImagePreview(reader.result as string);
+      reader.readAsDataURL(file);
+    }
+  };
+
+  useEffect(() => {
+    if (!isAdmin) return;
+    const q = query(collection(db, 'gymServices'), orderBy('order', 'asc'));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      setServices(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      setLoading(false);
+    }, (err) => {
+      handleFirestoreError(err, OperationType.LIST, 'gymServices');
+      setLoading(false);
+    });
+    return () => unsubscribe();
+  }, [isAdmin]);
+
+  const filteredServices = useMemo(() => {
+    if (!searchQuery.trim()) return services;
+    const q = searchQuery.toLowerCase();
+    return services.filter(s => 
+      (s.title || '').toLowerCase().includes(q) || 
+      (s.description || '').toLowerCase().includes(q)
+    );
+  }, [services, searchQuery]);
+
+  const startEdit = (service: any) => {
+    setEditingId(service.id);
+    setEditForm({ ...service, features: (service.features || []).join(', ') });
+  };
+
+  const saveEdit = async () => {
+    if (!editingId) return;
+    try {
+      await updateDoc(doc(db, 'gymServices', editingId), {
+        title: editForm.title.trim(),
+        description: editForm.description.trim(),
+        features: editForm.features.split(',').map((f: string) => f.trim()).filter((f: string) => f !== ''),
+        order: Number(editForm.order) || 0,
+        updatedAt: serverTimestamp()
+      });
+      toast.success('Training program updated successfully');
+      setEditingId(null);
+    } catch (err) {
+      handleFirestoreError(err, OperationType.UPDATE, `gymServices/${editingId}`);
+    }
+  };
+
+  const handleAddService = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setUploading(true);
+    const loadingToast = toast.loading('Creating training program...');
+    try {
+      let finalImageUrl = '';
+
+      if (imageFile) {
+        const fileExt = imageFile.name.split('.').pop();
+        const fileName = `services/${Date.now()}.${fileExt}`;
+        const storageRef = ref(storage, fileName);
+        const snapshot = await uploadBytes(storageRef, imageFile);
+        finalImageUrl = await getDownloadURL(snapshot.ref);
+      }
+
+      const serviceData = {
+        title: newService.title.trim(),
+        description: newService.description.trim(),
+        imageUrl: finalImageUrl,
+        features: newService.features.split(',').map(f => f.trim()).filter(f => f !== ''),
+        order: Number(newService.order) || 0,
+        createdAt: serverTimestamp()
+      };
+      
+      await addDoc(collection(db, 'gymServices'), serviceData);
+      
+      toast.success('New training program created successfully!', { id: loadingToast });
+      setShowAddForm(false);
+      setImageFile(null);
+      setImagePreview(null);
+      setNewService({
+        title: '',
+        description: '',
+        features: '',
+        order: services.length + 1,
+        imageUrl: ''
+      });
+    } catch (err: any) {
+      toast.error('Failed to create program: ' + err.message, { id: loadingToast });
+      handleFirestoreError(err, OperationType.CREATE, 'gymServices');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const seedServices = async () => {
+    if (!window.confirm('This will seed the standard training programs. Continue?')) return;
+    const loadingToast = toast.loading('Seeding services...');
+    
+    const initialServices = [
+      {
+        title: "Flexibility & Mobility",
+        description: "Improve your range of motion and reduce the risk of injury with our specialized mobility sessions.",
+        imageUrl: "https://images.unsplash.com/photo-1552196563-55cd4e45efb3?q=80&w=1926&auto=format&fit=crop",
+        features: ["Dynamic Stretching", "Joint Mobilization", "Yoga-Based Flow", "Injury Prevention"],
+        order: 1
+      },
+      {
+        title: "Resistance Training",
+        description: "Build lean muscle and increase metabolic rate through progressive resistance and weight training.",
+        imageUrl: "https://images.unsplash.com/photo-1517836357463-d25dfeac3438?q=80&w=2070&auto=format&fit=crop",
+        features: ["Hypertrophy Focus", "Functional Strength", "Form Correction", "Progressive Overload"],
+        order: 2
+      },
+      {
+        title: "Strength Training",
+        description: "Focus on the big compound lifts to maximize your absolute strength and power output.",
+        imageUrl: "https://images.unsplash.com/photo-1526506118085-60ce8714f8c5?q=80&w=1974&auto=format&fit=crop",
+        features: ["Powerlifting Basics", "Olympic Lifting", "Core Stability", "Max Effort Days"],
+        order: 3
+      },
+      {
+        title: "CrossFit Training",
+        description: "Join our high-intensity community workouts that challenge every aspect of your fitness.",
+        imageUrl: "https://images.unsplash.com/photo-1541534741688-6078c6bfb5c5?q=80&w=2069&auto=format&fit=crop",
+        features: ["WOD (Workout of the Day)", "Metabolic Conditioning", "Gymnastics Skills", "Team Challenges"],
+        order: 4
+      },
+      {
+        title: "Kick-Boxing",
+        description: "Learn effective striking techniques while getting an incredible full-body cardio workout.",
+        imageUrl: "https://images.unsplash.com/photo-1549719386-74dfcbf7dbed?q=80&w=1974&auto=format&fit=crop",
+        features: ["Striking Technique", "Bag Work", "Partner Drills", "High-Intensity Cardio"],
+        order: 5
+      },
+      {
+        title: "Rooftop Protein Bar",
+        description: "Enjoy premium post-workout nutrition at our exclusive rooftop bar with stunning city views.",
+        imageUrl: "https://images.unsplash.com/photo-1579619173025-79d2a18d7970?q=80&w=2070&auto=format&fit=crop",
+        features: ["Custom Protein Shakes", "Healthy Snacks", "Rooftop Lounge", "Social Community"],
+        order: 6
+      }
+    ];
+
+    try {
+      for (const svc of initialServices) {
+        await addDoc(collection(db, 'gymServices'), {
+          ...svc,
+          createdAt: serverTimestamp()
+        });
+      }
+      toast.success('Services seeded successfully!', { id: loadingToast });
+    } catch (err) {
+      toast.error('Failed to seed services', { id: loadingToast });
+      handleFirestoreError(err, OperationType.CREATE, 'gymServices');
+    }
+  };
+
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  return (
+    <div className="p-8">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+        <h1 className="text-3xl font-bold">Training Programs</h1>
+        <div className="flex flex-col md:flex-row items-center gap-4 w-full md:w-auto">
+          <div className="relative group w-full md:w-80">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-hover:text-green-500 transition-colors" size={18} />
+            <input
+              type="text"
+              placeholder="Search services..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-11 pr-4 py-3 bg-white border border-gray-100 rounded-2xl shadow-sm outline-none focus:border-green-500 focus:ring-4 focus:ring-green-500/5 transition-all text-sm font-medium"
+            />
+          </div>
+          <div className="flex items-center space-x-2 w-full md:w-auto">
+            <button 
+              onClick={() => setShowAddForm(!showAddForm)}
+              className="px-6 py-3 bg-black text-white rounded-2xl text-sm font-bold hover:bg-gray-800 transition-all flex items-center space-x-2"
+            >
+              {showAddForm ? <><XCircle size={18} /> <span>Cancel</span></> : <><Plus size={18} /> <span>Add Service</span></>}
+            </button>
+            <button 
+              onClick={seedServices}
+              className="px-4 py-3 bg-green-600 text-white rounded-2xl text-sm font-bold hover:bg-green-700 transition-all shadow-sm"
+            >
+              Seed
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {showAddForm && (
+        <motion.div 
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm mb-8"
+        >
+          <h2 className="text-xl font-bold mb-6 text-gray-900">Add Training Program</h2>
+          <form onSubmit={handleAddService} className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <label className="block text-sm font-bold text-gray-700 mb-2">Program Title</label>
+              <input 
+                required
+                type="text" 
+                value={newService.title} 
+                onChange={e => setNewService({...newService, title: e.target.value})}
+                className="w-full px-4 py-2 border rounded-xl outline-none focus:ring-2 focus:ring-green-500"
+                placeholder="e.g. CrossFit Training"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-bold text-gray-700 mb-2">Display Order</label>
+              <input 
+                type="number" 
+                value={newService.order} 
+                onChange={e => setNewService({...newService, order: Number(e.target.value)})}
+                className="w-full px-4 py-2 border rounded-xl outline-none focus:ring-2 focus:ring-green-500"
+              />
+            </div>
+            <div className="md:col-span-2">
+              <label className="block text-sm font-bold text-gray-700 mb-2">Description</label>
+              <textarea 
+                required
+                value={newService.description} 
+                onChange={e => setNewService({...newService, description: e.target.value})}
+                className="w-full px-4 py-2 border rounded-xl outline-none focus:ring-2 focus:ring-green-500 h-24 resize-none"
+                placeholder="Briefly describe the training program..."
+              />
+            </div>
+            <div className="md:col-span-2">
+              <label className="block text-sm font-bold text-gray-700 mb-2">Banner Image</label>
+              <div className="flex items-center space-x-6">
+                <div className="w-24 h-24 bg-gray-50 border-2 border-dashed border-gray-200 rounded-2xl overflow-hidden flex items-center justify-center">
+                  {imagePreview ? (
+                    <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
+                  ) : (
+                    <Briefcase size={24} className="text-gray-300" />
+                  )}
+                </div>
+                <div className="flex-1">
+                  <input 
+                    type="file" 
+                    accept="image/*"
+                    onChange={handleImageChange}
+                    className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100 cursor-pointer"
+                  />
+                  <p className="mt-1 text-xs text-gray-400">Recommended size: 1080x720px.</p>
+                </div>
+              </div>
+            </div>
+            <div className="md:col-span-2">
+              <label className="block text-sm font-bold text-gray-700 mb-2">Features (Comma separated)</label>
+              <textarea 
+                value={newService.features} 
+                onChange={e => setNewService({...newService, features: e.target.value})}
+                className="w-full px-4 py-2 border rounded-xl outline-none focus:ring-2 focus:ring-green-500 h-24 resize-none"
+                placeholder="WOD, Cardio, Gymnastics..."
+              />
+            </div>
+            <div className="md:col-span-2">
+              <button 
+                type="submit"
+                disabled={uploading}
+                className="w-full bg-green-600 text-white py-3 rounded-xl font-bold hover:bg-green-700 transition-all disabled:opacity-50"
+              >
+                {uploading ? 'Processing...' : 'Create Program'}
+              </button>
+            </div>
+          </form>
+        </motion.div>
+      )}
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {loading ? (
+          <div className="col-span-full py-12 text-center"><Loader2 className="animate-spin mx-auto text-green-600" /></div>
+        ) : services.length === 0 ? (
+          <div className="col-span-full bg-white p-12 rounded-3xl border border-gray-100 text-center text-gray-400 italic">No services found. Seed them to start!</div>
+        ) : (
+          filteredServices.map(svc => (
+            <div key={svc.id} className="bg-white rounded-3xl border border-gray-100 overflow-hidden shadow-sm hover:shadow-md transition-all flex flex-col">
+              <div className="h-40 relative group">
+                {svc.imageUrl ? (
+                  <img src={svc.imageUrl} alt={svc.title} className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full bg-gray-100 flex items-center justify-center"><Briefcase size={32} className="text-gray-300" /></div>
+                )}
+                <div className="absolute top-4 left-4 bg-black/60 text-white text-[10px] font-black uppercase px-2 py-1 rounded">Order: {svc.order}</div>
+              </div>
+              
+              <div className="p-6 flex-grow">
+                {editingId === svc.id ? (
+                  <div className="space-y-4">
+                    <input 
+                      type="text" 
+                      value={editForm.title} 
+                      onChange={e => setEditForm({...editForm, title: e.target.value})}
+                      className="w-full px-3 py-2 border rounded-xl text-sm font-bold"
+                    />
+                    <textarea 
+                      value={editForm.description} 
+                      onChange={e => setEditForm({...editForm, description: e.target.value})}
+                      className="w-full px-3 py-2 border rounded-xl text-xs h-20"
+                    />
+                    <input 
+                      type="number" 
+                      value={editForm.order} 
+                      onChange={e => setEditForm({...editForm, order: e.target.value})}
+                      className="w-full px-3 py-2 border rounded-xl text-xs"
+                      placeholder="Order"
+                    />
+                  </div>
+                ) : (
+                  <>
+                    <h3 className="text-lg font-bold text-gray-900 mb-2">{svc.title}</h3>
+                    <p className="text-xs text-gray-500 line-clamp-3 mb-4">{svc.description}</p>
+                    <div className="flex flex-wrap gap-1 mb-4">
+                      {(svc.features || []).slice(0, 3).map((f: string, i: number) => (
+                        <span key={i} className="text-[9px] bg-gray-50 text-gray-400 px-2 py-0.5 rounded-full font-bold uppercase tracking-tight">{f}</span>
+                      ))}
+                      {(svc.features || []).length > 3 && <span className="text-[9px] text-gray-300">+{svc.features.length - 3} more</span>}
+                    </div>
+                  </>
+                )}
+              </div>
+              
+              <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex justify-between items-center">
+                {editingId === svc.id ? (
+                  <div className="flex space-x-2 w-full">
+                    <button onClick={saveEdit} className="flex-1 bg-green-600 text-white py-2 rounded-xl text-xs font-bold">Save</button>
+                    <button onClick={() => setEditingId(null)} className="px-4 py-2 border border-gray-300 rounded-xl text-xs font-bold">Cancel</button>
+                  </div>
+                ) : (
+                  <>
+                    <button onClick={() => startEdit(svc)} className="text-blue-600 hover:text-blue-700 flex items-center space-x-1 text-xs font-bold"><Edit2 size={14} /> <span>Edit</span></button>
+                    <button 
+                      onClick={() => {
+                        if (deletingId === svc.id) {
+                          deleteDoc(doc(db, 'gymServices', svc.id));
+                          toast.success('Service deleted');
+                        } else {
+                          setDeletingId(svc.id);
+                          setTimeout(() => setDeletingId(null), 3000);
+                        }
+                      }}
+                      className={cn("text-xs font-bold transition-all", deletingId === svc.id ? "text-red-700 bg-red-100 px-2 py-1 rounded" : "text-red-500")}
+                    >
+                      {deletingId === svc.id ? 'Confirm?' : 'Delete'}
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+          ))
         )}
       </div>
     </div>
@@ -2576,7 +3155,8 @@ const AdminSidebar = () => {
     { name: 'Plan Approvals', path: '/admin/approvals', icon: <CheckCircle size={20} />, badge: counts.approvals },
     { name: 'Today\'s Workouts', path: '/admin/workouts', icon: <Activity size={20} />, badge: counts.workouts },
     { name: 'Trainers', path: '/admin/trainers', icon: <Briefcase size={20} /> },
-    { name: 'Plans', path: '/admin/plans', icon: <Dumbbell size={20} /> },
+    { name: 'Protocols', path: '/admin/plans', icon: <ShieldCheck size={20} /> },
+    { name: 'Services', path: '/admin/services', icon: <Dumbbell size={20} /> },
     { name: 'AI Plans', path: '/admin/ai-plans', icon: <Sparkles size={20} /> },
     { name: 'Settings', path: '/admin/settings', icon: <Settings size={20} /> },
   ];
@@ -2757,6 +3337,7 @@ const AdminDashboard = () => {
           <Route path="members" element={<MemberManager />} />
           <Route path="users" element={<UserManager />} />
           <Route path="plans" element={<MembershipPlanManager />} />
+          <Route path="services" element={<ServiceManager />} />
           <Route path="ai-plans" element={<AIPlanManager />} />
           <Route path="trainers" element={<TrainerManager />} />
           <Route path="approvals" element={<div className="p-8"><h1 className="text-3xl font-bold mb-8">Plan Modification Approvals</h1><PlanApprovalManager /></div>} />

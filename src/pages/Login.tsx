@@ -34,12 +34,13 @@ const Login = () => {
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
         if (!userCredential.user.emailVerified) {
           await signOut(auth);
-          toast.error('Please verify your email before logging in.');
           setRegisteredEmail(email);
           setShowVerificationMessage(true);
+          toast.error('Please verify your email before logging in.');
           return;
         }
         toast.success('Successfully logged in!');
+        navigate('/dashboard');
       } else {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         await sendEmailVerification(userCredential.user);
@@ -79,18 +80,27 @@ const Login = () => {
         errorMessage = 'SignIn popup was blocked by your browser. Please allow popups for this site.';
         toast.error(errorMessage, { duration: 10000 });
       } else if (error.code === 'auth/unauthorized-domain') {
-        errorMessage = 'This domain is not authorized for Google Sign-In. Administrator needs to add this domain to Firebase Console Authorized Domains.';
-        toast.error(errorMessage, { duration: 10000 });
-        console.warn('Unauthorized Domain:', window.location.hostname);
+        errorMessage = 'This domain is not authorized for Google Sign-In.';
+        toast.error(
+          <div className="flex flex-col gap-2">
+            <span className="font-bold text-red-600">Unauthorized Domain</span>
+            <span className="text-xs">Add this domain to Console &gt; Auth &gt; Settings:</span>
+            <code className="bg-red-50 p-1 rounded border border-red-200 text-[10px] break-all">
+              {window.location.hostname}
+            </code>
+          </div>,
+          { duration: 15000, position: 'top-center' }
+        );
       } else if (error.code === 'auth/cancelled-popup-request') {
         errorMessage = 'Login cancelled. Only one login popup can be opened at a time.';
+        toast.error(errorMessage);
       } else if (error.code === 'auth/popup-closed-by-user') {
-        errorMessage = 'Login popup was closed before completion.';
+        errorMessage = 'Login popup was closed before completion. Please try again.';
+        toast.error(errorMessage);
       } else if (error.message) {
         errorMessage = `Login error (${error.code || 'unknown'}): ${error.message}`;
+        toast.error(errorMessage);
       }
-      
-      toast.error(errorMessage);
     } finally {
       setGoogleLoading(false);
     }

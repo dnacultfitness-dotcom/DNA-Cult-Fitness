@@ -109,79 +109,15 @@ const Profile = () => {
   }, [personalDetails, profile]);
 
   useEffect(() => {
+    // Firestore and Storage disabled as per user instruction
+    setDashboardLoading(false);
+    setWorkoutStatusLoading(false);
+    
+    /*
     if (!user) return;
-
-    // Fetch Active AI Plan
-    const plansQuery = query(
-      collection(db, 'aiPlans'),
-      where('userId', '==', user.uid),
-      where('isActive', '==', true)
-    );
-    
-    const unsubscribePlans = onSnapshot(plansQuery, (snapshot) => {
-      if (!snapshot.empty) {
-        setActivePlan({ id: snapshot.docs[0].id, ...snapshot.docs[0].data() });
-      } else {
-        setActivePlan(null);
-      }
-    }, (err) => handleFirestoreError(err, OperationType.LIST, 'aiPlans'));
-
-    // Fetch Membership Status
-    const membershipQuery = query(
-      collection(db, 'memberships'),
-      where('userId', '==', user.uid)
-    );
-    
-    const unsubscribeMembership = onSnapshot(membershipQuery, (snapshot) => {
-      if (!snapshot.empty) {
-        setMembership({ id: snapshot.docs[0].id, ...snapshot.docs[0].data() });
-      } else {
-        setMembership(null);
-      }
-    }, (err) => handleFirestoreError(err, OperationType.LIST, 'memberships'));
-
-    // Fetch Recent Reports
-    const reportsQuery = query(
-      collection(db, 'weeklyReports'),
-      where('userId', '==', user.uid)
-    );
-    
-    const unsubscribeReports = onSnapshot(reportsQuery, (snapshot) => {
-      const reports = snapshot.docs
-        .map(doc => ({ id: doc.id, ...doc.data() }))
-        .sort((a: any, b: any) => b.createdAt?.toMillis() - a.createdAt?.toMillis());
-      setRecentReports(reports.slice(0, 5));
-      setDashboardLoading(false);
-    }, (err) => handleFirestoreError(err, OperationType.LIST, 'weeklyReports'));
-
-    // Fetch Workout Status for the target index
-    const workoutQuery = query(
-      collection(db, 'dailyWorkouts'),
-      where('userId', '==', user.uid),
-      where('workoutIndex', '==', targetIndex),
-      orderBy('createdAt', 'desc')
-    );
-
-    const unsubscribeWorkout = onSnapshot(workoutQuery, (snapshot) => {
-      if (!snapshot.empty) {
-        // Get the most recent submission for this workout index
-        setTodayWorkout({ id: snapshot.docs[0].id, ...snapshot.docs[0].data() });
-      } else {
-        setTodayWorkout(null);
-      }
-      setWorkoutStatusLoading(false);
-    }, (err) => {
-      handleFirestoreError(err, OperationType.LIST, 'dailyWorkouts');
-      setWorkoutStatusLoading(false);
-    });
-
-    return () => {
-      unsubscribePlans();
-      unsubscribeMembership();
-      unsubscribeReports();
-      unsubscribeWorkout();
-    };
-  }, [user, targetIndex]);
+    ...
+    */
+  }, [user]);
 
   const handleWorkoutAction = async (action: 'done' | 'skipped') => {
     if (!user || !membership) return;
@@ -277,7 +213,7 @@ const Profile = () => {
     try {
       await signOut(auth);
       toast.success('Signed out successfully');
-      navigate('/');
+      navigate('/login');
     } catch (err) {
       toast.error('Failed to sign out');
     }

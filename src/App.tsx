@@ -3,7 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react
 import { useFirebase } from './components/FirebaseProvider';
 import ErrorBoundary from './components/ErrorBoundary';
 import ScrollToTop from './components/ScrollToTop';
-import { Toaster } from 'sonner';
+import { Toaster, toast } from 'sonner';
 import { Menu, X, Instagram, Facebook, Youtube, LogIn, LogOut, LayoutDashboard } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from './lib/utils';
@@ -70,7 +70,7 @@ const Navbar = () => {
               </Link>
             ))}
             {user ? (
-              <div className="flex items-center space-x-3">
+              <div className="flex items-center space-x-4">
                 <Link to="/profile" className="flex items-center space-x-2 group">
                   <div className="w-8 h-8 rounded-full overflow-hidden border border-white/20 group-hover:border-brand-green transition-colors">
                     {profile?.photoURL ? (
@@ -86,10 +86,20 @@ const Navbar = () => {
                       </div>
                     )}
                   </div>
-                  <span className="text-sm font-bold text-gray-300 group-hover:text-brand-green transition-colors hidden sm:block">
+                  <span className="text-sm font-bold text-gray-300 group-hover:text-brand-green transition-colors hidden lg:block">
                     {profile?.displayName || user.displayName || user.email?.split('@')[0]}
                   </span>
                 </Link>
+                <button 
+                  onClick={async () => {
+                    await signOut(auth);
+                    toast.success('Signed out successfully');
+                  }}
+                  className="p-2 text-gray-400 hover:text-red-500 transition-colors"
+                  title="Sign Out"
+                >
+                  <LogOut size={20} />
+                </button>
               </div>
             ) : (
               <Link to="/login" className="p-2 text-gray-300 hover:text-brand-green transition-colors">
@@ -158,6 +168,17 @@ const Navbar = () => {
                       <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">View Profile</p>
                     </div>
                   </Link>
+                  <button
+                    onClick={async () => {
+                      setIsOpen(false);
+                      await signOut(auth);
+                      toast.success('Signed out successfully');
+                    }}
+                    className="flex items-center space-x-3 px-3 py-4 w-full text-red-500 hover:bg-white/5 group transition-all"
+                  >
+                    <LogOut size={20} />
+                    <span className="text-sm font-bold">Sign Out</span>
+                  </button>
                 </div>
               ) : (
                 <Link

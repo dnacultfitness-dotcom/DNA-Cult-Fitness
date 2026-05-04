@@ -26,6 +26,7 @@ const Membership = () => {
   const [plans, setPlans] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
+  const [selectedDurations, setSelectedDurations] = useState<Record<string, string>>({});
   
   const {
     register,
@@ -40,7 +41,18 @@ const Membership = () => {
   useEffect(() => {
     const q = query(collection(db, 'membershipPlans'), orderBy('order', 'asc'));
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      setPlans(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      const plansData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setPlans(plansData);
+      
+      // Set default selected durations
+      const defaults: Record<string, string> = {};
+      plansData.forEach((plan: any) => {
+        if (plan.priceOptions && plan.priceOptions.length > 0) {
+          defaults[plan.id] = plan.priceOptions[0].duration;
+        }
+      });
+      setSelectedDurations(defaults);
+      
       setLoading(false);
     }, (err) => {
       handleFirestoreError(err, OperationType.LIST, 'membershipPlans');
@@ -83,24 +95,24 @@ const Membership = () => {
     }
   };
 
-  const handleSelectPlan = (planName: string) => {
-    setSelectedPlan(planName);
-    setValue('program', planName);
+  const handleSelectPlan = (planName: string, duration: string) => {
+    const fullPlanName = `${planName} (${duration})`;
+    setSelectedPlan(fullPlanName);
+    setValue('program', fullPlanName);
     const formElement = document.getElementById('application-form');
     if (formElement) {
       formElement.scrollIntoView({ behavior: 'smooth' });
     }
   };
 
-  const getPlanIcon = (category: string) => {
-    switch (category) {
-      case 'silver': return <Shield className="text-gray-400" size={32} />;
-      case 'gold': return <Star className="text-yellow-500" size={32} />;
-      case 'platinum': return <Crown className="text-purple-600" size={32} />;
-      case 'kickboxing': return <ZapIcon className="text-red-600" size={32} />;
-      case 'hybrid': return <Activity className="text-blue-600" size={32} />;
-      default: return <Users className="text-brand" size={32} />;
-    }
+  const getPlanIcon = (planName: string) => {
+    const name = planName.toLowerCase();
+    if (name.includes('silver')) return <Shield className="text-gray-400" size={32} />;
+    if (name.includes('gold')) return <Star className="text-yellow-500" size={32} />;
+    if (name.includes('platinum')) return <Crown className="text-purple-600" size={32} />;
+    if (name.includes('kick')) return <ZapIcon className="text-red-600" size={32} />;
+    if (name.includes('hybrid')) return <Activity className="text-blue-600" size={32} />;
+    return <Users className="text-brand" size={32} />;
   };
 
   return (
@@ -154,46 +166,89 @@ const Membership = () => {
                   whileInView={{ opacity: 1, y: 0 }}
                   transition={{ delay: idx * 0.1 }}
                   viewport={{ once: true }}
-                  className={`card-premium p-10 flex flex-col relative ${selectedPlan === plan.name ? 'ring-4 ring-brand-green/20 border-brand-green' : ''}`}
+                  className={`card-premium p-0 flex flex-col relative overflow-hidden ${selectedPlan === plan.name ? 'ring-4 ring-brand-green/20 border-brand-green' : ''}`}
                 >
-                  {plan.offerPrice < plan.actualPrice && (
-                    <div className="absolute top-6 right-6 bg-brand-green text-black text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest">
-                      Save ₹{plan.actualPrice - plan.offerPrice}
+                  {plan.imageUrl && (
+                    <div className="w-full h-48 relative">
+                      <img src={plan.imageUrl} alt={plan.name} className="w-full h-full object-cover" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-white to-transparent opacity-60"></div>
                     </div>
                   )}
                   
-                  <div className="mb-8">{getPlanIcon(plan.category)}</div>
-                  <h3 className="text-3xl font-black text-gray-900 mb-2 uppercase leading-none">{plan.name}</h3>
-                  <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-8">{plan.duration || 'Special Program'}</p>
-                  
-                  <div className="flex items-baseline mb-10">
-                    <span className="text-5xl font-black text-gray-900 tracking-tighter">₹{plan.offerPrice}</span>
-                    {plan.actualPrice > plan.offerPrice && (
-                      <span className="ml-3 text-xl text-gray-400 line-through font-bold">₹{plan.actualPrice}</span>
-                    )}
+                  <div className="p-10 flex flex-col flex-grow">
+                    {(() => {
+                      const selectedDur = selectedDurations[plan.id];
+                      const selectedOpt = plan.priceOptions?.find((o: any) => o.duration === selectedDur) || plan.priceOptions?.[0];
+                      if (selectedOpt && selectedOpt.offerPrice < selectedOpt.actualPrice) {
+                        return (
+                          <div className="absolute top-6 right-6 bg-brand-green text-black text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest z-10">
+                            Save ₹{selectedOpt.actualPrice - selectedOpt.offerPrice}
+                          </div>
+                        );
+                      }
+                      return null;
+                    })()}
+                    
+                    <div className="mb-8">{getPlanIcon(plan.name)}</div>
+                    <h3 className="text-3xl font-black text-gray-900 mb-2 uppercase leading-none">{plan.name}</h3>
+                    
+                    {/* Duration Selector */}
+                    <div className="flex flex-wrap gap-2 mb-8">
+                      {plan.priceOptions?.map((opt: any, i: number) => (
+                        <button
+                          key={i}
+                          onClick={() => setSelectedDurations({ ...selectedDurations, [plan.id]: opt.duration })}
+                          className={`px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all border ${
+                            selectedDurations[plan.id] === opt.duration
+                              ? 'bg-brand-green border-brand-green text-black'
+                              : 'bg-white border-gray-200 text-gray-500 hover:border-brand-green'
+                          }`}
+                        >
+                          {opt.duration}
+                        </button>
+                      ))}
+                    </div>
+                    
+                    {/* Show selected price */}
+                    {(() => {
+                      const selectedDur = selectedDurations[plan.id];
+                      const selectedOpt = plan.priceOptions?.find((o: any) => o.duration === selectedDur) || plan.priceOptions?.[0];
+                      if (!selectedOpt) return <div className="h-20" />;
+                      return (
+                        <div className="flex items-baseline mb-10 h-20">
+                          <div>
+                            <span className="text-5xl font-black text-gray-900 tracking-tighter">₹{selectedOpt.offerPrice}</span>
+                            {selectedOpt.actualPrice > selectedOpt.offerPrice && (
+                              <span className="ml-3 text-xl text-gray-400 line-through font-bold">₹{selectedOpt.actualPrice}</span>
+                            )}
+                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-1">For {selectedOpt.duration}</p>
+                          </div>
+                        </div>
+                      );
+                    })()}
+
+                    <div className="w-full h-px bg-gray-100 mb-10" />
+
+                    <ul className="space-y-5 mb-12 flex-grow">
+                      {plan.features?.map((feature: string, fIdx: number) => (
+                        <li key={fIdx} className="flex items-start text-sm font-medium text-gray-600">
+                          <CheckCircle2 size={18} className="mr-4 text-brand-green flex-shrink-0 mt-0.5" />
+                          {feature}
+                        </li>
+                      ))}
+                    </ul>
+
+                    <button
+                      onClick={() => handleSelectPlan(plan.name, selectedDurations[plan.id] || plan.priceOptions?.[0]?.duration)}
+                      className={`btn-primary w-full ${
+                        selectedPlan === `${plan.name} (${selectedDurations[plan.id] || plan.priceOptions?.[0]?.duration})`
+                          ? 'bg-brand-green text-black' 
+                          : 'bg-gray-900 hover:bg-black text-white'
+                      }`}
+                    >
+                      {selectedPlan === `${plan.name} (${selectedDurations[plan.id] || plan.priceOptions?.[0]?.duration})` ? 'Protocol Selected' : 'Select Protocol'}
+                    </button>
                   </div>
-
-                  <div className="w-full h-px bg-gray-100 mb-10" />
-
-                  <ul className="space-y-5 mb-12 flex-grow">
-                    {plan.features?.map((feature: string, fIdx: number) => (
-                      <li key={fIdx} className="flex items-start text-sm font-medium text-gray-600">
-                        <CheckCircle2 size={18} className="mr-4 text-brand-green flex-shrink-0 mt-0.5" />
-                        {feature}
-                      </li>
-                    ))}
-                  </ul>
-
-                  <button
-                    onClick={() => handleSelectPlan(plan.name)}
-                    className={`btn-primary w-full ${
-                      selectedPlan === plan.name 
-                        ? 'bg-brand-green text-black' 
-                        : 'bg-gray-900 hover:bg-black text-white'
-                    }`}
-                  >
-                    {selectedPlan === plan.name ? 'Protocol Selected' : 'Select Protocol'}
-                  </button>
                 </motion.div>
               ))}
             </div>
@@ -271,7 +326,14 @@ const Membership = () => {
                     >
                       <option value="">Select a program...</option>
                       {plans.map(plan => (
-                        <option key={plan.id} value={plan.name}>{plan.name}</option>
+                        <React.Fragment key={plan.id}>
+                          {plan.priceOptions?.map((opt: any, i: number) => (
+                            <option key={`${plan.id}-${i}`} value={`${plan.name} (${opt.duration})`}>
+                              {plan.name} - {opt.duration} (₹{opt.offerPrice})
+                            </option>
+                          ))}
+                          {!plan.priceOptions && <option value={plan.name}>{plan.name}</option>}
+                        </React.Fragment>
                       ))}
                     </select>
                     {errors.program && <p className="text-red-500 text-[10px] font-black uppercase tracking-widest mt-2 ml-2">{errors.program.message}</p>}
