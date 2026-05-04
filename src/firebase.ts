@@ -12,6 +12,7 @@ import {
 } from 'firebase/auth';
 import { 
   getFirestore,
+  initializeFirestore,
   collection, 
   getDocs, 
   query, 
@@ -42,8 +43,10 @@ if (!firebaseConfig.apiKey || !firebaseConfig.authDomain) {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 
-// Standard getFirestore
-const db = getFirestore(app);
+// Use initializeFirestore with long polling for better connectivity in restricted environments
+const db = (firebaseConfig as any).firestoreDatabaseId 
+  ? initializeFirestore(app, { experimentalForceLongPolling: true }, (firebaseConfig as any).firestoreDatabaseId)
+  : initializeFirestore(app, { experimentalForceLongPolling: true });
 
 let storage: any;
 try {
@@ -64,10 +67,6 @@ googleProvider.setCustomParameters({ prompt: 'select_account' });
 async function testConnection() {
   console.log(`[Firebase] Testing connection to project: ${firebaseConfig.projectId}...`);
   
-  if (firebaseConfig.appId.length < 30) {
-    console.warn("WARNING: appId seems unusually short. Please double-check it in Firebase Console.");
-  }
-
   try {
     // Try a simple server-side fetch to verify connectivity
     await getDocFromServer(doc(db, '_connection_test_', 'ping'));
@@ -78,12 +77,14 @@ async function testConnection() {
     if (isOffline) {
       console.error("[Firebase] connection failed: The client is offline.");
       console.info("%c ACTION REQUIRED: %c", "background: #f44336; color: white; font-weight: bold; padding: 2px 5px; border-radius: 2px;", "color: #f44336; font-weight: bold;");
-      console.info(`The project '${firebaseConfig.projectId}' is unreachable.`);
-      console.info("1. Ensure 'Cloud Firestore' is ENABLED in Firebase Console.");
-      console.info("2. Go to https://console.firebase.google.com/project/dna-users/firestore and click 'Create Database'.");
-      console.info("3. Ensure you have selected a location (e.g., asia-southeast1) and started in 'Production' or 'Test' mode.");
+      console.info(`The Firestore database for project '${firebaseConfig.projectId}' is unreachable.`);
+      console.info("Please verify the following in the Firebase Console:");
+      console.info(`1. Cloud Firestore is enabled at https://console.firebase.google.com/project/${firebaseConfig.projectId}/firestore`);
+      console.info("2. You have created a database (default or custom ID).");
+      console.info("3. If using a custom database ID, ensure it's added to firebase-applet-config.json as 'firestoreDatabaseId'.");
+      console.info("4. Security rules allow at least read access to the test path or you are hitting a permission error (which is fine).");
     } else if (error.code === 'permission-denied') {
-      console.log("[Firebase] Firestore connection test: Permission denied (this is expected for test doc). Rules are working.");
+      console.log("[Firebase] Firestore connection test: Permission denied (this is expected). Connectivity confirmed.");
     } else {
       console.log("[Firebase] Firestore test result:", error.code || error.message);
     }
