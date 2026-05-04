@@ -38,15 +38,29 @@ import firebaseConfig from '../firebase-applet-config.json';
 // Initialize Firebase SDK
 if (!firebaseConfig.apiKey || !firebaseConfig.authDomain) {
   console.error("Firebase configuration is incomplete. Check firebase-applet-config.json");
+} else {
+  console.log("[Firebase] Config loaded for project:", firebaseConfig.projectId);
+  // Log partial key to help user verify without exposing full secret
+  if (firebaseConfig.apiKey) {
+    console.log("[Firebase] API Key (last 4 characters):", firebaseConfig.apiKey.slice(-4));
+  }
 }
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 
-// Use initializeFirestore with long polling for better connectivity in restricted environments
+// Use getFirestore for standard connection, fallback to settings if needed
 const db = (firebaseConfig as any).firestoreDatabaseId 
-  ? initializeFirestore(app, { experimentalForceLongPolling: true }, (firebaseConfig as any).firestoreDatabaseId)
-  : initializeFirestore(app, { experimentalForceLongPolling: true });
+  ? getFirestore(app, (firebaseConfig as any).firestoreDatabaseId)
+  : getFirestore(app);
+
+// Connectivity logs
+if (typeof window !== 'undefined') {
+  console.log("[Network] Status:", window.navigator.onLine ? "online" : "offline");
+  console.log("[Domain] Current:", window.location.hostname);
+  window.addEventListener('online', () => console.log("[Network] ONLINE"));
+  window.addEventListener('offline', () => console.log("[Network] OFFLINE"));
+}
 
 let storage: any;
 try {
@@ -66,27 +80,36 @@ googleProvider.setCustomParameters({ prompt: 'select_account' });
 // Connection test with better guidance
 async function testConnection() {
   console.log(`[Firebase] Testing connection to project: ${firebaseConfig.projectId}...`);
+  console.log(`[Firebase] Current Host: ${typeof window !== 'undefined' ? window.location.host : 'SSR'}`);
   
   try {
     // Try a simple server-side fetch to verify connectivity
     await getDocFromServer(doc(db, '_connection_test_', 'ping'));
     console.log("[Firebase] Firestore connection test successful.");
   } catch (error: any) {
-    const isOffline = error.message?.includes('the client is offline') || error.code === 'unavailable';
+    const isOffline = error.message?.includes('the client is offline') || 
+                      error.code === 'unavailable' || 
+                      error.message?.includes('Could not reach Cloud Firestore backend');
     
     if (isOffline) {
-      console.error("[Firebase] connection failed: The client is offline.");
+      console.error("[Firebase] Connection failed: The client is offline or backend is unreachable.");
+      // Identify if we're on a custom domain that might need authorization
+      if (typeof window !== 'undefined' && !window.location.host.includes('run.app')) {
+        console.warn("[Firebase] Detected custom domain. Ensure this domain is authorized in Firebase Console.");
+      }
+
       console.info("%c ACTION REQUIRED: %c", "background: #f44336; color: white; font-weight: bold; padding: 2px 5px; border-radius: 2px;", "color: #f44336; font-weight: bold;");
       console.info(`The Firestore database for project '${firebaseConfig.projectId}' is unreachable.`);
       console.info("Please verify the following in the Firebase Console:");
-      console.info(`1. Cloud Firestore is enabled at https://console.firebase.google.com/project/${firebaseConfig.projectId}/firestore`);
-      console.info("2. You have created a database (default or custom ID).");
-      console.info("3. If using a custom database ID, ensure it's added to firebase-applet-config.json as 'firestoreDatabaseId'.");
-      console.info("4. Security rules allow at least read access to the test path or you are hitting a permission error (which is fine).");
+      console.info(`1. Cloud Firestore is ENABLED at https://console.firebase.google.com/project/${firebaseConfig.projectId}/firestore`);
+      console.info("2. You have created a database (usually '(default)'). If not created, click 'Create Database'.");
+      console.info("3. Ensure the database location is correct (e.g. nam5, asia-southeast1).");
+      console.info("4. IMPORTANT: If you see 'auth/api-key-not-valid', enable 'Identity Toolkit API' and 'Cloud Firestore API' in Google Cloud Console for project: ${firebaseConfig.projectId}");
     } else if (error.code === 'permission-denied') {
       console.log("[Firebase] Firestore connection test: Permission denied (this is expected). Connectivity confirmed.");
     } else {
       console.log("[Firebase] Firestore test result:", error.code || error.message);
+      console.dir(error); // Log full error object for diagnostics
     }
   }
 }

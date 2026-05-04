@@ -97,6 +97,24 @@ const Login = () => {
       } else if (error.code === 'auth/popup-closed-by-user') {
         errorMessage = 'Login popup was closed before completion. Please try again.';
         toast.error(errorMessage);
+      } else if (error.code === 'auth/api-key-not-valid') {
+        errorMessage = 'Invalid Firebase API Key.';
+        toast.error(
+          <div className="flex flex-col gap-2">
+            <span className="font-bold text-red-600 underline">CRITICAL: Invalid API Key</span>
+            <span className="text-xs">The Firebase project APIs (Identity Toolkit, Firestore) are not correctly configured or the API Key is restricted.</span>
+            <div className="bg-red-50 p-2 rounded text-[10px] space-y-1 text-red-800">
+              <p><b>Possible Fixes:</b></p>
+              <ul className="list-disc pl-4">
+                <li>Go to <b>Google Cloud Console</b> &rarr; APIs &amp; Services &rarr; Enabled APIs.</li>
+                <li>Ensure <b>Identity Toolkit API</b> and <b>Cloud Firestore API</b> are ENABLED.</li>
+                <li>If you recently created the project, wait 5-10 minutes.</li>
+                <li>Check <b>Authorized Domains</b> in Firebase Auth Settings (Add: <code>{typeof window !== 'undefined' ? window.location.hostname : ''}</code>).</li>
+              </ul>
+            </div>
+          </div>,
+          { duration: 20000, position: 'top-center' }
+        );
       } else if (error.message) {
         errorMessage = `Login error (${error.code || 'unknown'}): ${error.message}`;
         toast.error(errorMessage);
