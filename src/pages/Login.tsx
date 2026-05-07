@@ -115,6 +115,23 @@ const Login = () => {
           </div>,
           { duration: 20000, position: 'top-center' }
         );
+      } else if (error.code === 'unavailable' || error.message?.includes('offline')) {
+        errorMessage = 'Firebase service is unreachable. Please check your internet or Firebase configuration.';
+        toast.error(
+          <div className="flex flex-col gap-2">
+            <span className="font-bold text-red-600 underline">CRITICAL: Backend Unreachable</span>
+            <span className="text-xs">The application cannot reach Firebase. This is usually a configuration error or disabled APIs.</span>
+            <div className="bg-red-50 p-2 rounded text-[10px] space-y-1 text-red-800">
+              <p><b>Checklist:</b></p>
+              <ul className="list-disc pl-4">
+                <li>Ensure <b>Cloud Firestore API</b> is enabled.</li>
+                <li>Ensure <b>Database</b> exists in Firebase Console.</li>
+                <li>Verify your network/VPN doesn't block <code>googleapis.com</code>.</li>
+              </ul>
+            </div>
+          </div>,
+          { duration: 20000, position: 'top-center' }
+        );
       } else if (error.message) {
         errorMessage = `Login error (${error.code || 'unknown'}): ${error.message}`;
         toast.error(errorMessage);

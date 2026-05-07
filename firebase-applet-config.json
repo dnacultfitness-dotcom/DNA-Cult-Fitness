@@ -1,9 +1,9 @@
 {
-  "apiKey": "AIzaSyCVBfUFyN5ErhfkoPvr16ClqBv0MU4tADE",
-  "authDomain": "project-5a91f421-95cd-4936-ae4.firebaseapp.com",
-  "projectId": "project-5a91f421-95cd-4936-ae4",
-  "storageBucket": "project-5a91f421-95cd-4936-ae4.firebasestorage.app",
-  "messagingSenderId": "210253638555",
-  "appId": "1:210253638555:web:5e2edecffebac9c28f4f3e",
-  "measurementId": "G-15PVZ911S4"
+  "apiKey": "AIzaSyD9KxXszf8B_1WrKQbf14iwSrEgmoWT1xo",
+  "authDomain": "dna-users.firebaseapp.com",
+  "databaseURL": "https://dna-users-default-rtdb.asia-southeast1.firebasedatabase.app",
+  "projectId": "dna-users",
+  "storageBucket": "dna-users.firebasestorage.app",
+  "messagingSenderId": "42042966664",
+  "appId": "1:42042966664:web:d01a4787ec5e8f0cba953d"
 }

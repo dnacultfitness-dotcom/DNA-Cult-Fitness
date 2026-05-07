@@ -49,10 +49,14 @@ if (!firebaseConfig.apiKey || !firebaseConfig.authDomain) {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 
-// Use getFirestore for standard connection, fallback to settings if needed
+// Use initializeFirestore with settings for better connectivity in restricted environments
 const db = (firebaseConfig as any).firestoreDatabaseId 
-  ? getFirestore(app, (firebaseConfig as any).firestoreDatabaseId)
-  : getFirestore(app);
+  ? initializeFirestore(app, { 
+      experimentalForceLongPolling: true 
+    }, (firebaseConfig as any).firestoreDatabaseId)
+  : initializeFirestore(app, { 
+      experimentalForceLongPolling: true 
+    });
 
 // Connectivity logs
 if (typeof window !== 'undefined') {
@@ -104,7 +108,8 @@ async function testConnection() {
       console.info(`1. Cloud Firestore is ENABLED at https://console.firebase.google.com/project/${firebaseConfig.projectId}/firestore`);
       console.info("2. You have created a database (usually '(default)'). If not created, click 'Create Database'.");
       console.info("3. Ensure the database location is correct (e.g. nam5, asia-southeast1).");
-      console.info("4. IMPORTANT: If you see 'auth/api-key-not-valid', enable 'Identity Toolkit API' and 'Cloud Firestore API' in Google Cloud Console for project: ${firebaseConfig.projectId}");
+      console.info(`4. IMPORTANT: If you see 'auth/api-key-not-valid', enable 'Identity Toolkit API' and 'Cloud Firestore API' in Google Cloud Console for project: ${firebaseConfig.projectId}`);
+      console.info(`5. Check Authorized Domains: https://console.firebase.google.com/project/${firebaseConfig.projectId}/authentication/settings`);
     } else if (error.code === 'permission-denied') {
       console.log("[Firebase] Firestore connection test: Permission denied (this is expected). Connectivity confirmed.");
     } else {
