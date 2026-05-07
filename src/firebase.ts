@@ -105,10 +105,10 @@ async function testConnection() {
       console.info("%c ACTION REQUIRED: %c", "background: #f44336; color: white; font-weight: bold; padding: 2px 5px; border-radius: 2px;", "color: #f44336; font-weight: bold;");
       console.info(`The Firestore database for project '${firebaseConfig.projectId}' is unreachable.`);
       console.info("Please verify the following in the Firebase Console:");
-      console.info(`1. Cloud Firestore is ENABLED at https://console.firebase.google.com/project/${firebaseConfig.projectId}/firestore`);
-      console.info("2. You have created a database (usually '(default)'). If not created, click 'Create Database'.");
-      console.info("3. Ensure the database location is correct (e.g. nam5, asia-southeast1).");
-      console.info(`4. IMPORTANT: If you see 'auth/api-key-not-valid', enable 'Identity Toolkit API' and 'Cloud Firestore API' in Google Cloud Console for project: ${firebaseConfig.projectId}`);
+      console.info(`1. Cloud Firestore is ENABLED (NOT just Realtime Database) at https://console.firebase.google.com/project/${firebaseConfig.projectId}/firestore`);
+      console.info("2. You have created a Firestore database (usually '(default)'). If you see 'Create Database', click it.");
+      console.info("3. Ensure the database is in 'Production' or 'Test' mode. Start in Test mode for development.");
+      console.info(`4. IMPORTANT: Enable 'Cloud Firestore API' in Google Cloud Console: https://console.cloud.google.com/apis/library/firestore.googleapis.com?project=${firebaseConfig.projectId}`);
       console.info(`5. Check Authorized Domains: https://console.firebase.google.com/project/${firebaseConfig.projectId}/authentication/settings`);
     } else if (error.code === 'permission-denied') {
       console.log("[Firebase] Firestore connection test: Permission denied (this is expected). Connectivity confirmed.");

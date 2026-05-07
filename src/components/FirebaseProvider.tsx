@@ -33,6 +33,7 @@ interface FirebaseContextType {
   isAdmin: boolean;
   isTrainer: boolean;
   trainerData: any | null;
+  dbError: string | null;
 }
 
 const FirebaseContext = createContext<FirebaseContextType | undefined>(undefined);
@@ -43,6 +44,7 @@ export function FirebaseProvider({ children }: { children: ReactNode }) {
   const [personalDetails, setPersonalDetails] = useState<PersonalDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [trainerData, setTrainerData] = useState<any | null>(null);
+  const [dbError, setDbError] = useState<string | null>(null);
 
   useEffect(() => {
     const unsubscribeAuth = onAuthStateChanged(auth, async (currentUser) => {
@@ -52,6 +54,7 @@ export function FirebaseProvider({ children }: { children: ReactNode }) {
         // Check if user is a trainer first to determine role on creation
         const trainerQuery = query(collection(db, 'trainers'), where('email', '==', currentUser.email));
         const unsubscribeTrainer = onSnapshot(trainerQuery, async (snapshot) => {
+          setDbError(null);
           let tData = null;
           if (!snapshot.empty) {
             tData = { id: snapshot.docs[0].id, ...snapshot.docs[0].data() };
@@ -67,7 +70,12 @@ export function FirebaseProvider({ children }: { children: ReactNode }) {
           } else {
             setTrainerData(null);
           }
-        }, (err) => handleFirestoreError(err, OperationType.LIST, 'trainers'));
+        }, (err) => {
+          if (err.message?.includes('offline') || err.message?.includes('unreachable') || (err as any).code === 'unavailable') {
+            setDbError('Firestore is unreachable. Please check project configuration.');
+          }
+          handleFirestoreError(err, OperationType.LIST, 'trainers');
+        });
 
         // Sync user profile
         const userDocRef = doc(db, 'users', currentUser.uid);
@@ -131,7 +139,7 @@ export function FirebaseProvider({ children }: { children: ReactNode }) {
   }, [trainerData, profile]);
 
   return (
-    <FirebaseContext.Provider value={{ user, profile, personalDetails, loading, isAdmin, isTrainer, trainerData }}>
+    <FirebaseContext.Provider value={{ user, profile, personalDetails, loading, isAdmin, isTrainer, trainerData, dbError }}>
       {children}
     </FirebaseContext.Provider>
   );
