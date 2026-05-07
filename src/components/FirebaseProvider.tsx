@@ -83,6 +83,17 @@ export function FirebaseProvider({ children }: { children: ReactNode }) {
           if (snapshot.exists()) {
             const data = snapshot.data() as UserProfile;
             setProfile(data);
+            
+            // Only update lastActive once per session to avoid infinite loops and unnecessary writes
+            const lastSessionUpdate = sessionStorage.getItem(`last_active_${currentUser.uid}`);
+            const now = Date.now();
+            // If not updated this session OR last update was more than 1 hour ago
+            if (!lastSessionUpdate || now - parseInt(lastSessionUpdate) > 3600000) {
+              updateDoc(userDocRef, { 
+                lastActive: serverTimestamp(),
+              }).catch(() => {});
+              sessionStorage.setItem(`last_active_${currentUser.uid}`, now.toString());
+            }
           } else {
             // Create profile if it doesn't exist
             const isDefaultAdmin = currentUser.email === 'dnacultfitness@gmail.com';

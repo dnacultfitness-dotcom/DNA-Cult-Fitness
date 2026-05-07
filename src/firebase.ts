@@ -96,20 +96,23 @@ async function testConnection() {
                       error.message?.includes('Could not reach Cloud Firestore backend');
     
     if (isOffline) {
-      console.error("[Firebase] Connection failed: The client is offline or backend is unreachable.");
+      console.error("[Firebase] Connection failed: The Firestore backend is unreachable.");
       // Identify if we're on a custom domain that might need authorization
       if (typeof window !== 'undefined' && !window.location.host.includes('run.app')) {
         console.warn("[Firebase] Detected custom domain. Ensure this domain is authorized in Firebase Console.");
       }
 
-      console.info("%c ACTION REQUIRED: %c", "background: #f44336; color: white; font-weight: bold; padding: 2px 5px; border-radius: 2px;", "color: #f44336; font-weight: bold;");
+      console.info("%c ACTION REQUIRED %c", "background: #f44336; color: white; font-weight: bold; padding: 2px 10px; border-radius: 4px;", "color: #f44336; font-weight: bold;");
       console.info(`The Firestore database for project '${firebaseConfig.projectId}' is unreachable.`);
-      console.info("Please verify the following in the Firebase Console:");
-      console.info(`1. Cloud Firestore is ENABLED (NOT just Realtime Database) at https://console.firebase.google.com/project/${firebaseConfig.projectId}/firestore`);
-      console.info("2. You have created a Firestore database (usually '(default)'). If you see 'Create Database', click it.");
-      console.info("3. Ensure the database is in 'Production' or 'Test' mode. Start in Test mode for development.");
-      console.info(`4. IMPORTANT: Enable 'Cloud Firestore API' in Google Cloud Console: https://console.cloud.google.com/apis/library/firestore.googleapis.com?project=${firebaseConfig.projectId}`);
-      console.info(`5. Check Authorized Domains: https://console.firebase.google.com/project/${firebaseConfig.projectId}/authentication/settings`);
+      console.info("This ALMOST ALWAYS means Cloud Firestore is NOT initialized in the Firebase Console.");
+      console.info("--------------------------------------------------");
+      console.info(`1. OPEN THIS LINK: https://console.firebase.google.com/project/${firebaseConfig.projectId}/firestore`);
+      console.info("2. If you see a 'Create Database' button, CLICK IT.");
+      console.info("3. Select 'Start in Test Mode' and click 'Next'.");
+      console.info("4. Select a location (e.g., asia-southeast1) and click 'Enable'.");
+      console.info(`5. ALSO ENABLE THIS API: https://console.cloud.google.com/apis/library/firestore.googleapis.com?project=${firebaseConfig.projectId}`);
+      console.info("--------------------------------------------------");
+      console.info("NOTE: 'Realtime Database' is a different service. You MUST enable 'Cloud Firestore'.");
     } else if (error.code === 'permission-denied') {
       console.log("[Firebase] Firestore connection test: Permission denied (this is expected). Connectivity confirmed.");
     } else {

@@ -356,9 +356,12 @@ const UserManager = () => {
   useEffect(() => {
     if (!isAdmin) return;
     
-    const qUsers = query(collection(db, 'users'), orderBy('createdAt', 'desc'));
+    const qUsers = collection(db, 'users');
     const unsubscribeUsers = onSnapshot(qUsers, (snapshot) => {
-      setUsers(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as any));
+      // Sort in memory by lastActive or createdAt to ensure users with missing fields are still visible
+      data.sort((a, b) => (b.lastActive?.toMillis() || b.createdAt?.toMillis() || 0) - (a.lastActive?.toMillis() || a.createdAt?.toMillis() || 0));
+      setUsers(data);
       setLoading(false);
     }, (err) => {
       handleFirestoreError(err, OperationType.LIST, 'users');
@@ -465,6 +468,7 @@ const UserManager = () => {
                 <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest">User</th>
                 <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest">Customer ID</th>
                 <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest">Trainer</th>
+                <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest">Last Active</th>
                 <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest">Program / Plan</th>
                 <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest">AI Plan Tier</th>
                 <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest">Role</th>
@@ -524,6 +528,18 @@ const UserManager = () => {
                       ) : (
                         <span className="text-[10px] font-bold text-gray-300 uppercase tracking-widest">Not Assigned</span>
                       )}
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex flex-col">
+                        <span className="text-[10px] font-bold text-gray-900">
+                          {user.lastActive ? user.lastActive.toDate().toLocaleDateString() : 'Never'}
+                        </span>
+                        {user.lastActive && (
+                          <span className="text-[9px] text-gray-400">
+                            {user.lastActive.toDate().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-6 py-4">
                       {membership ? (
@@ -591,8 +607,10 @@ const MembershipManager = () => {
   useEffect(() => {
     if (!isAdmin) return;
     
-    const unsubMems = onSnapshot(query(collection(db, 'memberships'), orderBy('createdAt', 'desc')), (snapshot) => {
-      setMemberships(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    const unsubMems = onSnapshot(collection(db, 'memberships'), (snapshot) => {
+      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as any));
+      data.sort((a, b) => (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0));
+      setMemberships(data);
       setLoading(false);
     }, (err) => {
       handleFirestoreError(err, OperationType.LIST, 'memberships');
@@ -841,10 +859,11 @@ const DailyWorkoutManager = () => {
   const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
-    const q = query(collection(db, 'dailyWorkouts'), orderBy('createdAt', 'desc'));
+    const q = collection(db, 'dailyWorkouts');
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const workoutList = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setWorkouts(workoutList);
+      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as any));
+      data.sort((a, b) => (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0));
+      setWorkouts(data);
       setLoading(false);
     }, (err) => handleFirestoreError(err, OperationType.LIST, 'dailyWorkouts'));
 

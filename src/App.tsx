@@ -260,7 +260,7 @@ export default function App() {
         <div className="min-h-screen flex flex-col bg-white font-sans">
           {dbError && (
             <div className="bg-red-600 text-white text-[10px] py-1 px-4 text-center sticky top-0 z-[100] font-bold tracking-wider animate-pulse uppercase">
-              ⚠️ Firestore Connection Failed: Check console for instructions. Your database might not be created.
+              ⚠️ Database Connection Failed: You must enable "CLOUD FIRESTORE" in your Firebase Console (Realtime DB is NOT enough). Check Console (F12) for instructions.
             </div>
           )}
           <Navbar />
