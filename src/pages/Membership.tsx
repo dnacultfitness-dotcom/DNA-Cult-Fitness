@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { motion, AnimatePresence } from 'motion/react';
 import { toast } from 'sonner';
-import { CheckCircle2, ShieldCheck, Zap, Users, Award, Star, Crown, Shield, Zap as ZapIcon, Info, Loader2, Activity } from 'lucide-react';
+import { CheckCircle2, ShieldCheck, Zap, Users, Award, Star, Crown, Shield, Zap as ZapIcon, Info, Loader2, Activity, Sparkles } from 'lucide-react';
 import { useFirebase } from '../components/FirebaseProvider';
 import { db, collection, addDoc, serverTimestamp, handleFirestoreError, OperationType, query, orderBy, onSnapshot } from '../firebase';
 import PhoneInput from '../components/PhoneInput';
@@ -112,7 +112,11 @@ const Membership = () => {
     if (name.includes('platinum')) return <Crown className="text-purple-600" size={32} />;
     if (name.includes('kick')) return <ZapIcon className="text-red-600" size={32} />;
     if (name.includes('hybrid')) return <Activity className="text-blue-600" size={32} />;
-    return <Users className="text-brand" size={32} />;
+    if (name.includes('diamond')) return <Award className="text-blue-400" size={32} />;
+    if (name.includes('elite')) return <Crown className="text-brand-green" size={32} />;
+    if (name.includes('basic')) return <ShieldCheck className="text-gray-500" size={32} />;
+    if (name.includes('legacy')) return <Sparkles className="text-brand-green" size={32} />;
+    return <Users className="text-brand-green" size={32} />;
   };
 
   return (
@@ -156,6 +160,12 @@ const Membership = () => {
             <div className="flex flex-col items-center justify-center py-20">
               <Loader2 className="animate-spin text-brand-green mb-4" size={48} />
               <p className="text-gray-500 font-black uppercase tracking-widest text-xs">Initializing Protocols...</p>
+            </div>
+          ) : plans.length === 0 ? (
+            <div className="text-center py-20 bg-white/5 backdrop-blur-md rounded-[2.5rem] border border-white/10">
+              <Info className="mx-auto text-brand-green mb-4 opacity-50" size={48} />
+              <h3 className="text-2xl font-black text-white uppercase mb-2">Protocols Coming Soon</h3>
+              <p className="text-gray-400 font-medium">Our biological transformation protocols are currently being updated.</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">

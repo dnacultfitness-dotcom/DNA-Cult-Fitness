@@ -28,8 +28,7 @@ export const NotificationBell = () => {
 
     const q = query(
       collection(db, 'notifications'),
-      where('userId', '==', user.uid),
-      orderBy('createdAt', 'desc')
+      where('userId', '==', user.uid)
     );
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -37,6 +36,14 @@ export const NotificationBell = () => {
         id: doc.id,
         ...doc.data()
       })) as Notification[];
+      
+      // Sort in-memory to avoid composite index requirement
+      data.sort((a, b) => {
+        const timeA = a.createdAt?.toMillis?.() || a.createdAt || 0;
+        const timeB = b.createdAt?.toMillis?.() || b.createdAt || 0;
+        return timeB - timeA;
+      });
+      
       setNotifications(data);
     }, (err) => {
       handleFirestoreError(err, OperationType.LIST, 'notifications');

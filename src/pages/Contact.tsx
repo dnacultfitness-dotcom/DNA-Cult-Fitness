@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'motion/react';
-import { MapPin, Phone, Mail, Clock, Instagram, Facebook, Youtube, Send } from 'lucide-react';
+import { MapPin, Phone, Mail, Clock, Instagram, Facebook, Youtube, Send, Globe } from 'lucide-react';
 import { toast } from 'sonner';
 import PhoneInput from '../components/PhoneInput';
 
@@ -18,10 +18,30 @@ const Contact = () => {
   };
 
   const contactInfo = [
-    { title: "Address", content: "123 Fitness Ave, Gym City, GC 12345", icon: <MapPin className="text-brand-green" size={24} /> },
-    { title: "Phone", content: "+1 (555) 123-4567", icon: <Phone className="text-brand-green" size={24} /> },
-    { title: "Email", content: "info@dnacultfitness.com", icon: <Mail className="text-brand-green" size={24} /> },
-    { title: "Hours", content: "Mon-Fri: 5am - 10pm | Sat-Sun: 7am - 8pm", icon: <Clock className="text-brand-green" size={24} /> }
+    { 
+      title: "Address", 
+      content: "Royal Tower, Trichambaram, Taliparamba, Kannur - 670141", 
+      icon: <MapPin className="text-brand-green" size={24} />,
+      link: "https://www.google.com/maps/search/?api=1&query=DNA+Cult+Fitness+Royal+Tower+Taliparamba"
+    },
+    { 
+      title: "Phone", 
+      content: "+91 62388 92734", 
+      icon: <Phone className="text-brand-green" size={24} />,
+      link: "tel:+916238892734"
+    },
+    { 
+      title: "WhatsApp", 
+      content: "+91 90744 88463", 
+      icon: <Phone className="text-brand-green" size={24} />,
+      link: "https://wa.me/919074488463"
+    },
+    { 
+      title: "Email", 
+      content: "info@dnacultfitness.com", 
+      icon: <Mail className="text-brand-green" size={24} />,
+      link: "mailto:info@dnacultfitness.com"
+    }
   ];
 
   return (
@@ -44,7 +64,7 @@ const Contact = () => {
         </div>
       </section>
 
-      {/* Contact Content */}
+      {/* Contact Content Container Placeholder */}
       <section className="py-24 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col lg:flex-row gap-16">
@@ -57,15 +77,21 @@ const Contact = () => {
               
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-12 mb-12">
                 {contactInfo.map((info, index) => (
-                  <div key={index} className="flex items-start space-x-4">
-                    <div className="p-3 bg-brand-green/10 rounded-xl border border-brand-green/20 flex-shrink-0">
+                  <a 
+                    key={index} 
+                    href={info.link} 
+                    target={info.link.startsWith('http') ? "_blank" : undefined}
+                    rel={info.link.startsWith('http') ? "noopener noreferrer" : undefined}
+                    className="flex items-start space-x-4 group"
+                  >
+                    <div className="p-3 bg-brand-green/10 rounded-xl border border-brand-green/20 flex-shrink-0 group-hover:bg-brand-green group-hover:text-black transition-all">
                       {info.icon}
                     </div>
                     <div>
                       <h3 className="text-lg font-bold text-gray-900 mb-1">{info.title}</h3>
-                      <p className="text-gray-600">{info.content}</p>
+                      <p className="text-gray-600 group-hover:text-brand-green transition-colors">{info.content}</p>
                     </div>
-                  </div>
+                  </a>
                 ))}
               </div>
               
@@ -149,16 +175,18 @@ const Contact = () => {
         </div>
       </section>
 
-      {/* Map Placeholder */}
-      <section className="h-[500px] bg-gray-200 relative overflow-hidden">
-        <div className="absolute inset-0 flex items-center justify-center text-gray-500 text-xl font-medium">
-          <div className="text-center">
-            <MapPin className="mx-auto mb-4 text-brand-green" size={48} />
-            <p>Interactive Map Placeholder</p>
-            <p className="text-sm text-gray-400 mt-2">123 Fitness Ave, Gym City, GC 12345</p>
-          </div>
-        </div>
-        {/* In a real app, you'd embed a Google Map here */}
+      {/* Interactive Hub placeholder - Replaced with actual Map */}
+      <section className="h-[450px] w-full bg-white relative overflow-hidden">
+        <iframe 
+          src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d4640.473905197336!2d75.35947196935683!3d12.03265029115025!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3ba43fb67521c0d1%3A0x579e95721a3937b1!2sDNA%20Cult%20Fitness!5e0!3m2!1sen!2sin!4v1778146485375!5m2!1sen!2sin" 
+          width="100%" 
+          height="100%" 
+          style={{ border: 0 }} 
+          allowFullScreen 
+          loading="lazy" 
+          referrerPolicy="no-referrer-when-downgrade"
+          title="Google Maps - DNA Cult Fitness"
+        ></iframe>
       </section>
     </div>
   );

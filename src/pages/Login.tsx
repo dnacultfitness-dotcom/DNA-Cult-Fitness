@@ -40,7 +40,7 @@ const Login = () => {
           return;
         }
         toast.success('Successfully logged in!');
-        navigate('/dashboard');
+        navigate('/profile');
       } else {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         await sendEmailVerification(userCredential.user);

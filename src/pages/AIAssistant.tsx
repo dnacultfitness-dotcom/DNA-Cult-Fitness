@@ -208,12 +208,13 @@ const AIAssistant = () => {
 
     const q = query(
       collection(db, 'aiPlans'),
-      where('userId', '==', user.uid),
-      orderBy('createdAt', 'desc')
+      where('userId', '==', user.uid)
     );
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      setHistory(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      let data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as any));
+      data.sort((a, b) => (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0));
+      setHistory(data);
     });
 
     return () => unsubscribe();

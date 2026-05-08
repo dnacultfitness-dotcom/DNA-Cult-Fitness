@@ -4,7 +4,7 @@ import { useFirebase } from './components/FirebaseProvider';
 import ErrorBoundary from './components/ErrorBoundary';
 import ScrollToTop from './components/ScrollToTop';
 import { Toaster, toast } from 'sonner';
-import { Menu, X, Instagram, Facebook, Youtube, LogIn, LogOut, LayoutDashboard } from 'lucide-react';
+import { Menu, X, Instagram, Facebook, Youtube, LogIn, LogOut, LayoutDashboard, Phone, Mail, Globe, MessageSquare, MapPin } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from './lib/utils';
 import { auth, signOut } from './firebase';
@@ -235,9 +235,35 @@ const Footer = () => {
           <div>
             <h4 className="text-lg font-semibold mb-6">Contact Info</h4>
             <ul className="space-y-4 text-gray-400">
-              <li>123 Fitness Ave, Gym City, GC 12345</li>
-              <li>+1 (555) 123-4567</li>
-              <li>info@dnacultfitness.com</li>
+              <li className="flex items-start space-x-3">
+                <MapPin size={18} className="text-brand-green mt-1 shrink-0" />
+                <a 
+                  href="https://www.google.com/maps/dir//DNA+Cult+Fitness,+Royal+Tower,+Trichambaram,+Taliparamba,+Kannur+-+670141/@12.0326503,75.359472,17z/data=!4m8!4m7!1m0!1m5!1m1!1s0x3ba43fb67521c0d1:0x579e95721a3937b1!2m2!1d75.359472!2d12.0326503?entry=ttu" 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  className="hover:text-white transition-colors"
+                >
+                  Royal Tower, Trichambaram, Taliparamba, Kannur - 670141
+                </a>
+              </li>
+              <li className="flex items-center space-x-3">
+                <Phone size={18} className="text-brand-green" />
+                <span>+91 62388 92734</span>
+              </li>
+              <li className="flex items-center space-x-3">
+                <MessageSquare size={18} className="text-brand-green" />
+                <a href="https://wa.me/916238892734" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">
+                  +91 62388 92734 (WhatsApp)
+                </a>
+              </li>
+              <li className="flex items-center space-x-3">
+                <Globe size={18} className="text-brand-green" />
+                <a href="https://www.dnacultfitness.com" className="hover:text-white transition-colors text-xs">www.dnacultfitness.com</a>
+              </li>
+              <li className="flex items-center space-x-3">
+                <Mail size={18} className="text-brand-green" />
+                <a href="mailto:dnacultfitness@gmail.com" className="hover:text-white transition-colors text-xs">dnacultfitness@gmail.com</a>
+              </li>
             </ul>
           </div>
         </div>

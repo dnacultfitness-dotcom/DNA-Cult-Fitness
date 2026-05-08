@@ -45,6 +45,7 @@ const Profile = () => {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [activeTab, setActiveTab] = useState<'overview' | 'settings' | 'workout'>('overview');
+  const [isSetupMode, setIsSetupMode] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -52,6 +53,15 @@ const Profile = () => {
       navigate('/login');
     }
   }, [user, authLoading, navigate]);
+
+  useEffect(() => {
+    if (!authLoading && user && !personalDetails) {
+      setActiveTab('settings');
+      setIsSetupMode(true);
+    } else if (personalDetails) {
+      setIsSetupMode(false);
+    }
+  }, [personalDetails, authLoading, user]);
 
   // Dashboard States
   const [activePlan, setActivePlan] = useState<any>(null);
@@ -250,67 +260,75 @@ const Profile = () => {
     <div className="min-h-screen bg-gray-50 pt-24 pb-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-6">
-          <div>
-            <span className="text-brand font-black uppercase tracking-widest text-xs mb-3 block">Member Portal</span>
-            <div className="flex items-center justify-between">
-              <h1 className="text-3xl font-bold text-gray-900">Your Dashboard</h1>
-              <div className="md:hidden">
-                <NotificationBell />
+        {!isSetupMode ? (
+          <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-6">
+            <div>
+              <span className="text-brand font-black uppercase tracking-widest text-xs mb-3 block">Member Portal</span>
+              <div className="flex items-center justify-between">
+                <h1 className="text-3xl font-bold text-gray-900">Your Dashboard</h1>
+                <div className="md:hidden">
+                  <NotificationBell />
+                </div>
               </div>
             </div>
-          </div>
-          <div className="flex flex-col sm:flex-row items-center gap-4">
-            <div className="hidden md:block">
-              <NotificationBell />
+            <div className="flex flex-col sm:flex-row items-center gap-4">
+              <div className="hidden md:block">
+                <NotificationBell />
+              </div>
+              <div className="flex bg-white p-1 rounded-xl border border-gray-200">
+                <button
+                  onClick={() => setActiveTab('overview')}
+                  className={cn(
+                    "flex items-center px-6 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap",
+                    activeTab === 'overview' 
+                      ? "bg-gray-900 text-white" 
+                      : "text-gray-500 hover:text-gray-900"
+                  )}
+                >
+                  <LayoutDashboard size={16} className="mr-2" />
+                  Overview
+                </button>
+                <button
+                  onClick={() => setActiveTab('workout')}
+                  className={cn(
+                    "flex items-center px-6 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap",
+                    activeTab === 'workout' 
+                      ? "bg-gray-900 text-white" 
+                      : "text-gray-500 hover:text-gray-900"
+                  )}
+                >
+                  <Dumbbell size={16} className="mr-2" />
+                  Today's Workout
+                </button>
+                <button
+                  onClick={() => setActiveTab('settings')}
+                  className={cn(
+                    "flex items-center px-6 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap",
+                    activeTab === 'settings' 
+                      ? "bg-gray-900 text-white" 
+                      : "text-gray-500 hover:text-gray-900"
+                  )}
+                >
+                  <SettingsIcon size={16} className="mr-2" />
+                  Settings
+                </button>
+              </div>
+              <button
+                onClick={handleSignOut}
+                className="flex items-center justify-center w-full sm:w-auto px-6 py-2.5 bg-white border border-red-100 rounded-xl text-sm font-bold text-red-500 hover:bg-red-50 transition-all shadow-sm group"
+              >
+                <LogOut size={16} className="mr-2 group-hover:-translate-x-1 transition-transform" />
+                Sign Out
+              </button>
             </div>
-            <div className="flex bg-white p-1 rounded-xl border border-gray-200">
-              <button
-                onClick={() => setActiveTab('overview')}
-                className={cn(
-                  "flex items-center px-6 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap",
-                  activeTab === 'overview' 
-                    ? "bg-gray-900 text-white" 
-                    : "text-gray-500 hover:text-gray-900"
-                )}
-              >
-                <LayoutDashboard size={16} className="mr-2" />
-                Overview
-              </button>
-              <button
-                onClick={() => setActiveTab('workout')}
-                className={cn(
-                  "flex items-center px-6 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap",
-                  activeTab === 'workout' 
-                    ? "bg-gray-900 text-white" 
-                    : "text-gray-500 hover:text-gray-900"
-                )}
-              >
-                <Dumbbell size={16} className="mr-2" />
-                Today's Workout
-              </button>
-              <button
-                onClick={() => setActiveTab('settings')}
-                className={cn(
-                  "flex items-center px-6 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap",
-                  activeTab === 'settings' 
-                    ? "bg-gray-900 text-white" 
-                    : "text-gray-500 hover:text-gray-900"
-                )}
-              >
-                <SettingsIcon size={16} className="mr-2" />
-                Settings
-              </button>
-            </div>
-            <button
-              onClick={handleSignOut}
-              className="flex items-center justify-center w-full sm:w-auto px-6 py-2.5 bg-white border border-red-100 rounded-xl text-sm font-bold text-red-500 hover:bg-red-50 transition-all shadow-sm group"
-            >
-              <LogOut size={16} className="mr-2 group-hover:-translate-x-1 transition-transform" />
-              Sign Out
-            </button>
           </div>
-        </div>
+        ) : (
+          <div className="text-center mb-12">
+            <span className="text-brand font-black uppercase tracking-widest text-xs mb-3 block">Initialization Sequence</span>
+            <h1 className="text-4xl font-black text-gray-900 uppercase">Setup Your DNA Profile</h1>
+            <p className="text-gray-500 mt-4 max-w-lg mx-auto font-medium">Please provide your biological parameters to unlock your customized training protocols.</p>
+          </div>
+        )}
 
         <AnimatePresence mode="wait">
           {activeTab === 'overview' ? (
@@ -404,19 +422,28 @@ const Profile = () => {
                               <div className="mt-4 p-4 bg-brand/5 rounded-2xl border border-brand/10">
                                 <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-1">Membership Validity</p>
                                 <div className="flex items-center justify-between">
-                                  <p className={cn(
-                                    "text-lg font-black",
-                                    Math.ceil((membership.expiryDate.toDate().getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)) > 0 
-                                      ? "text-gray-900" 
-                                      : "text-red-500"
-                                  )}>
-                                    {Math.max(0, Math.ceil((membership.expiryDate.toDate().getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)))} Days Left
-                                  </p>
-                                  <Clock size={16} className={cn(
-                                    Math.ceil((membership.expiryDate.toDate().getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)) > 0 
-                                      ? "text-brand" 
-                                      : "text-red-500"
-                                  )} />
+                                  {(() => {
+                                    const expiry = (membership.expiryDate && typeof membership.expiryDate.toDate === 'function') 
+                                      ? membership.expiryDate.toDate().getTime() 
+                                      : null;
+                                    const now = new Date().getTime();
+                                    const diff = expiry ? Math.ceil((expiry - now) / (1000 * 60 * 60 * 24)) : 0;
+                                    const daysLeft = isNaN(diff) ? 0 : diff;
+                                    
+                                    return (
+                                      <>
+                                        <p className={cn(
+                                          "text-lg font-black",
+                                          daysLeft > 0 ? "text-gray-900" : "text-red-500"
+                                        )}>
+                                          {Math.max(0, daysLeft)} Days Left
+                                        </p>
+                                        <Clock size={16} className={cn(
+                                          daysLeft > 0 ? "text-brand" : "text-red-500"
+                                        )} />
+                                      </>
+                                    );
+                                  })()}
                                 </div>
                               </div>
                             )}
@@ -1029,7 +1056,7 @@ const Profile = () => {
                     ) : (
                       <Save className="mr-3" size={20} />
                     )}
-                    {loading ? 'Saving Changes...' : success ? 'Profile Updated!' : 'Save Profile Changes'}
+                    {loading ? 'Initializing DNA...' : success ? 'Profile Activated!' : isSetupMode ? 'Initialize My Profile' : 'Save Profile Changes'}
                   </button>
                 </div>
               </form>

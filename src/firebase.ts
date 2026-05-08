@@ -30,7 +30,7 @@ import {
   writeBatch,
   getDocFromServer
 } from 'firebase/firestore';
-import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { getStorage, ref, uploadBytes, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 
 // Import the Firebase configuration
 import firebaseConfig from '../firebase-applet-config.json';
@@ -57,6 +57,13 @@ const db = (firebaseConfig as any).firestoreDatabaseId
   : initializeFirestore(app, { 
       experimentalForceLongPolling: true 
     });
+
+console.log("[Firebase] DB Initialized for project:", firebaseConfig.projectId);
+if ((firebaseConfig as any).firestoreDatabaseId) {
+  console.log("[Firebase] Using named database:", (firebaseConfig as any).firestoreDatabaseId);
+} else {
+  console.log("[Firebase] Using (default) database");
+}
 
 // Connectivity logs
 if (typeof window !== 'undefined') {
@@ -202,6 +209,7 @@ export {
   writeBatch,
   ref,
   uploadBytes,
+  uploadBytesResumable,
   getDownloadURL
 };
 export type { User };

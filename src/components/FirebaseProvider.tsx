@@ -84,7 +84,12 @@ export function FirebaseProvider({ children }: { children: ReactNode }) {
             const data = snapshot.data() as UserProfile;
             setProfile(data);
             
-            // Only update lastActive once per session to avoid infinite loops and unnecessary writes
+            // Auto-fix admin role for the owner email if it's currently wrong
+            if (currentUser.email === 'dnacultfitness@gmail.com' && data.role !== 'admin') {
+              updateDoc(userDocRef, { role: 'admin' }).catch(() => {});
+            }
+            
+            // Only update lastActive once per session
             const lastSessionUpdate = sessionStorage.getItem(`last_active_${currentUser.uid}`);
             const now = Date.now();
             // If not updated this session OR last update was more than 1 hour ago

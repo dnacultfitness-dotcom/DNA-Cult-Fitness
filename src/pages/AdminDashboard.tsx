@@ -25,7 +25,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
-import { db, collection, query, orderBy, onSnapshot, deleteDoc, doc, updateDoc, addDoc, handleFirestoreError, OperationType, where, getDocs, serverTimestamp, storage, ref, uploadBytes, getDownloadURL } from '../firebase';
+import { db, collection, query, orderBy, onSnapshot, deleteDoc, doc, updateDoc, addDoc, setDoc, handleFirestoreError, OperationType, where, getDocs, serverTimestamp, storage, ref, uploadBytes, uploadBytesResumable, getDownloadURL } from '../firebase';
 import { useFirebase } from '../components/FirebaseProvider';
 import { toast } from 'sonner';
 import { NotificationBell } from '../components/NotificationBell';
@@ -109,7 +109,17 @@ const ValidityInput = ({ membershipId, expiryDate }: { membershipId: string, exp
     }
   };
 
-  const remainingDays = expiryDate ? Math.ceil((expiryDate.toDate().getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)) : 0;
+  const remainingDays = useMemo(() => {
+    if (!expiryDate || typeof expiryDate.toDate !== 'function') return 0;
+    try {
+      const expiry = expiryDate.toDate().getTime();
+      const now = new Date().getTime();
+      if (isNaN(expiry)) return 0;
+      return Math.ceil((expiry - now) / (1000 * 60 * 60 * 24));
+    } catch (e) {
+      return 0;
+    }
+  }, [expiryDate]);
 
   return (
     <div className="flex items-center space-x-4">
@@ -351,11 +361,19 @@ const UserManager = () => {
   const [trainers, setTrainers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const { isAdmin } = useFirebase();
+  const [localDbError, setLocalDbError] = useState<string | null>(null);
+  const { isAdmin, dbError: globalDbError } = useFirebase();
 
   useEffect(() => {
     if (!isAdmin) return;
     
+    // Explicit connectivity test
+    const testDocRef = doc(db, '_connection_test_', 'connectivity_check');
+    setDoc(testDocRef, { timestamp: serverTimestamp(), check: true }).catch(err => {
+      console.error("Diagnostic connectivity check failed:", err);
+      setLocalDbError(`Connectivity Check Failed: ${err.message}`);
+    });
+
     const qUsers = collection(db, 'users');
     const unsubscribeUsers = onSnapshot(qUsers, (snapshot) => {
       const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as any));
@@ -363,7 +381,9 @@ const UserManager = () => {
       data.sort((a, b) => (b.lastActive?.toMillis() || b.createdAt?.toMillis() || 0) - (a.lastActive?.toMillis() || a.createdAt?.toMillis() || 0));
       setUsers(data);
       setLoading(false);
+      setLocalDbError(null);
     }, (err) => {
+      setLocalDbError(`Users List Error: ${err.message}`);
       handleFirestoreError(err, OperationType.LIST, 'users');
     });
 
@@ -458,6 +478,18 @@ const UserManager = () => {
           )}
         </div>
       </div>
+
+      {(localDbError || globalDbError) && (
+        <div className="mb-8 p-4 bg-red-50 border border-red-100 rounded-2xl flex items-start space-x-3 text-red-600">
+          <XCircle size={20} className="shrink-0 mt-0.5" />
+          <div className="space-y-1">
+            <p className="font-bold">Database Error</p>
+            <p className="text-sm">{localDbError || globalDbError}</p>
+            <p className="text-[10px] uppercase font-black tracking-widest opacity-70">Check Console for set_up_firebase instructions</p>
+          </div>
+        </div>
+      )}
+
       <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
         {loading ? (
           <div className="p-12 text-center"><Loader2 className="animate-spin mx-auto text-green-600" /></div>
@@ -1189,7 +1221,10 @@ const MemberManager = () => {
 
   return (
     <div className="p-8">
-      <h1 className="text-3xl font-bold mb-8">Active Members</h1>
+      <div className="flex items-center justify-between mb-8">
+        <h1 className="text-3xl font-bold">Active Members</h1>
+        {!isAdmin && <div className="text-xs text-red-500 font-bold px-3 py-1 bg-red-50 rounded-full border border-red-100">Debug: Non-Admin Role Detected</div>}
+      </div>
       <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
         {loading ? (
           <div className="p-12 text-center"><Loader2 className="animate-spin mx-auto text-green-600" /></div>
@@ -1786,7 +1821,7 @@ const MembershipPlanManager = () => {
   const [editForm, setEditForm] = useState<any>(null);
   const [showAddForm, setShowAddForm] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const { isAdmin } = useFirebase();
+  const { isAdmin, user } = useFirebase();
   const [newPlan, setNewPlan] = useState({
     name: '',
     priceOptions: [
@@ -1799,19 +1834,16 @@ const MembershipPlanManager = () => {
     order: 0,
     imageUrl: ''
   });
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [uploading, setUploading] = useState(false);
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setImageFile(file);
-      const reader = new FileReader();
-      reader.onloadend = () => setImagePreview(reader.result as string);
-      reader.readAsDataURL(file);
-    }
+  const updateNewPlanPrice = (index: number, field: 'actualPrice' | 'offerPrice', value: string) => {
+    setNewPlan(prev => ({
+      ...prev,
+      priceOptions: prev.priceOptions.map((opt, i) => 
+        i === index ? { ...opt, [field]: value } : opt
+      )
+    }));
   };
+  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     if (!isAdmin) return;
@@ -1836,40 +1868,80 @@ const MembershipPlanManager = () => {
     );
   }, [plans, searchQuery]);
 
+  const updateEditPlanPrice = (index: number, field: 'actualPrice' | 'offerPrice', value: string) => {
+    setEditForm((prev: any) => ({
+      ...prev,
+      priceOptions: prev.priceOptions.map((opt: any, i: number) => 
+        i === index ? { ...opt, [field]: value } : opt
+      )
+    }));
+  };
+
   const startEdit = (plan: any) => {
     setEditingId(plan.id);
-    // Ensure priceOptions exists
     const defaultOptions = [
       { duration: '1 Month', actualPrice: '', offerPrice: '' },
       { duration: '3 Months', actualPrice: '', offerPrice: '' },
       { duration: '6 Months', actualPrice: '', offerPrice: '' },
       { duration: '12 Months', actualPrice: '', offerPrice: '' }
     ];
+
+    const currentOptions = plan.priceOptions || [];
+    const mergedOptions = defaultOptions.map(def => {
+      const existing = currentOptions.find((o: any) => o.duration === def.duration);
+      return existing ? { ...existing } : def;
+    });
+
     setEditForm({ 
       ...plan, 
-      priceOptions: plan.priceOptions || defaultOptions 
+      priceOptions: mergedOptions,
+      features: Array.isArray(plan.features) ? plan.features.join(', ') : (plan.features || '')
     });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const saveEdit = async () => {
-    if (!editingId) return;
-    try {
-      const sanitizedOptions = editForm.priceOptions.map((opt: any) => ({
-        duration: opt.duration,
-        actualPrice: opt.actualPrice === '' ? 0 : Number(opt.actualPrice),
-        offerPrice: opt.offerPrice === '' ? 0 : Number(opt.offerPrice)
-      })).filter((opt: any) => !isNaN(opt.actualPrice) && (opt.actualPrice > 0 || opt.offerPrice > 0));
+  const handleUpdatePlan = async () => {
+    if (!editingId || !editForm) return;
+    const loadingToast = toast.loading('Synchronizing biological update...');
+    setUploading(true);
 
-      await updateDoc(doc(db, 'membershipPlans', editingId), {
+    try {
+      const sanitizedOptions = editForm.priceOptions.map((opt: any) => {
+        const actual = opt.actualPrice === '' || opt.actualPrice === null ? 0 : Number(opt.actualPrice);
+        const offer = opt.offerPrice === '' || opt.offerPrice === null ? 0 : Number(opt.offerPrice);
+        return {
+          duration: opt.duration,
+          actualPrice: isNaN(actual) ? 0 : actual,
+          offerPrice: isNaN(offer) ? 0 : offer
+        };
+      }).filter((opt: any) => opt.actualPrice > 0 || opt.offerPrice > 0);
+
+      if (sanitizedOptions.length === 0) {
+        toast.error('Strategic error: Minimum pricing not detected.', { id: loadingToast });
+        setUploading(false);
+        return;
+      }
+
+      toast.loading('Step 2/2: Finalizing sequence...', { id: loadingToast });
+      const planRef = doc(db, 'membershipPlans', editingId);
+      await updateDoc(planRef, {
         name: editForm.name.trim(),
         priceOptions: sanitizedOptions,
-        order: Number(editForm.order) || 0,
+        features: Array.isArray(editForm.features) 
+          ? editForm.features 
+          : (editForm.features || '').toString().split(',').map((f: string) => f.trim()).filter((f: string) => f !== ''),
+        order: parseInt(editForm.order) || 0,
         updatedAt: serverTimestamp()
       });
-      toast.success('Membership plan updated successfully');
+
+      toast.success('Protocol updated and synchronized.', { id: loadingToast });
       setEditingId(null);
-    } catch (err) {
-      handleFirestoreError(err, OperationType.UPDATE, `membershipPlans/${editingId}`);
+      setEditForm(null);
+    } catch (err: any) {
+      console.error('[Admin] Update failure:', err);
+      toast.error(`System Error: ${err.message || 'Update failed'}`, { id: loadingToast });
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -1878,55 +1950,46 @@ const MembershipPlanManager = () => {
     if (uploading) return;
     
     setUploading(true);
-    const loadingToast = toast.loading('Creating membership plan...');
+    const loadingToast = toast.loading('Initiating plan creation...');
+    console.log('[Admin] Plan creation started', { name: newPlan.name });
+
     try {
-      let finalImageUrl = '';
-
-      if (imageFile) {
-        if (!storage) {
-          throw new Error('Firebase Storage is not available. Please ensure "Cloud Storage" is enabled in your Firebase Console and the configuration is correct.');
-        }
-        const fileExt = imageFile.name.split('.').pop();
-        const fileName = `plans/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
-        const storageRef = ref(storage, fileName);
-        const snapshot = await uploadBytes(storageRef, imageFile);
-        finalImageUrl = await getDownloadURL(snapshot.ref);
-      }
-
-      console.log('[Admin] Raw price options:', newPlan.priceOptions);
-      const sanitizedOptions = newPlan.priceOptions.map(opt => ({
-        duration: opt.duration,
-        actualPrice: opt.actualPrice === '' || opt.actualPrice === null ? 0 : Number(opt.actualPrice),
-        offerPrice: opt.offerPrice === '' || opt.offerPrice === null ? 0 : Number(opt.offerPrice)
-      })).filter(opt => !isNaN(opt.actualPrice) && (opt.actualPrice > 0 || opt.offerPrice > 0));
-
-      console.log('[Admin] Sanitized price options:', sanitizedOptions);
+      // 1. Data Preparation
+      toast.loading('Step 1/2: Encoding protocol parameters...', { id: loadingToast });
+      const sanitizedOptions = (newPlan.priceOptions || []).map(opt => {
+        const actual = opt.actualPrice === '' || opt.actualPrice === null ? 0 : Number(opt.actualPrice);
+        const offer = opt.offerPrice === '' || opt.offerPrice === null ? 0 : Number(opt.offerPrice);
+        return {
+          duration: opt.duration || 'Unknown',
+          actualPrice: isNaN(actual) ? 0 : actual,
+          offerPrice: isNaN(offer) ? 0 : offer
+        };
+      }).filter(opt => opt.actualPrice > 0 || opt.offerPrice > 0);
 
       if (sanitizedOptions.length === 0) {
-        throw new Error('Please add at least one valid price option with a value greater than 0');
-      }
-
-      if (!newPlan.name.trim()) {
-        throw new Error('Please enter a plan name');
+        toast.error('Strategic error: Minimum pricing not detected.', { id: loadingToast });
+        setUploading(false);
+        return;
       }
 
       const planData = {
         name: newPlan.name.trim(),
         priceOptions: sanitizedOptions,
-        imageUrl: finalImageUrl,
-        features: newPlan.features.split(',').map(f => f.trim()).filter(f => f !== ''),
-        order: Number(newPlan.order) || 0,
-        createdAt: serverTimestamp()
+        features: (newPlan.features || '').split(',').map(f => f.trim()).filter(f => f !== ''),
+        order: parseInt(newPlan.order as any) || 0,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
       };
+
+      // 2. Firestore Write
+      toast.loading('Step 2/2: Finalizing protocol deployment...', { id: loadingToast });
+      console.log('[Admin] Writing to matrix...', planData);
       
-      console.log('[Admin] Final plan data:', planData);
       const docRef = await addDoc(collection(db, 'membershipPlans'), planData);
-      console.log('[Admin] Plan created with ID:', docRef.id);
+      console.log('[Admin] Protocol live! ID:', docRef.id);
       
-      toast.success('New membership plan created successfully!', { id: loadingToast });
+      toast.success('Protocol synthesized and deployed successfully!', { id: loadingToast });
       setShowAddForm(false);
-      setImageFile(null);
-      setImagePreview(null);
       setNewPlan({
         name: '',
         priceOptions: [
@@ -1940,9 +2003,8 @@ const MembershipPlanManager = () => {
         imageUrl: ''
       });
     } catch (err: any) {
-      console.error('[Admin] Failed to create plan:', err);
-      toast.error('Failed to create plan: ' + err.message, { id: loadingToast });
-      handleFirestoreError(err, OperationType.CREATE, 'membershipPlans');
+      console.error('[Admin] Critical failure in synthesis:', err);
+      toast.error(`System Error: ${err.message || 'Connection lost'}`, { id: loadingToast });
     } finally {
       setUploading(false);
     }
@@ -2097,9 +2159,10 @@ const MembershipPlanManager = () => {
               <label className="block text-sm font-bold text-gray-700 mb-2">Display Order</label>
               <input 
                 type="number" 
-                value={newPlan.order} 
-                onChange={e => setNewPlan({...newPlan, order: parseInt(e.target.value)})}
+                value={newPlan.order === 0 ? '' : newPlan.order} 
+                onChange={e => setNewPlan({...newPlan, order: e.target.value === '' ? 0 : parseInt(e.target.value)})}
                 className="w-full px-4 py-2 border rounded-xl outline-none focus:ring-2 focus:ring-green-500"
+                placeholder="e.g. 1"
               />
             </div>
             <div className="md:col-span-2 border-t pt-6">
@@ -2114,11 +2177,7 @@ const MembershipPlanManager = () => {
                         <input 
                           type="number"
                           value={opt.actualPrice}
-                          onChange={e => {
-                            const updated = [...newPlan.priceOptions];
-                            updated[index].actualPrice = e.target.value;
-                            setNewPlan({...newPlan, priceOptions: updated});
-                          }}
+                          onChange={e => updateNewPlanPrice(index, 'actualPrice', e.target.value)}
                           className="w-full px-3 py-1.5 border rounded-lg text-sm"
                           placeholder="e.g. 5000"
                         />
@@ -2128,11 +2187,7 @@ const MembershipPlanManager = () => {
                         <input 
                           type="number"
                           value={opt.offerPrice}
-                          onChange={e => {
-                            const updated = [...newPlan.priceOptions];
-                            updated[index].offerPrice = e.target.value;
-                            setNewPlan({...newPlan, priceOptions: updated});
-                          }}
+                          onChange={e => updateNewPlanPrice(index, 'offerPrice', e.target.value)}
                           className="w-full px-3 py-1.5 border rounded-lg text-sm"
                           placeholder="e.g. 4500"
                         />
@@ -2140,36 +2195,6 @@ const MembershipPlanManager = () => {
                     </div>
                   </div>
                 ))}
-              </div>
-            </div>
-            <div className="md:col-span-2">
-              <label className="block text-sm font-bold text-gray-700 mb-2">Plan Image (Recommended 1080x1080px)</label>
-              <div className="flex items-center space-x-6">
-                <div className="w-24 h-24 bg-gray-50 border-2 border-dashed border-gray-200 rounded-2xl overflow-hidden flex items-center justify-center group relative">
-                  {imagePreview ? (
-                    <>
-                      <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
-                      <button 
-                        type="button"
-                        onClick={() => { setImageFile(null); setImagePreview(null); }}
-                        className="absolute inset-0 bg-black/40 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                      >
-                        <Trash2 size={20} />
-                      </button>
-                    </>
-                  ) : (
-                    <Dumbbell size={24} className="text-gray-300" />
-                  )}
-                </div>
-                <div className="flex-1">
-                  <input 
-                    type="file" 
-                    accept="image/*"
-                    onChange={handleImageChange}
-                    className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100 transition-all cursor-pointer"
-                  />
-                  <p className="mt-1 text-xs text-gray-400">High quality 1:1 aspect ratio image looks best.</p>
-                </div>
               </div>
             </div>
             <div className="md:col-span-2">
@@ -2202,7 +2227,6 @@ const MembershipPlanManager = () => {
           <table className="w-full text-left">
             <thead className="bg-gray-50 border-b border-gray-100">
               <tr>
-                <th className="px-6 py-4 text-sm font-bold text-gray-500 uppercase">Image</th>
                 <th className="px-6 py-4 text-sm font-bold text-gray-500 uppercase">Plan Name</th>
                 <th className="px-6 py-4 text-sm font-bold text-gray-500 uppercase">Pricing Options</th>
                 <th className="px-6 py-4 text-sm font-bold text-gray-500 uppercase">Order</th>
@@ -2212,22 +2236,13 @@ const MembershipPlanManager = () => {
             <tbody className="divide-y divide-gray-100">
               {filteredPlans.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-12 text-center text-gray-500 font-medium">
+                  <td colSpan={4} className="px-6 py-12 text-center text-gray-500 font-medium">
                     {searchQuery ? `No matching plans found for "${searchQuery}"` : "No membership plans found."}
                   </td>
                 </tr>
               ) : (
                 filteredPlans.map((plan) => (
                   <tr key={plan.id} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-6 py-4">
-                    <div className="w-12 h-12 bg-gray-50 rounded-lg overflow-hidden border border-gray-100 flex items-center justify-center">
-                      {plan.imageUrl ? (
-                        <img src={plan.imageUrl} alt={plan.name} className="w-full h-full object-cover" />
-                      ) : (
-                        <Dumbbell size={16} className="text-gray-300" />
-                      )}
-                    </div>
-                  </td>
                   <td className="px-6 py-4">
                     {editingId === plan.id ? (
                       <input 
@@ -2249,22 +2264,14 @@ const MembershipPlanManager = () => {
                             <input 
                               type="number" 
                               value={opt.actualPrice} 
-                              onChange={e => {
-                                const updated = [...editForm.priceOptions];
-                                updated[idx].actualPrice = e.target.value;
-                                setEditForm({...editForm, priceOptions: updated});
-                              }}
+                              onChange={e => updateEditPlanPrice(idx, 'actualPrice', e.target.value)}
                               className="w-16 border rounded p-1"
                               placeholder="Act"
                             />
                             <input 
                               type="number" 
                               value={opt.offerPrice} 
-                              onChange={e => {
-                                const updated = [...editForm.priceOptions];
-                                updated[idx].offerPrice = e.target.value;
-                                setEditForm({...editForm, priceOptions: updated});
-                              }}
+                              onChange={e => updateEditPlanPrice(idx, 'offerPrice', e.target.value)}
                               className="w-16 border rounded p-1"
                               placeholder="Off"
                             />
@@ -2296,16 +2303,16 @@ const MembershipPlanManager = () => {
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex space-x-2">
-                      {editingId === plan.id ? (
-                        <>
-                          <button onClick={saveEdit} className="text-green-600 hover:text-green-700">
-                            <SaveIcon size={18} />
-                          </button>
-                          <button onClick={() => setEditingId(null)} className="text-gray-400 hover:text-gray-600">
-                            <XCircle size={18} />
-                          </button>
-                        </>
-                      ) : (
+                          {editingId === plan.id ? (
+                            <>
+                              <button onClick={handleUpdatePlan} disabled={uploading} className="text-green-600 hover:text-green-700 disabled:opacity-50">
+                                {uploading ? <Loader2 size={18} className="animate-spin" /> : <SaveIcon size={18} />}
+                              </button>
+                              <button onClick={() => { setEditingId(null); setEditForm(null); }} className="text-gray-400 hover:text-gray-600">
+                                <XCircle size={18} />
+                              </button>
+                            </>
+                          ) : (
                         <>
                           <button 
                             type="button"
@@ -2358,22 +2365,10 @@ const ServiceManager = () => {
     title: '',
     description: '',
     features: '',
-    order: 0,
-    imageUrl: ''
+    order: 0
   });
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [uploading, setUploading] = useState(false);
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setImageFile(file);
-      const reader = new FileReader();
-      reader.onloadend = () => setImagePreview(reader.result as string);
-      reader.readAsDataURL(file);
-    }
-  };
+  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     if (!isAdmin) return;
@@ -2424,20 +2419,9 @@ const ServiceManager = () => {
     setUploading(true);
     const loadingToast = toast.loading('Creating training program...');
     try {
-      let finalImageUrl = '';
-
-      if (imageFile) {
-        const fileExt = imageFile.name.split('.').pop();
-        const fileName = `services/${Date.now()}.${fileExt}`;
-        const storageRef = ref(storage, fileName);
-        const snapshot = await uploadBytes(storageRef, imageFile);
-        finalImageUrl = await getDownloadURL(snapshot.ref);
-      }
-
       const serviceData = {
         title: newService.title.trim(),
         description: newService.description.trim(),
-        imageUrl: finalImageUrl,
         features: newService.features.split(',').map(f => f.trim()).filter(f => f !== ''),
         order: Number(newService.order) || 0,
         createdAt: serverTimestamp()
@@ -2447,14 +2431,11 @@ const ServiceManager = () => {
       
       toast.success('New training program created successfully!', { id: loadingToast });
       setShowAddForm(false);
-      setImageFile(null);
-      setImagePreview(null);
       setNewService({
         title: '',
         description: '',
         features: '',
-        order: services.length + 1,
-        imageUrl: ''
+        order: services.length + 1
       });
     } catch (err: any) {
       toast.error('Failed to create program: ' + err.message, { id: loadingToast });
@@ -2598,27 +2579,6 @@ const ServiceManager = () => {
                 className="w-full px-4 py-2 border rounded-xl outline-none focus:ring-2 focus:ring-green-500 h-24 resize-none"
                 placeholder="Briefly describe the training program..."
               />
-            </div>
-            <div className="md:col-span-2">
-              <label className="block text-sm font-bold text-gray-700 mb-2">Banner Image</label>
-              <div className="flex items-center space-x-6">
-                <div className="w-24 h-24 bg-gray-50 border-2 border-dashed border-gray-200 rounded-2xl overflow-hidden flex items-center justify-center">
-                  {imagePreview ? (
-                    <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
-                  ) : (
-                    <Briefcase size={24} className="text-gray-300" />
-                  )}
-                </div>
-                <div className="flex-1">
-                  <input 
-                    type="file" 
-                    accept="image/*"
-                    onChange={handleImageChange}
-                    className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100 cursor-pointer"
-                  />
-                  <p className="mt-1 text-xs text-gray-400">Recommended size: 1080x720px.</p>
-                </div>
-              </div>
             </div>
             <div className="md:col-span-2">
               <label className="block text-sm font-bold text-gray-700 mb-2">Features (Comma separated)</label>
@@ -3174,7 +3134,7 @@ const AdminSidebar = () => {
     { name: 'Plan Approvals', path: '/admin/approvals', icon: <CheckCircle size={20} />, badge: counts.approvals },
     { name: 'Today\'s Workouts', path: '/admin/workouts', icon: <Activity size={20} />, badge: counts.workouts },
     { name: 'Trainers', path: '/admin/trainers', icon: <Briefcase size={20} /> },
-    { name: 'Protocols', path: '/admin/plans', icon: <ShieldCheck size={20} /> },
+    { name: 'Plans', path: '/admin/plans', icon: <ShieldCheck size={20} /> },
     { name: 'Services', path: '/admin/services', icon: <Dumbbell size={20} /> },
     { name: 'AI Plans', path: '/admin/ai-plans', icon: <Sparkles size={20} /> },
     { name: 'Settings', path: '/admin/settings', icon: <Settings size={20} /> },
