@@ -52,7 +52,7 @@ const Navbar = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-20 items-center">
           <Link to="/" className="flex items-center space-x-2">
-            <span className="text-2xl font-bold tracking-tighter text-brand-green">DNA CULT <span className="text-white">FITNESS</span></span>
+            <span className="text-xl sm:text-2xl font-bold tracking-tighter text-brand-green">DNA CULT <span className="text-white">FITNESS</span></span>
           </Link>
 
           {/* Desktop Nav */}
@@ -205,71 +205,71 @@ const Footer = () => {
   }
 
   return (
-    <footer className="bg-gray-900 text-white pt-16 pb-8">
+    <footer className="bg-gray-900 text-white pt-12 sm:pt-16 pb-6 sm:pb-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
-          <div className="col-span-1 md:col-span-2">
-            <span className="text-2xl font-bold tracking-tighter text-brand-green mb-6 block">DNA CULT FITNESS</span>
-            <p className="text-gray-400 max-w-md mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-8 sm:gap-12 mb-10 sm:mb-12 text-center md:text-left">
+          <div className="col-span-1 md:col-span-2 flex flex-col items-center md:items-start">
+            <span className="text-xl sm:text-2xl font-bold tracking-tighter text-brand-green mb-4 sm:mb-6 block uppercase">DNA Cult Fitness</span>
+            <p className="text-gray-400 max-w-md mb-6 text-sm sm:text-base leading-relaxed">
               Transform your body and elevate your DNA with our premium fitness programs. 
               We combine science-backed training with a supportive community to help you reach your peak performance.
             </p>
             <div className="flex space-x-4">
-              <a href="#" className="text-gray-400 hover:text-white transition-colors"><Instagram size={20} /></a>
-              <a href="#" className="text-gray-400 hover:text-white transition-colors"><Facebook size={20} /></a>
-              <a href="#" className="text-gray-400 hover:text-white transition-colors"><Youtube size={20} /></a>
+              <a href="#" className="text-gray-400 hover:text-white transition-colors"><Instagram size={18} /></a>
+              <a href="#" className="text-gray-400 hover:text-white transition-colors"><Facebook size={18} /></a>
+              <a href="#" className="text-gray-400 hover:text-white transition-colors"><Youtube size={18} /></a>
             </div>
           </div>
           
           <div>
-            <h4 className="text-lg font-semibold mb-6">Quick Links</h4>
-            <ul className="space-y-4 text-gray-400">
-              <li><Link to="/about" className="hover:text-brand-green transition-colors">About Us</Link></li>
-              <li><Link to="/services" className="hover:text-brand-green transition-colors">Services</Link></li>
-              <li><Link to="/ai-assistant" className="hover:text-brand-green transition-colors">AI Assistant</Link></li>
-              <li><Link to="/membership" className="hover:text-brand-green transition-colors">Membership</Link></li>
-              <li><Link to="/contact" className="hover:text-brand-green transition-colors">Contact</Link></li>
+            <h4 className="text-base sm:text-lg font-black mb-4 sm:mb-6 uppercase tracking-tight">Quick Links</h4>
+            <ul className="space-y-3 sm:space-y-4 text-gray-400 text-sm sm:text-base">
+              <li><Link to="/about" className="hover:text-brand-green transition-colors font-medium">About Us</Link></li>
+              <li><Link to="/services" className="hover:text-brand-green transition-colors font-medium">Services</Link></li>
+              <li><Link to="/ai-assistant" className="hover:text-brand-green transition-colors font-medium">AI Assistant</Link></li>
+              <li><Link to="/membership" className="hover:text-brand-green transition-colors font-medium">Membership</Link></li>
+              <li><Link to="/contact" className="hover:text-brand-green transition-colors font-medium">Contact</Link></li>
             </ul>
           </div>
           
           <div>
-            <h4 className="text-lg font-semibold mb-6">Contact Info</h4>
-            <ul className="space-y-4 text-gray-400">
-              <li className="flex items-start space-x-3">
-                <MapPin size={18} className="text-brand-green mt-1 shrink-0" />
+            <h4 className="text-base sm:text-lg font-black mb-4 sm:mb-6 uppercase tracking-tight">Contact Info</h4>
+            <ul className="space-y-3 sm:space-y-4 text-gray-400 text-sm sm:text-base">
+              <li className="flex items-start justify-center md:justify-start space-x-3 group">
+                <MapPin size={16} className="text-brand-green mt-1 shrink-0" />
                 <a 
                   href="https://www.google.com/maps/dir//DNA+Cult+Fitness,+Royal+Tower,+Trichambaram,+Taliparamba,+Kannur+-+670141/@12.0326503,75.359472,17z/data=!4m8!4m7!1m0!1m5!1m1!1s0x3ba43fb67521c0d1:0x579e95721a3937b1!2m2!1d75.359472!2d12.0326503?entry=ttu" 
                   target="_blank" 
                   rel="noopener noreferrer" 
-                  className="hover:text-white transition-colors"
+                  className="hover:text-white transition-colors leading-tight"
                 >
                   Royal Tower, Trichambaram, Taliparamba, Kannur - 670141
                 </a>
               </li>
-              <li className="flex items-center space-x-3">
-                <Phone size={18} className="text-brand-green" />
-                <span>+91 62388 92734</span>
+              <li className="flex items-center justify-center md:justify-start space-x-3">
+                <Phone size={16} className="text-brand-green" />
+                <span className="font-medium">+91 62388 92734</span>
               </li>
-              <li className="flex items-center space-x-3">
-                <MessageSquare size={18} className="text-brand-green" />
-                <a href="https://wa.me/916238892734" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">
-                  +91 62388 92734 (WhatsApp)
+              <li className="flex items-center justify-center md:justify-start space-x-3">
+                <MessageSquare size={16} className="text-brand-green" />
+                <a href="https://wa.me/916238892734" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors font-medium">
+                  +91 62388 92734
                 </a>
               </li>
-              <li className="flex items-center space-x-3">
-                <Globe size={18} className="text-brand-green" />
-                <a href="https://www.dnacultfitness.com" className="hover:text-white transition-colors text-xs">www.dnacultfitness.com</a>
+              <li className="flex items-center justify-center md:justify-start space-x-3">
+                <Globe size={16} className="text-brand-green" />
+                <a href="https://www.dnacultfitness.com" className="hover:text-white transition-colors text-[11px] sm:text-xs truncate font-medium">www.dnacultfitness.com</a>
               </li>
-              <li className="flex items-center space-x-3">
-                <Mail size={18} className="text-brand-green" />
-                <a href="mailto:dnacultfitness@gmail.com" className="hover:text-white transition-colors text-xs">dnacultfitness@gmail.com</a>
+              <li className="flex items-center justify-center md:justify-start space-x-3">
+                <Mail size={16} className="text-brand-green" />
+                <a href="mailto:dnacultfitness@gmail.com" className="hover:text-white transition-colors text-[11px] sm:text-xs truncate font-medium">dnacultfitness@gmail.com</a>
               </li>
             </ul>
           </div>
         </div>
         
-        <div className="pt-8 border-t border-gray-800 text-center text-gray-500 text-sm">
-          <p>&copy; {new Date().getFullYear()} DNA Cult Fitness. All rights reserved.</p>
+        <div className="pt-6 sm:pt-8 border-t border-gray-800 text-center text-gray-500 text-[10px] sm:text-xs uppercase font-black tracking-widest">
+          <p>&copy; {new Date().getFullYear()} DNA Cult Fitness. Optimized for Performance.</p>
         </div>
       </div>
     </footer>

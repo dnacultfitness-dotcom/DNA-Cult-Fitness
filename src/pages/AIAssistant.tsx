@@ -84,14 +84,14 @@ const ProgressTracker = () => {
 
   return (
     <div className="space-y-8">
-      <div className="card-premium p-10">
-        <div className="flex items-center justify-between mb-10">
-          <h3 className="text-2xl font-black text-gray-900 flex items-center uppercase tracking-tight">
+      <div className="card-premium p-6 sm:p-10">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-8 sm:mb-10 gap-4">
+          <h3 className="text-xl sm:text-2xl font-black text-gray-900 flex items-center uppercase tracking-tight">
             <Activity className="mr-3 text-brand" /> Weekly Progress Tracker
           </h3>
           <button
             onClick={() => setShowAddReport(!showAddReport)}
-            className="bg-brand text-white px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-brand/90 transition-all shadow-lg shadow-brand/20"
+            className="bg-brand text-white px-5 sm:px-6 py-2.5 sm:py-3 rounded-xl text-[9px] sm:text-[10px] font-black uppercase tracking-widest hover:bg-brand/90 transition-all shadow-lg shadow-brand/20 w-fit"
           >
             {showAddReport ? 'Cancel' : 'Add Report'}
           </button>
@@ -523,19 +523,19 @@ const AIAssistant = () => {
   return (
     <div className="pt-32 pb-24 min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-16">
+        <div className="text-center mb-10 sm:mb-16">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="inline-flex items-center space-x-3 bg-brand/10 text-brand px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest mb-6 border border-brand/20"
+            className="inline-flex items-center space-x-3 bg-brand/10 text-brand px-4 sm:px-6 py-2 sm:py-2.5 rounded-full text-[9px] sm:text-[10px] font-black uppercase tracking-widest mb-4 sm:mb-6 border border-brand/20"
           >
-            <Sparkles size={16} />
+            <Sparkles size={14} sm:size={16} />
             <span>AI-Powered Personal Training</span>
           </motion.div>
-          <h1 className="text-5xl md:text-6xl font-black text-gray-900 mb-6 uppercase tracking-tight leading-none">
+          <h1 className="text-3xl sm:text-5xl md:text-6xl font-black text-gray-900 mb-4 sm:mb-6 uppercase tracking-tight leading-tight sm:leading-none">
             AI DIET & <span className="text-brand">WORKOUT</span>
           </h1>
-          <p className="text-lg font-bold text-gray-400 max-w-2xl mx-auto uppercase tracking-wide">
+          <p className="text-sm sm:text-lg font-bold text-gray-400 max-w-2xl mx-auto uppercase tracking-wide px-4">
             {membershipInfo.status === 'approved' 
               ? "Get your personalized 1-month professional plan."
               : membershipInfo.status === 'expired'
@@ -555,40 +555,40 @@ const AIAssistant = () => {
         </div>
 
         {/* Tab Switcher */}
-        <div className="flex justify-center mb-16">
-          <div className="bg-white p-2 rounded-[2rem] shadow-xl shadow-gray-200/50 flex space-x-2 border border-gray-100">
+        <div className="flex justify-center mb-10 sm:mb-16 px-4">
+          <div className="bg-white p-1.5 sm:p-2 rounded-[1.5rem] sm:rounded-[2rem] shadow-xl shadow-gray-200/50 flex space-x-1 sm:space-x-2 border border-gray-100 overflow-x-auto no-scrollbar max-w-full">
             <button
               onClick={() => setActiveTab('generator')}
               className={cn(
-                "px-8 py-4 rounded-2xl font-black uppercase tracking-widest text-[10px] transition-all flex items-center space-x-3",
+                "px-4 sm:px-8 py-3 sm:py-4 rounded-xl sm:rounded-2xl font-black uppercase tracking-widest text-[9px] sm:text-[10px] transition-all flex items-center space-x-2 sm:space-x-3 whitespace-nowrap",
                 activeTab === 'generator' ? "bg-gray-900 text-white shadow-lg" : "text-gray-400 hover:bg-gray-50"
               )}
             >
-              <Sparkles size={18} />
-              <span className="hidden sm:inline">Plan Generator</span>
-              <span className="sm:hidden">Generator</span>
+              <Sparkles size={16} sm:size={18} />
+              <span className="hidden xs:inline sm:inline">Generator</span>
+              <span className="xs:hidden">Gen</span>
             </button>
             <button
               onClick={() => setActiveTab('history')}
               className={cn(
-                "px-8 py-4 rounded-2xl font-black uppercase tracking-widest text-[10px] transition-all flex items-center space-x-3",
+                "px-4 sm:px-8 py-3 sm:py-4 rounded-xl sm:rounded-2xl font-black uppercase tracking-widest text-[9px] sm:text-[10px] transition-all flex items-center space-x-2 sm:space-x-3 whitespace-nowrap",
                 activeTab === 'history' ? "bg-gray-900 text-white shadow-lg" : "text-gray-400 hover:bg-gray-50"
               )}
             >
-              <Clock size={18} />
-              <span className="hidden sm:inline">Plan History</span>
-              <span className="sm:hidden">History</span>
+              <Clock size={16} sm:size={18} />
+              <span className="hidden xs:inline sm:inline">History</span>
+              <span className="xs:hidden">Hist</span>
             </button>
             <button
               onClick={() => setActiveTab('tracker')}
               className={cn(
-                "px-8 py-4 rounded-2xl font-black uppercase tracking-widest text-[10px] transition-all flex items-center space-x-3",
+                "px-4 sm:px-8 py-3 sm:py-4 rounded-xl sm:rounded-2xl font-black uppercase tracking-widest text-[9px] sm:text-[10px] transition-all flex items-center space-x-2 sm:space-x-3 whitespace-nowrap",
                 activeTab === 'tracker' ? "bg-gray-900 text-white shadow-lg" : "text-gray-400 hover:bg-gray-50"
               )}
             >
-              <Activity size={18} />
-              <span className="hidden sm:inline">Progress Tracker</span>
-              <span className="sm:hidden">Tracker</span>
+              <Activity size={16} sm:size={18} />
+              <span className="hidden xs:inline sm:inline">Tracker</span>
+              <span className="xs:hidden">Track</span>
             </button>
           </div>
         </div>
@@ -677,7 +677,7 @@ const AIAssistant = () => {
           <motion.div
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
-            className="lg:col-span-1 bg-white rounded-2xl shadow-xl p-8 border border-gray-100 h-fit lg:sticky lg:top-24"
+            className="lg:col-span-1 bg-white rounded-2xl shadow-xl p-6 sm:p-8 border border-gray-100 h-fit lg:sticky lg:top-24 mx-4 sm:mx-0"
           >
             <form onSubmit={generatePlan} className="space-y-6">
               <div className="space-y-4">

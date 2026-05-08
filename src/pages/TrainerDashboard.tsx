@@ -33,37 +33,93 @@ const ClientsList = ({ onSelectClient }: { onSelectClient: (client: any) => void
   const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
-    if (!trainerData) return;
+    if (!trainerData || !user) return;
 
-    // First find memberships assigned to this trainer
-    const q = query(collection(db, 'memberships'), where('trainerId', '==', trainerData.id), where('status', '==', 'approved'));
+    // Use a multi-source fetch to be robust
+    // 1. Memberships where trainerId matches trainerData.id
+    // 2. Users where assignedTrainerUid matches user.uid
     
-    const unsubscribe = onSnapshot(q, async (snapshot) => {
-      const membershipData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      
-      // Fetch user profiles for these memberships
-      const clientsList = [];
-      for (const mem of membershipData as any[]) {
-        try {
-          const userSnap = await getDocs(query(collection(db, 'users'), where('email', '==', mem.email)));
-          if (!userSnap.empty) {
-            const userDoc = userSnap.docs[0];
-            clientsList.push({
-              id: userDoc.id,
-              ...userDoc.data(),
-              membership: mem
-            });
+    const membershipsQuery = query(
+      collection(db, 'memberships'), 
+      where('trainerId', '==', trainerData.id)
+    );
+
+    const usersQuery = query(
+      collection(db, 'users'),
+      where('assignedTrainerUid', '==', user.uid)
+    );
+
+    // Track memberships and users
+    let membershipsMap = new Map();
+    let usersList: any[] = [];
+
+    const syncClients = async () => {
+      const clientsMap = new Map();
+
+      // Process direct user assignments
+      for (const u of usersList) {
+        clientsMap.set(u.id, {
+          ...u,
+          membership: null // Will be filled below if exists
+        });
+      }
+
+      // Process membership assignments
+      for (const mem of Array.from(membershipsMap.values())) {
+        const userId = mem.userId;
+        if (!userId) continue;
+
+        if (clientsMap.has(userId)) {
+          // Update existing user with their membership info
+          clientsMap.set(userId, {
+            ...clientsMap.get(userId),
+            membership: mem
+          });
+        } else {
+          // Fetch user if not already in list
+          try {
+            const userDoc = await getDocs(query(collection(db, 'users'), where('email', '==', mem.email)));
+            if (!userDoc.empty) {
+              const uData = userDoc.docs[0];
+              clientsMap.set(uData.id, {
+                id: uData.id,
+                ...uData.data(),
+                membership: mem
+              });
+            } else {
+              // Fallback if user doc not found (shouldn't happen)
+              clientsMap.set(`mem-${mem.id}`, {
+                id: `mem-${mem.id}`,
+                displayName: mem.name || 'Unknown',
+                email: mem.email,
+                membership: mem
+              });
+            }
+          } catch (err) {
+            console.error('Error fetching user for membership:', err);
           }
-        } catch (err) {
-          console.error('Error fetching client profile:', err);
         }
       }
-      setClients(clientsList);
+
+      setClients(Array.from(clientsMap.values()));
       setLoading(false);
+    };
+
+    const unsubMemberships = onSnapshot(membershipsQuery, (snapshot) => {
+      membershipsMap = new Map(snapshot.docs.map(doc => [doc.id, { id: doc.id, ...doc.data() }]));
+      syncClients();
     });
 
-    return () => unsubscribe();
-  }, [trainerData]);
+    const unsubUsers = onSnapshot(usersQuery, (snapshot) => {
+      usersList = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      syncClients();
+    });
+
+    return () => {
+      unsubMemberships();
+      unsubUsers();
+    };
+  }, [trainerData, user]);
 
   const filteredClients = useMemo(() => {
     if (!searchQuery.trim()) return clients;

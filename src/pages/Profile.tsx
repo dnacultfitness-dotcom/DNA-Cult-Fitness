@@ -265,7 +265,7 @@ const Profile = () => {
             <div>
               <span className="text-brand font-black uppercase tracking-widest text-xs mb-3 block">Member Portal</span>
               <div className="flex items-center justify-between">
-                <h1 className="text-3xl font-bold text-gray-900">Your Dashboard</h1>
+                <h1 className="text-2xl sm:text-3xl font-black text-gray-900 uppercase tracking-tight">Your Dashboard</h1>
                 <div className="md:hidden">
                   <NotificationBell />
                 </div>
@@ -342,26 +342,26 @@ const Profile = () => {
               {/* Profile Summary Card */}
               <div className="lg:col-span-1 space-y-8">
                 <div className="card-premium overflow-hidden">
-                  <div className="p-10 text-center border-b border-gray-50 bg-gray-50/30">
-                    <div className="relative w-32 h-32 mx-auto mb-6">
+                  <div className="p-6 sm:p-10 text-center border-b border-gray-50 bg-gray-50/30">
+                    <div className="relative w-24 h-24 sm:w-32 sm:h-32 mx-auto mb-4 sm:mb-6">
                       {profile?.photoURL ? (
                         <img 
                           src={profile.photoURL} 
                           alt="Profile" 
-                          className="w-32 h-32 rounded-full object-cover border-4 border-white shadow-xl"
+                          className="w-24 h-24 sm:w-32 sm:h-32 rounded-full object-cover border-4 border-white shadow-xl"
                           referrerPolicy="no-referrer"
                         />
                       ) : (
-                        <div className="w-32 h-32 rounded-full bg-brand/10 flex items-center justify-center text-brand text-5xl font-black border-4 border-white shadow-xl">
+                        <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-full bg-brand/10 flex items-center justify-center text-brand text-4xl sm:text-5xl font-black border-4 border-white shadow-xl">
                           {profile?.displayName?.[0] || user.email?.[0] || 'U'}
                         </div>
                       )}
-                      <div className="absolute -bottom-1 -right-1 w-10 h-10 bg-brand rounded-full border-4 border-white flex items-center justify-center text-white shadow-lg">
-                        <CheckCircle2 size={18} />
+                      <div className="absolute -bottom-1 -right-1 w-8 h-8 sm:w-10 sm:h-10 bg-brand rounded-full border-4 border-white flex items-center justify-center text-white shadow-lg">
+                        <CheckCircle2 size={16} sm:size={18} />
                       </div>
                     </div>
-                    <h2 className="text-xl font-bold text-gray-900 mb-1">{personalDetails?.name || profile?.displayName || 'User'}</h2>
-                    <p className="text-sm text-gray-500 mb-4">{user.email}</p>
+                    <h2 className="text-lg sm:text-xl font-black text-gray-900 mb-1 uppercase tracking-tight">{personalDetails?.name || profile?.displayName || 'User'}</h2>
+                    <p className="text-xs sm:text-sm text-gray-500 mb-4">{user.email}</p>
                     <span className="inline-block px-3 py-1 bg-green-100 text-green-700 text-xs font-medium rounded-full">
                       {profile?.role || 'Member'}
                     </span>
@@ -478,16 +478,16 @@ const Profile = () => {
                     </h2>
                     <Link to="/ai-assistant" className="text-[10px] font-black uppercase tracking-widest text-brand hover:underline">Manage Plans</Link>
                   </div>
-                  <div className="p-10">
+                  <div className="p-6 sm:p-10">
                     {activePlan ? (
-                      <div className="space-y-8">
+                      <div className="space-y-6 sm:space-y-8">
                         <div className="flex items-start justify-between">
                           <div>
-                            <h3 className="text-2xl font-black text-gray-900 mb-3 uppercase leading-none">{activePlan.planData.overview.split('.')[0]}</h3>
-                            <p className="text-sm font-medium text-gray-500 leading-relaxed line-clamp-2">{activePlan.planData.overview}</p>
+                            <h3 className="text-xl sm:text-2xl font-black text-gray-900 mb-2 sm:mb-3 uppercase leading-none">{activePlan.planData.overview.split('.')[0]}</h3>
+                            <p className="text-xs sm:text-sm font-medium text-gray-500 leading-relaxed line-clamp-2">{activePlan.planData.overview}</p>
                           </div>
-                          <div className="bg-brand/10 p-4 rounded-2xl text-brand">
-                            <Sparkles size={28} />
+                          <div className="bg-brand/10 p-3 sm:p-4 rounded-xl sm:rounded-2xl text-brand group-hover:scale-110 transition-transform">
+                            <Sparkles size={24} sm:size={28} />
                           </div>
                         </div>
 
@@ -649,31 +649,31 @@ const Profile = () => {
                     Back to Overview
                   </button>
                 </div>
-                <div className="p-10">
+                <div className="p-6 sm:p-10">
                   {activePlan ? (
-                    <div className="space-y-8">
+                    <div className="space-y-6 sm:space-y-8">
                       {/* Sub-tab Switcher */}
-                      <div className="flex justify-center mb-8">
+                      <div className="flex justify-center mb-6 sm:mb-8">
                         <div className="bg-gray-100 p-1.5 rounded-2xl flex space-x-1 border border-gray-200">
                           <button
                             onClick={() => setActiveSubTab('workout')}
                             className={cn(
-                              "px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center space-x-2",
+                              "px-4 sm:px-8 py-2.5 sm:py-3 rounded-xl text-[9px] sm:text-[10px] font-black uppercase tracking-widest transition-all flex items-center space-x-2",
                               activeSubTab === 'workout' ? "bg-white text-gray-900 shadow-sm" : "text-gray-400 hover:text-gray-600"
                             )}
                           >
-                            <Dumbbell size={16} />
-                            <span>Workout Plan</span>
+                            <Dumbbell size={14} sm:size={16} />
+                            <span>Workout</span>
                           </button>
                           <button
                             onClick={() => setActiveSubTab('diet')}
                             className={cn(
-                              "px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center space-x-2",
+                              "px-4 sm:px-8 py-2.5 sm:py-3 rounded-xl text-[9px] sm:text-[10px] font-black uppercase tracking-widest transition-all flex items-center space-x-2",
                               activeSubTab === 'diet' ? "bg-white text-gray-900 shadow-sm" : "text-gray-400 hover:text-gray-600"
                             )}
                           >
-                            <Activity size={16} />
-                            <span>Diet Plan</span>
+                            <Activity size={14} sm:size={16} />
+                            <span>Diet</span>
                           </button>
                         </div>
                       </div>

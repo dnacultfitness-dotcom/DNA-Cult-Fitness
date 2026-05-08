@@ -21,7 +21,10 @@ import {
   ArrowLeft,
   ShieldCheck,
   Briefcase,
-  Search
+  Search,
+  Eye,
+  X,
+  Edit3
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
@@ -456,14 +459,17 @@ const UserManager = () => {
   }, [users, memberships, searchQuery]);
 
   return (
-    <div className="p-8">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-        <h1 className="text-3xl font-bold">User Management</h1>
-        <div className="relative group w-full md:w-80">
+    <div className="space-y-6 sm:space-y-8">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-black uppercase tracking-tight text-gray-900">User Management</h1>
+          <p className="text-sm text-gray-400 font-medium uppercase tracking-widest mt-1">Manage member profiles & assignments</p>
+        </div>
+        <div className="relative group w-full sm:w-80">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-hover:text-green-500 transition-colors" size={18} />
           <input
             type="text"
-            placeholder="Search members by name or email..."
+            placeholder="Search members..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-11 pr-4 py-3 bg-white border border-gray-100 rounded-2xl shadow-sm outline-none focus:border-green-500 focus:ring-4 focus:ring-green-500/5 transition-all text-sm font-medium"
@@ -480,146 +486,120 @@ const UserManager = () => {
       </div>
 
       {(localDbError || globalDbError) && (
-        <div className="mb-8 p-4 bg-red-50 border border-red-100 rounded-2xl flex items-start space-x-3 text-red-600">
+        <div className="p-4 bg-red-50 border border-red-100 rounded-2xl flex items-start space-x-3 text-red-600">
           <XCircle size={20} className="shrink-0 mt-0.5" />
           <div className="space-y-1">
             <p className="font-bold">Database Error</p>
             <p className="text-sm">{localDbError || globalDbError}</p>
-            <p className="text-[10px] uppercase font-black tracking-widest opacity-70">Check Console for set_up_firebase instructions</p>
           </div>
         </div>
       )}
 
-      <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
+      <div className="bg-white rounded-2xl sm:rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
         {loading ? (
           <div className="p-12 text-center"><Loader2 className="animate-spin mx-auto text-green-600" /></div>
         ) : (
-          <table className="w-full text-left">
-            <thead className="bg-gray-50 border-b border-gray-100">
-              <tr>
-                <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest">User</th>
-                <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest">Customer ID</th>
-                <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest">Trainer</th>
-                <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest">Last Active</th>
-                <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest">Program / Plan</th>
-                <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest">AI Plan Tier</th>
-                <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest">Role</th>
-                <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {filteredUsers.length === 0 ? (
+          <div className="overflow-x-auto no-scrollbar">
+            <table className="w-full text-left min-w-[1000px]">
+              <thead className="bg-gray-50 border-b border-gray-100">
                 <tr>
-                  <td colSpan={7} className="px-6 py-12 text-center text-gray-400 italic">
-                    No matching members found for "{searchQuery}"
-                  </td>
+                  <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">User Details</th>
+                  <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Customer ID</th>
+                  <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Role</th>
+                  <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Trainer</th>
+                  <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Engagement</th>
+                  <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Current Plan</th>
+                  <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest text-right">Actions</th>
                 </tr>
-              ) : (
-                filteredUsers.map((user) => {
-                  const planInfo = getApprovedPlan(user.id);
-                  const membership = memberships.find(m => m.userId === user.id);
-                  const trainer = trainers.find(t => t.id === membership?.trainerId);
-                  return (
-                    <tr key={user.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-6 py-4">
-                      <div className="flex items-center space-x-3">
-                        <div className="w-10 h-10 rounded-full overflow-hidden border border-gray-100 flex items-center justify-center bg-gray-100 text-gray-400 font-bold">
-                          {user.photoURL ? (
-                            <img 
-                              src={user.photoURL} 
-                              alt="Profile" 
-                              className="w-full h-full object-cover"
-                              referrerPolicy="no-referrer"
-                            />
-                          ) : (
-                            user.displayName?.[0] || user.email?.[0] || 'U'
-                          )}
-                        </div>
-                        <div>
-                          <p className="font-bold text-gray-900 leading-tight">
-                            {membership?.name || user.displayName || 'No Name'}
-                          </p>
-                          <p className="text-[10px] text-gray-400 font-medium">{user.email}</p>
-                          {membership?.name && user.displayName && membership?.name !== user.displayName && (
-                            <p className="text-[9px] text-gray-400 uppercase tracking-tighter">Acc: {user.displayName}</p>
-                          )}
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <CustomerIdInput userId={user.id} initialValue={user.customerId} />
-                    </td>
-                    <td className="px-6 py-4">
-                      {membership ? (
-                        <TrainerSelect 
-                          membershipId={membership.id} 
-                          userId={user.id}
-                          currentTrainerId={membership.trainerId} 
-                          trainers={trainers} 
-                        />
-                      ) : (
-                        <span className="text-[10px] font-bold text-gray-300 uppercase tracking-widest">Not Assigned</span>
-                      )}
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex flex-col">
-                        <span className="text-[10px] font-bold text-gray-900">
-                          {user.lastActive ? user.lastActive.toDate().toLocaleDateString() : 'Never'}
-                        </span>
-                        {user.lastActive && (
-                          <span className="text-[9px] text-gray-400">
-                            {user.lastActive.toDate().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                          </span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      {membership ? (
-                        <MemberTypeSelect 
-                          membershipId={membership.id} 
-                          currentProgram={membership.program} 
-                          availablePlans={membershipPlans}
-                        />
-                      ) : (
-                        <span className="text-[10px] font-bold text-gray-300 uppercase italic">No Active Membership</span>
-                      )}
-                    </td>
-                    <td className="px-6 py-4">
-                      {planInfo ? (
-                        <div className={cn(
-                          "inline-flex items-center px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border",
-                          planInfo.color
-                        )}>
-                          <Sparkles size={10} className="mr-1.5" />
-                          {planInfo.label}
-                        </div>
-                      ) : (
-                        <span className="text-[10px] font-bold text-gray-300 uppercase tracking-tighter">No Plan Assigned</span>
-                      )}
-                    </td>
-                    <td className="px-6 py-4">
-                      <RoleSelect userId={user.id} currentRole={user.role || 'customer'} />
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      <button 
-                        onClick={() => deleteUser(user.id)} 
-                        className={cn(
-                          "p-2 rounded-lg transition-all flex items-center space-x-2 ml-auto",
-                          deletingId === user.id 
-                            ? "bg-red-600 text-white shadow-lg" 
-                            : "text-red-500 hover:bg-red-50"
-                        )}
-                        title={deletingId === user.id ? "Click again to confirm" : "Delete User"}
-                      >
-                        <Trash2 size={18} />
-                        {deletingId === user.id && <span className="text-[10px] font-bold">Confirm?</span>}
-                      </button>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {filteredUsers.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="px-6 py-12 text-center text-gray-400 italic font-medium">
+                      No matching members found
                     </td>
                   </tr>
-                );
-              }))}
-            </tbody>
-          </table>
+                ) : (
+                  filteredUsers.map((user) => {
+                    const planInfo = getApprovedPlan(user.id);
+                    const membership = memberships.find(m => m.userId === user.id);
+                    return (
+                      <tr key={user.id} className="hover:bg-gray-50/50 transition-colors">
+                        <td className="px-6 py-4">
+                          <div className="flex items-center space-x-3">
+                            <div className="w-10 h-10 rounded-xl overflow-hidden border border-gray-100 flex items-center justify-center bg-gray-100 text-gray-400 font-bold">
+                              {user.photoURL ? (
+                                <img src={user.photoURL} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                              ) : (
+                                user.displayName?.[0] || user.email?.[0] || 'U'
+                              )}
+                            </div>
+                            <div>
+                              <p className="font-black text-gray-900 text-xs uppercase tracking-tight">
+                                {membership?.name || user.displayName || 'No Name'}
+                              </p>
+                              <p className="text-[10px] text-gray-400 font-medium">{user.email}</p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <CustomerIdInput userId={user.id} initialValue={user.customerId} />
+                        </td>
+                        <td className="px-6 py-4">
+                          <RoleSelect userId={user.id} currentRole={user.role || 'customer'} />
+                        </td>
+                        <td className="px-6 py-4">
+                          {membership ? (
+                            <TrainerSelect membershipId={membership.id} userId={user.id} currentTrainerId={membership.trainerId} trainers={trainers} />
+                          ) : (
+                            <span className="text-[10px] font-black text-gray-300 uppercase tracking-widest">Not Assigned</span>
+                          )}
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex flex-col">
+                            <span className="text-[10px] font-black text-gray-900 uppercase">
+                              {user.lastActive ? user.lastActive.toDate().toLocaleDateString() : 'Never'}
+                            </span>
+                            {user.lastActive && (
+                              <span className="text-[9px] text-gray-400 font-bold">
+                                {user.lastActive.toDate().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="space-y-2">
+                             {membership ? (
+                              <MemberTypeSelect membershipId={membership.id} currentProgram={membership.program} availablePlans={membershipPlans} />
+                            ) : (
+                              <span className="text-[10px] font-black text-gray-300 uppercase tracking-widest">No Membership</span>
+                            )}
+                            {planInfo && (
+                              <div className={cn("inline-flex items-center px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-tighter border ml-2", planInfo.color)}>
+                                <Sparkles size={8} className="mr-1" />
+                                {planInfo.label}
+                              </div>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 text-right">
+                          <button 
+                            onClick={() => deleteUser(user.id)}
+                            className={cn(
+                              "p-2 rounded-lg transition-all",
+                              deletingId === user.id ? "bg-red-600 text-white shadow-lg" : "text-red-500 hover:bg-red-50"
+                            )}
+                          >
+                            <Trash2 size={18} />
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
     </div>
@@ -749,10 +729,13 @@ const MembershipManager = () => {
   }, [memberships, searchQuery]);
 
   return (
-    <div className="p-8">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-        <h1 className="text-3xl font-bold">Membership Applications</h1>
-        <div className="relative group w-full md:w-80">
+    <div className="space-y-6 sm:space-y-8">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-black uppercase tracking-tight text-gray-900">Membership Applications</h1>
+          <p className="text-sm text-gray-400 font-medium uppercase tracking-widest mt-1">Review & approve subscriptions</p>
+        </div>
+        <div className="relative group w-full sm:w-80">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-hover:text-green-500 transition-colors" size={18} />
           <input
             type="text"
@@ -771,115 +754,98 @@ const MembershipManager = () => {
           )}
         </div>
       </div>
-      <div className="grid grid-cols-1 gap-6">
+
+      <div className="grid grid-cols-1 gap-4 sm:gap-6">
         {loading ? (
           <div className="p-12 text-center"><Loader2 className="animate-spin mx-auto text-green-600" /></div>
         ) : filteredMemberships.length === 0 ? (
-          <div className="bg-white p-12 rounded-3xl border border-gray-100 shadow-sm text-center text-gray-400 italic">
-            {searchQuery ? `No matching applications found for "${searchQuery}"` : "No membership applications found."}
+          <div className="bg-white p-12 rounded-[2rem] border border-gray-100 shadow-sm text-center text-gray-400 font-medium italic">
+            {searchQuery ? `No matching applications found` : "No membership applications found"}
           </div>
         ) : (
           filteredMemberships.map((m) => {
             const userAccount = (userMap as any)[m.userId];
             return (
-            <div key={m.id} className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm flex items-center justify-between transition-all hover:border-gray-200">
-              <div className="flex items-center space-x-4">
-                <div className="w-12 h-12 rounded-full overflow-hidden bg-gray-50 flex items-center justify-center border border-gray-100 text-gray-400 font-bold flex-shrink-0">
-                  {userAccount?.photoURL ? (
-                    <img 
-                      src={userAccount.photoURL} 
-                      alt="Account" 
-                      className="w-full h-full object-cover"
-                      referrerPolicy="no-referrer"
-                    />
-                  ) : (
-                    userAccount?.displayName?.[0] || m.name?.[0] || 'U'
-                  )}
-                </div>
-                <div className="space-y-1">
-                  <div className="flex items-center space-x-2">
-                    <span className="font-bold text-lg">{m.name}</span>
-                    <span className={cn(
-                      "px-2 py-0.5 rounded-full text-[10px] font-bold uppercase",
-                      m.status === 'pending' ? "bg-yellow-100 text-yellow-700" : 
-                      m.status === 'approved' ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
-                    )}>
-                      {m.status}
-                    </span>
+              <div key={m.id} className="bg-white p-4 sm:p-6 rounded-[2rem] border border-gray-100 shadow-sm hover:border-green-500/20 transition-all">
+                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+                  <div className="flex items-start space-x-4">
+                    <div className="w-12 h-12 rounded-2xl overflow-hidden bg-gray-50 flex items-center justify-center border border-gray-100 text-gray-400 font-bold flex-shrink-0">
+                      {userAccount?.photoURL ? (
+                        <img src={userAccount.photoURL} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                      ) : (
+                        userAccount?.displayName?.[0] || m.name?.[0] || 'U'
+                      )}
+                    </div>
+                    <div className="space-y-1 sm:space-y-2">
+                      <div className="flex items-center flex-wrap gap-2">
+                        <span className="font-black text-gray-900 uppercase tracking-tight">{m.name}</span>
+                        <span className={cn(
+                          "px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-widest",
+                          m.status === 'pending' ? "bg-yellow-50 text-yellow-600 border border-yellow-100" : 
+                          m.status === 'approved' ? "bg-green-50 text-green-600 border border-green-100" : "bg-red-50 text-red-600 border border-red-100"
+                        )}>
+                          {m.status}
+                        </span>
+                      </div>
+                      <p className="text-xs text-gray-500 font-medium">{m.email} • {m.phone}</p>
+                      
+                      <div className="flex flex-wrap items-center gap-3 pt-1">
+                        <MemberTypeSelect membershipId={m.id} currentProgram={m.program} availablePlans={membershipPlans} />
+                        {m.message && <p className="text-[10px] text-gray-400 font-medium italic leading-none">"{m.message}"</p>}
+                      </div>
+                    </div>
                   </div>
-                  <p className="text-sm text-gray-500">{m.email} • {m.phone}</p>
-                  {userAccount?.displayName && userAccount.displayName !== m.name && (
-                    <p className="text-[10px] text-gray-400 font-bold uppercase">Account Name: {userAccount.displayName}</p>
-                  )}
-                  <div className="pt-1">
-                    <MemberTypeSelect membershipId={m.id} currentProgram={m.program} availablePlans={membershipPlans} />
-                  </div>
-                  {m.message && <p className="text-xs text-gray-400 italic">"{m.message}"</p>}
-                </div>
-              </div>
-            <div className="flex items-center space-x-6">
-              <div className="flex flex-col md:flex-row md:items-center space-y-4 md:space-y-0 md:space-x-6">
-                <AIPlanSelector 
-                  membershipId={m.id} 
-                  currentAiPlan={m.approvedAiPlan} 
-                  onUpdate={(val) => updateStatus(m.id, m.status || 'pending', val)}
-                />
-                
-                {m.status === 'approved' && (
-                  <ValidityInput membershipId={m.id} expiryDate={m.expiryDate} />
-                )}
-                
-                <div className="flex space-x-2 items-center pt-4 md:pt-0">
-                  <TrainerSelect 
-                    membershipId={m.id} 
-                    userId={m.userId}
-                    currentTrainerId={m.trainerId} 
-                    trainers={trainers} 
-                  />
 
-                  <button 
-                    onClick={() => updateStatus(m.id, 'approved', m.approvedAiPlan)} 
-                    className={cn(
-                      "p-2 rounded-lg transition-colors",
-                      m.status === 'approved' ? "bg-green-600 text-white" : "text-green-600 hover:bg-green-50"
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-8 bg-gray-50/50 p-4 rounded-2xl border border-gray-100/50 lg:bg-transparent lg:p-0 lg:border-0">
+                    <AIPlanSelector 
+                      membershipId={m.id} 
+                      currentAiPlan={m.approvedAiPlan} 
+                      onUpdate={(val) => updateStatus(m.id, m.status || 'pending', val)}
+                    />
+                    
+                    {m.status === 'approved' && (
+                      <ValidityInput membershipId={m.id} expiryDate={m.expiryDate} />
                     )}
-                    title="Approve"
-                  >
-                    <CheckCircle size={20} />
-                  </button>
-                  <button 
-                    onClick={() => updateStatus(m.id, 'rejected')} 
-                    className={cn(
-                      "p-2 rounded-lg transition-colors",
-                      m.status === 'rejected' ? "bg-red-600 text-white" : "text-red-600 hover:bg-red-50"
-                    )}
-                    title="Reject"
-                  >
-                    <XCircle size={20} />
-                  </button>
-                  <button 
-                    onClick={() => handleDelete(m.id)}
-                    className={cn(
-                      "p-2 rounded-lg transition-all flex items-center space-x-2",
-                      deletingId === m.id 
-                        ? "bg-red-600 text-white shadow-lg" 
-                        : "text-gray-400 hover:bg-gray-50"
-                    )}
-                    title={deletingId === m.id ? "Click again to confirm" : "Delete Application"}
-                  >
-                    <Trash2 size={20} />
-                    {deletingId === m.id && <span className="text-[10px] font-bold">Confirm Delete?</span>}
-                  </button>
+                    
+                    <div className="flex items-center gap-2 pt-2 sm:pt-0">
+                      <TrainerSelect 
+                        membershipId={m.id} 
+                        userId={m.userId}
+                        currentTrainerId={m.trainerId} 
+                        trainers={trainers} 
+                      />
+
+                      <div className="flex items-center gap-2 ml-2">
+                        <button 
+                          onClick={() => updateStatus(m.id, 'approved', m.approvedAiPlan)} 
+                          className={cn(
+                            "p-2.5 rounded-xl transition-all shadow-sm",
+                            m.status === 'approved' ? "bg-green-600 text-white shadow-green-200" : "bg-white text-green-600 border border-gray-100 hover:bg-green-50"
+                          )}
+                        >
+                          <CheckCircle size={20} />
+                        </button>
+                        <button 
+                          onClick={() => handleDelete(m.id)}
+                          className={cn(
+                            "p-2.5 rounded-xl transition-all shadow-sm flex items-center gap-2",
+                            deletingId === m.id ? "bg-red-600 text-white shadow-red-200" : "bg-white text-red-500 border border-gray-100 hover:bg-red-50"
+                          )}
+                        >
+                          <Trash2 size={20} />
+                          {deletingId === m.id && <span className="text-[10px] font-black uppercase tracking-widest">Confirm</span>}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
-          </div>
-        );
-      })
-      )}
+            );
+          })
+        )}
+      </div>
     </div>
-  </div>
-);
+  );
 };
 
 const DailyWorkoutManager = () => {
@@ -1021,8 +987,8 @@ const DailyWorkoutManager = () => {
       </div>
 
       <div className="bg-white rounded-[2rem] border border-gray-100 overflow-hidden shadow-sm">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
+        <div className="overflow-x-auto no-scrollbar">
+          <table className="w-full text-left border-collapse min-w-[900px]">
             <thead>
                 <tr className="border-b border-gray-100 bg-gray-50">
                   <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-gray-400">User</th>
@@ -1141,6 +1107,7 @@ const DailyWorkoutManager = () => {
           </table>
         </div>
       </div>
+
     </div>
   );
 };
@@ -1220,91 +1187,81 @@ const MemberManager = () => {
   }, [memberships, users, plans, trainers]);
 
   return (
-    <div className="p-8">
-      <div className="flex items-center justify-between mb-8">
-        <h1 className="text-3xl font-bold">Active Members</h1>
-        {!isAdmin && <div className="text-xs text-red-500 font-bold px-3 py-1 bg-red-50 rounded-full border border-red-100">Debug: Non-Admin Role Detected</div>}
+    <div className="space-y-6 sm:space-y-8">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-black uppercase tracking-tight text-gray-900">Active Members</h1>
+          <p className="text-sm text-gray-400 font-medium uppercase tracking-widest mt-1">Monitor & manage current subscriptions</p>
+        </div>
       </div>
-      <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
+
+      <div className="bg-white rounded-[2rem] border border-gray-100 shadow-sm overflow-hidden">
         {loading ? (
           <div className="p-12 text-center"><Loader2 className="animate-spin mx-auto text-green-600" /></div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left">
+          <div className="overflow-x-auto no-scrollbar">
+            <table className="w-full text-left min-w-[1000px]">
               <thead className="bg-gray-50 border-b border-gray-100">
                 <tr>
-                  <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest">Active Member</th>
-                  <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest">Trainer</th>
-                  <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest">Member Type</th>
-                  <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest">AI Plan Tier</th>
-                  <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest">Current Workout</th>
-                  <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest">Customer ID</th>
-                  <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest text-right">Validity</th>
+                  <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Member Details</th>
+                  <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Ownership</th>
+                  <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Plan Model</th>
+                  <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">AI Status</th>
+                  <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Current Focus</th>
+                  <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest text-right">Validity</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100">
+              <tbody className="divide-y divide-gray-50">
                 {joinedMembers.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="px-6 py-12 text-center text-gray-500">No active members found.</td>
+                    <td colSpan={6} className="px-6 py-12 text-center text-gray-400 font-medium italic">No active members found</td>
                   </tr>
                 ) : joinedMembers.map((member) => (
-                  <tr key={member.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-6 py-4 whitespace-nowrap">
+                  <tr key={member.id} className="hover:bg-gray-50/50 transition-colors">
+                    <td className="px-6 py-4">
                       <div className="flex items-center space-x-3">
-                        <div className="w-10 h-10 rounded-full overflow-hidden border border-gray-100 flex items-center justify-center bg-gray-100 text-gray-400 font-bold flex-shrink-0">
+                        <div className="w-10 h-10 rounded-xl overflow-hidden border border-gray-100 flex items-center justify-center bg-gray-100 text-gray-400 font-bold flex-shrink-0">
                           {member.userData?.photoURL ? (
-                            <img 
-                              src={member.userData.photoURL} 
-                              alt="Profile" 
-                              className="w-full h-full object-cover"
-                              referrerPolicy="no-referrer"
-                            />
+                            <img src={member.userData.photoURL} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                           ) : (
                             member.userData?.displayName?.[0] || member.name?.[0] || 'U'
                           )}
                         </div>
                         <div>
-                          <p className="font-bold text-gray-900 leading-tight">{member.name}</p>
-                          <p className="text-[10px] text-gray-500">{member.phone} • {member.userData?.email}</p>
-                          {member.userData?.displayName && member.userData.displayName !== member.name && (
-                            <p className="text-[9px] text-gray-400 uppercase tracking-tighter">Acc: {member.userData.displayName}</p>
-                          )}
+                          <p className="font-black text-gray-900 uppercase text-xs tracking-tight leading-tight">{member.name}</p>
+                          <p className="text-[10px] text-gray-400 font-medium">{member.phone} • {member.userData?.email}</p>
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-6 py-4">
                       <span className={cn(
-                        "px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border",
+                        "px-2.5 py-1 rounded-md text-[9px] font-black uppercase tracking-widest border",
                         member.trainerName === 'Unassigned' ? "bg-gray-50 text-gray-400 border-gray-100" : "bg-blue-50 text-blue-700 border-blue-100"
                       )}>
                         {member.trainerName}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-xs">
-                      <MemberTypeSelect membershipId={member.id} currentProgram={member.program} availablePlans={membershipPlans} />
+                    <td className="px-6 py-4">
+                      <div className="flex items-center">
+                        <MemberTypeSelect membershipId={member.id} currentProgram={member.program} availablePlans={membershipPlans} />
+                      </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-6 py-4">
                       {member.planTier ? (
-                        <div className={cn(
-                          "inline-flex items-center px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border",
-                          member.planTier.color
-                        )}>
+                        <div className={cn("inline-flex items-center px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-widest border", member.planTier.color)}>
                           <Sparkles size={10} className="mr-1.5" />
                           {member.planTier.label}
                         </div>
                       ) : (
-                        <span className="text-[10px] font-bold text-gray-300 uppercase tracking-tighter">No Plan Assigned</span>
+                        <span className="text-[9px] font-black text-gray-300 uppercase tracking-widest opacity-50">Inactive</span>
                       )}
                     </td>
-                    <td className="px-6 py-4 text-[10px] text-gray-600 font-bold uppercase tracking-tight max-w-xs truncate">
-                      {member.activeWorkoutPlan}
+                    <td className="px-6 py-4 max-w-[200px]">
+                      <p className="text-[10px] font-black text-gray-600 uppercase tracking-tight truncate" title={member.activeWorkoutPlan}>
+                        {member.activeWorkoutPlan}
+                      </p>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="text-xs font-mono bg-gray-50 border border-gray-100 px-2 py-1 rounded">
-                        {member.customerId}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right">
+                    <td className="px-6 py-4 text-right">
                       <div className="flex justify-end">
                         <ValidityInput membershipId={member.id} expiryDate={member.expiryDate} />
                       </div>
@@ -1433,124 +1390,113 @@ const AIPlanManager = () => {
   };
 
   return (
-    <div className="p-8">
-      <div className="flex items-center justify-between mb-8">
-        <h1 className="text-3xl font-bold">Generated AI Plans</h1>
-      </div>
+    <div className="space-y-6 sm:space-y-8">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-black uppercase tracking-tight text-gray-900">Generated AI Plans</h1>
+          <p className="text-sm text-gray-400 font-medium uppercase tracking-widest mt-1">Review personalized fitness protocols</p>
+        </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
-        <div className="bg-blue-50 p-6 rounded-3xl border border-blue-100">
-          <h3 className="font-bold text-blue-900 mb-2">New User Tier</h3>
-          <p className="text-xs text-blue-700">1-Week One Time Plan. No approval needed for Demo, but this is the starter tier after application.</p>
-        </div>
-        <div className="bg-green-50 p-6 rounded-3xl border border-green-100">
-          <h3 className="font-bold text-green-900 mb-2">Silver Tier</h3>
-          <p className="text-xs text-green-700">1-Month Beginner Diet & Workout Plan. Focus on foundation and consistency.</p>
-        </div>
-        <div className="bg-amber-50 p-6 rounded-3xl border border-amber-100">
-          <h3 className="font-bold text-amber-900 mb-2">Gold Tier</h3>
-          <p className="text-xs text-amber-700">1-Month Transformation. High intensity workout and transformation diet.</p>
-        </div>
-        <div className="bg-purple-50 p-6 rounded-3xl border border-purple-100">
-          <h3 className="font-bold text-purple-900 mb-2">Platinum Tier</h3>
-          <p className="text-xs text-purple-700">1-Month Advanced. Transformation + Recovery + Elite Dieting Protocols.</p>
-        </div>
-      </div>
-
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-        <h2 className="text-xl font-bold">User History</h2>
-        <div className="relative group w-full md:w-80">
+        <div className="relative group w-full sm:w-80">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-hover:text-green-500 transition-colors" size={18} />
           <input
             type="text"
-            placeholder="Search AI plans..."
+            placeholder="Search plans or IDs..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-11 pr-4 py-3 bg-white border border-gray-100 rounded-2xl shadow-sm outline-none focus:border-green-500 focus:ring-4 focus:ring-green-500/5 transition-all text-sm font-medium"
+            className="w-full pl-11 pr-4 py-3 bg-white border border-gray-100 rounded-2xl shadow-sm outline-none focus:border-green-500 transition-all text-sm font-medium"
           />
-          {searchQuery && (
-            <button 
-              onClick={() => setSearchQuery('')}
-              className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
-            >
-              <XCircle size={16} />
-            </button>
-          )}
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {loading ? (
-          <div className="p-12 text-center"><Loader2 className="animate-spin mx-auto text-green-600" /></div>
-        ) : filteredPlans.length === 0 ? (
-          <div className="col-span-full p-12 bg-white rounded-3xl border border-gray-100 shadow-sm text-center text-gray-400 italic">
-            {searchQuery ? `No matching AI plans found for "${searchQuery}"` : "No AI plans found."}
-          </div>
-        ) : filteredPlans.map((plan) => (
-          <div 
-            key={plan.id} 
-            onClick={() => setSelectedViewPlan(plan)}
-            className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm transition-all hover:shadow-md cursor-pointer group"
-          >
-            <div className="flex items-start justify-between mb-4">
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 rounded-full bg-green-50 flex items-center justify-center text-green-600 font-bold border border-green-100">
-                  {plan.customerData?.photoURL ? (
-                    <img src={plan.customerData.photoURL} alt="User" className="w-full h-full object-cover rounded-full" referrerPolicy="no-referrer" />
-                  ) : (
-                    plan.customerData?.displayName?.[0] || plan.userName?.[0] || 'U'
-                  )}
-                </div>
-                <div>
-                  <h3 className="font-bold text-gray-900 flex items-center">
-                    {plan.customerData?.displayName || plan.userName}
-                    <Sparkles size={14} className="ml-2 text-brand" />
-                  </h3>
-                  <div className="flex items-center space-x-2 mt-1">
-                    <span className="text-[10px] font-mono bg-gray-50 border border-gray-100 px-1.5 py-0.5 rounded text-gray-500">
-                      ID: {plan.customerData?.customerId || "PENDING"}
+      <div className="bg-white rounded-[2rem] border border-gray-100 shadow-sm overflow-hidden">
+        <div className="overflow-x-auto no-scrollbar">
+          <table className="w-full text-left min-w-[900px]">
+            <thead className="bg-gray-50 border-b border-gray-100">
+              <tr>
+                <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Protocol Target</th>
+                <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Customer ID</th>
+                <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Classification</th>
+                <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Created</th>
+                <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-50">
+              {filteredPlans.map((plan) => (
+                <tr key={plan.id} className="hover:bg-gray-50/50 transition-colors">
+                  <td className="px-6 py-4">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-10 h-10 rounded-xl bg-green-50 flex items-center justify-center text-green-600 font-black border border-green-100 uppercase">
+                        {plan.userName?.[0] || plan.customerData?.displayName?.[0] || 'U'}
+                      </div>
+                      <div>
+                        <p className="font-black text-gray-900 uppercase text-xs tracking-tight">{plan.userName || plan.customerData?.displayName}</p>
+                        <p className="text-[10px] text-gray-400 font-medium truncate max-w-[200px]">{plan.planData?.overview}</p>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <span className="px-2.5 py-1 rounded-md text-[9px] font-black uppercase tracking-widest bg-blue-50 text-blue-700 border border-blue-100">
+                      {plan.customerData?.customerId || 'N/A'}
                     </span>
-                    <span className="text-[10px] text-gray-400 font-bold uppercase tracking-tight">
-                      {plan.createdAt?.toDate().toLocaleDateString()}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-            
-            <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100 mb-4">
-              <p className="text-xs text-gray-600 font-medium line-clamp-3 italic">"{plan.planData.overview}"</p>
-            </div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <span className="text-[10px] font-black uppercase text-gray-400 tracking-widest">{plan.trainerId ? 'Custom Protocol' : 'Initial AI Logic'}</span>
+                  </td>
+                  <td className="px-6 py-4 text-[10px] text-gray-300 font-bold uppercase tracking-widest">
+                    {plan.createdAt?.toDate() ? new Date(plan.createdAt.toDate()).toLocaleDateString() : 'N/A'}
+                  </td>
+                  <td className="px-6 py-4 text-right">
+                    <div className="flex justify-end items-center space-x-2">
+                      <button 
+                        onClick={() => { setSelectedViewPlan(plan); setEditPlanData(plan.planData); }}
+                        className="p-2.5 text-gray-400 hover:text-black hover:bg-gray-50 rounded-xl transition-all"
+                      >
+                        <Eye size={18} />
+                      </button>
+                      <button 
+                        onClick={() => handleDelete(plan.id)}
+                        className={cn(
+                          "p-2.5 rounded-xl transition-all",
+                          deletingId === plan.id ? "bg-red-600 text-white shadow-lg" : "text-red-400 hover:bg-red-50 hover:text-red-600"
+                        )}
+                      >
+                        <Trash2 size={18} />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
 
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <span className={cn(
-                  "px-2 py-1 rounded-md text-[9px] font-black uppercase tracking-widest",
-                  plan.isActive ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"
-                )}>
-                  {plan.isActive ? "Active on Profile" : "Archived"}
-                </span>
-              </div>
-
-              <button 
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleDelete(plan.id);
-                }}
-                className={cn(
-                  "text-xs font-bold flex items-center px-3 py-1.5 rounded-lg transition-all",
-                  deletingId === plan.id 
-                    ? "bg-red-600 text-white shadow-lg" 
-                    : "text-red-500 hover:bg-red-50"
-                )}
-              >
-                <Trash2 size={14} className="mr-1" /> 
-                {deletingId === plan.id ? "Confirm?" : "Delete"}
-              </button>
-            </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+        {[
+          { title: 'New User Tier', desc: '1-Week Starter Plan. One-time foundation protocol.', color: 'blue' },
+          { title: 'Silver Tier', desc: '1-Month Beginner. Consistency & habits focus.', color: 'green' },
+          { title: 'Gold Tier', desc: '1-Month Transformation. High intensity protocol.', color: 'amber' },
+          { title: 'Platinum Tier', desc: '1-Month Elite. Advanced transformation & recovery.', color: 'purple' }
+        ].map((tier, idx) => (
+          <div key={idx} className={cn("p-4 rounded-2xl border flex flex-col justify-between", {
+            "bg-blue-50/50 border-blue-100 text-blue-900": tier.color === 'blue',
+            "bg-green-50/50 border-green-100 text-green-900": tier.color === 'green',
+            "bg-amber-50/50 border-amber-100 text-amber-900": tier.color === 'amber',
+            "bg-purple-50/50 border-purple-100 text-purple-900": tier.color === 'purple'
+          })}>
+            <h3 className="font-black text-xs uppercase tracking-widest mb-1">{tier.title}</h3>
+            <p className={cn("text-[10px] font-medium leading-relaxed opacity-80", {
+              "text-blue-700": tier.color === 'blue',
+              "text-green-700": tier.color === 'green',
+              "text-amber-700": tier.color === 'amber',
+              "text-purple-700": tier.color === 'purple'
+            })}>{tier.desc}</p>
           </div>
         ))}
       </div>
+
+
 
       {/* Plan Detail Modal */}
       {selectedViewPlan && (
@@ -1821,7 +1767,7 @@ const MembershipPlanManager = () => {
   const [editForm, setEditForm] = useState<any>(null);
   const [showAddForm, setShowAddForm] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const { isAdmin, user } = useFirebase();
+  const { isAdmin } = useFirebase();
   const [newPlan, setNewPlan] = useState({
     name: '',
     priceOptions: [
@@ -1831,8 +1777,7 @@ const MembershipPlanManager = () => {
       { duration: '12 Months', actualPrice: '', offerPrice: '' }
     ],
     features: '',
-    order: 0,
-    imageUrl: ''
+    order: 0
   });
 
   const updateNewPlanPrice = (index: number, field: 'actualPrice' | 'offerPrice', value: string) => {
@@ -1861,11 +1806,7 @@ const MembershipPlanManager = () => {
   const filteredPlans = useMemo(() => {
     if (!searchQuery.trim()) return plans;
     const q = searchQuery.toLowerCase();
-    return plans.filter(p => 
-      (p.name || '').toLowerCase().includes(q) || 
-      (p.category || '').toLowerCase().includes(q) ||
-      (p.duration || '').toLowerCase().includes(q)
-    );
+    return plans.filter(p => (p.name || '').toLowerCase().includes(q));
   }, [plans, searchQuery]);
 
   const updateEditPlanPrice = (index: number, field: 'actualPrice' | 'offerPrice', value: string) => {
@@ -1902,44 +1843,29 @@ const MembershipPlanManager = () => {
 
   const handleUpdatePlan = async () => {
     if (!editingId || !editForm) return;
-    const loadingToast = toast.loading('Synchronizing biological update...');
+    const loadingToast = toast.loading('Synchronizing update...');
     setUploading(true);
 
     try {
-      const sanitizedOptions = editForm.priceOptions.map((opt: any) => {
-        const actual = opt.actualPrice === '' || opt.actualPrice === null ? 0 : Number(opt.actualPrice);
-        const offer = opt.offerPrice === '' || opt.offerPrice === null ? 0 : Number(opt.offerPrice);
-        return {
-          duration: opt.duration,
-          actualPrice: isNaN(actual) ? 0 : actual,
-          offerPrice: isNaN(offer) ? 0 : offer
-        };
-      }).filter((opt: any) => opt.actualPrice > 0 || opt.offerPrice > 0);
+      const sanitizedOptions = editForm.priceOptions.map((opt: any) => ({
+        duration: opt.duration,
+        actualPrice: Number(opt.actualPrice) || 0,
+        offerPrice: Number(opt.offerPrice) || 0
+      })).filter((opt: any) => opt.actualPrice > 0 || opt.offerPrice > 0);
 
-      if (sanitizedOptions.length === 0) {
-        toast.error('Strategic error: Minimum pricing not detected.', { id: loadingToast });
-        setUploading(false);
-        return;
-      }
-
-      toast.loading('Step 2/2: Finalizing sequence...', { id: loadingToast });
-      const planRef = doc(db, 'membershipPlans', editingId);
-      await updateDoc(planRef, {
+      await updateDoc(doc(db, 'membershipPlans', editingId), {
         name: editForm.name.trim(),
         priceOptions: sanitizedOptions,
-        features: Array.isArray(editForm.features) 
-          ? editForm.features 
-          : (editForm.features || '').toString().split(',').map((f: string) => f.trim()).filter((f: string) => f !== ''),
+        features: (editForm.features || '').toString().split(',').map((f: string) => f.trim()).filter((f: string) => f !== ''),
         order: parseInt(editForm.order) || 0,
         updatedAt: serverTimestamp()
       });
 
-      toast.success('Protocol updated and synchronized.', { id: loadingToast });
+      toast.success('Protocol updated', { id: loadingToast });
       setEditingId(null);
       setEditForm(null);
     } catch (err: any) {
-      console.error('[Admin] Update failure:', err);
-      toast.error(`System Error: ${err.message || 'Update failed'}`, { id: loadingToast });
+      handleFirestoreError(err, OperationType.UPDATE, `membershipPlans/${editingId}`);
     } finally {
       setUploading(false);
     }
@@ -1948,47 +1874,26 @@ const MembershipPlanManager = () => {
   const handleAddPlan = async (e: React.FormEvent) => {
     e.preventDefault();
     if (uploading) return;
-    
     setUploading(true);
-    const loadingToast = toast.loading('Initiating plan creation...');
-    console.log('[Admin] Plan creation started', { name: newPlan.name });
+    const loadingToast = toast.loading('Deploying protocol...');
 
     try {
-      // 1. Data Preparation
-      toast.loading('Step 1/2: Encoding protocol parameters...', { id: loadingToast });
-      const sanitizedOptions = (newPlan.priceOptions || []).map(opt => {
-        const actual = opt.actualPrice === '' || opt.actualPrice === null ? 0 : Number(opt.actualPrice);
-        const offer = opt.offerPrice === '' || opt.offerPrice === null ? 0 : Number(opt.offerPrice);
-        return {
-          duration: opt.duration || 'Unknown',
-          actualPrice: isNaN(actual) ? 0 : actual,
-          offerPrice: isNaN(offer) ? 0 : offer
-        };
-      }).filter(opt => opt.actualPrice > 0 || opt.offerPrice > 0);
+      const sanitizedOptions = newPlan.priceOptions.map(opt => ({
+        duration: opt.duration,
+        actualPrice: Number(opt.actualPrice) || 0,
+        offerPrice: Number(opt.offerPrice) || 0
+      })).filter(opt => opt.actualPrice > 0 || opt.offerPrice > 0);
 
-      if (sanitizedOptions.length === 0) {
-        toast.error('Strategic error: Minimum pricing not detected.', { id: loadingToast });
-        setUploading(false);
-        return;
-      }
-
-      const planData = {
+      await addDoc(collection(db, 'membershipPlans'), {
         name: newPlan.name.trim(),
         priceOptions: sanitizedOptions,
         features: (newPlan.features || '').split(',').map(f => f.trim()).filter(f => f !== ''),
         order: parseInt(newPlan.order as any) || 0,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp()
-      };
+      });
 
-      // 2. Firestore Write
-      toast.loading('Step 2/2: Finalizing protocol deployment...', { id: loadingToast });
-      console.log('[Admin] Writing to matrix...', planData);
-      
-      const docRef = await addDoc(collection(db, 'membershipPlans'), planData);
-      console.log('[Admin] Protocol live! ID:', docRef.id);
-      
-      toast.success('Protocol synthesized and deployed successfully!', { id: loadingToast });
+      toast.success('Protocol deployed', { id: loadingToast });
       setShowAddForm(false);
       setNewPlan({
         name: '',
@@ -1999,14 +1904,31 @@ const MembershipPlanManager = () => {
           { duration: '12 Months', actualPrice: '', offerPrice: '' }
         ],
         features: '',
-        order: plans.length + 1,
-        imageUrl: ''
+        order: plans.length + 1
       });
     } catch (err: any) {
-      console.error('[Admin] Critical failure in synthesis:', err);
-      toast.error(`System Error: ${err.message || 'Connection lost'}`, { id: loadingToast });
+      handleFirestoreError(err, OperationType.CREATE, 'membershipPlans');
     } finally {
       setUploading(false);
+    }
+  };
+
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  const deletePlan = async (id: string) => {
+    if (deletingId !== id) {
+      setDeletingId(id);
+      setTimeout(() => setDeletingId(null), 3000);
+      return;
+    }
+
+    const loadingToast = toast.loading('Deleting plan...');
+    try {
+      await deleteDoc(doc(db, 'membershipPlans', id));
+      toast.success('Plan deleted successfully', { id: loadingToast });
+      setDeletingId(null);
+    } catch (err: any) {
+      handleFirestoreError(err, OperationType.DELETE, `membershipPlans/${id}`);
     }
   };
 
@@ -2075,60 +1997,35 @@ const MembershipPlanManager = () => {
     }
   };
 
-  const [deletingId, setDeletingId] = useState<string | null>(null);
-
-  const deletePlan = async (id: string) => {
-    if (deletingId !== id) {
-      setDeletingId(id);
-      setTimeout(() => setDeletingId(null), 3000);
-      return;
-    }
-
-    const loadingToast = toast.loading('Deleting plan...');
-    try {
-      await deleteDoc(doc(db, 'membershipPlans', id));
-      toast.success('Plan deleted successfully', { id: loadingToast });
-      setDeletingId(null);
-    } catch (err: any) {
-      console.error('Delete plan failed:', err);
-      toast.error('Failed to delete plan: ' + (err.message || 'Unknown error'), { id: loadingToast });
-      handleFirestoreError(err, OperationType.DELETE, `membershipPlans/${id}`);
-    }
-  };
-
   return (
-    <div className="p-8">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-        <h1 className="text-3xl font-bold">Membership Plans</h1>
-        <div className="flex flex-col md:flex-row items-center gap-4 w-full md:w-auto">
-          <div className="relative group w-full md:w-80">
+    <div className="space-y-6 sm:space-y-8">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-black uppercase tracking-tight text-gray-900">System Protocols</h1>
+          <p className="text-sm text-gray-400 font-medium uppercase tracking-widest mt-1">Configure membership tiers & pricing</p>
+        </div>
+
+        <div className="flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto">
+          <div className="relative group w-full sm:w-72">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-hover:text-green-500 transition-colors" size={18} />
             <input
               type="text"
-              placeholder="Search plans by name, duration..."
+              placeholder="Search protocols..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-11 pr-4 py-3 bg-white border border-gray-100 rounded-2xl shadow-sm outline-none focus:border-green-500 focus:ring-4 focus:ring-green-500/5 transition-all text-sm font-medium"
             />
-            {searchQuery && (
-              <button 
-                onClick={() => setSearchQuery('')}
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
-              >
-                <XCircle size={16} />
-              </button>
-            )}
           </div>
-          <div className="flex items-center space-x-2 w-full md:w-auto">
+          <div className="flex items-center gap-2 w-full sm:w-auto">
             <button 
               onClick={() => setShowAddForm(!showAddForm)}
-              className="flex-1 md:flex-none flex items-center justify-center space-x-2 px-6 py-3 bg-black text-white rounded-2xl text-sm font-bold hover:bg-gray-800 transition-all whitespace-nowrap"
+              className="flex-1 sm:flex-none bg-black text-white px-6 py-3 rounded-2xl font-black uppercase tracking-widest text-xs flex items-center justify-center space-x-2 hover:bg-gray-800 transition-all shadow-lg"
             >
-              {showAddForm ? <><XCircle size={18} /> <span>Cancel</span></> : <><Plus size={18} /> <span>Add New Plan</span></>}
+              {showAddForm ? <><X size={16} /> <span>Cancel</span></> : <><Plus size={16} /> <span>Add protocol</span></>}
             </button>
             <button 
               onClick={seedPlans}
-              className="px-4 py-3 bg-green-600 text-white rounded-2xl text-sm font-bold hover:bg-green-700 transition-all whitespace-nowrap"
+              className="px-4 py-3 bg-green-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-green-700 transition-all shadow-lg"
             >
               Seed
             </button>
@@ -2136,217 +2033,146 @@ const MembershipPlanManager = () => {
         </div>
       </div>
 
-      {showAddForm && (
-        <motion.div 
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm mb-8"
-        >
-          <h2 className="text-xl font-bold mb-6">Create New Membership Plan</h2>
-          <form onSubmit={handleAddPlan} className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label className="block text-sm font-bold text-gray-700 mb-2">Plan Name</label>
-              <input 
-                required
-                type="text" 
-                value={newPlan.name} 
-                onChange={e => setNewPlan({...newPlan, name: e.target.value})}
-                className="w-full px-4 py-2 border rounded-xl outline-none focus:ring-2 focus:ring-green-500"
-                placeholder="e.g. Diamond Plan"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-bold text-gray-700 mb-2">Display Order</label>
-              <input 
-                type="number" 
-                value={newPlan.order === 0 ? '' : newPlan.order} 
-                onChange={e => setNewPlan({...newPlan, order: e.target.value === '' ? 0 : parseInt(e.target.value)})}
-                className="w-full px-4 py-2 border rounded-xl outline-none focus:ring-2 focus:ring-green-500"
-                placeholder="e.g. 1"
-              />
-            </div>
-            <div className="md:col-span-2 border-t pt-6">
-              <h3 className="font-bold text-gray-800 mb-4">Pricing Options</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                {newPlan.priceOptions.map((opt, index) => (
-                  <div key={index} className="bg-gray-50 p-4 rounded-2xl border border-gray-100">
-                    <p className="font-bold text-sm text-gray-700 mb-3">{opt.duration}</p>
-                    <div className="space-y-3">
-                      <div>
-                        <label className="text-[10px] uppercase font-bold text-gray-400">Actual Price</label>
-                        <input 
+      <AnimatePresence>
+        {(showAddForm || editingId) && (
+          <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="bg-white p-6 sm:p-8 rounded-[2rem] border border-gray-100 shadow-sm">
+            <h2 className="text-sm font-black uppercase tracking-[0.2em] text-gray-900 mb-6 flex items-center gap-2">
+              <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+              {editingId ? 'Edit Protocol' : 'Initial Protocol Deployment'}
+            </h2>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              <div className="space-y-6">
+                <div>
+                  <label className="block text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">Protocol Designation *</label>
+                  <input
+                    type="text"
+                    value={editingId ? editForm.name : newPlan.name}
+                    onChange={e => editingId ? setEditForm({...editForm, name: e.target.value}) : setNewPlan({...newPlan, name: e.target.value})}
+                    className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl outline-none focus:border-green-500 transition-all font-bold"
+                    placeholder="e.g. SILVER PROTOCOL"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">Features (Comma Separated)</label>
+                  <textarea
+                    rows={4}
+                    value={editingId ? editForm.features : newPlan.features}
+                    onChange={e => editingId ? setEditForm({...editForm, features: e.target.value}) : setNewPlan({...newPlan, features: e.target.value})}
+                    className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl outline-none focus:border-green-500 transition-all text-sm font-medium"
+                    placeholder="Feature 1, Feature 2, ..."
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">Matrix Order</label>
+                  <input
+                    type="number"
+                    value={editingId ? editForm.order : newPlan.order}
+                    onChange={e => editingId ? setEditForm({...editForm, order: e.target.value}) : setNewPlan({...newPlan, order: e.target.value})}
+                    className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl outline-none focus:border-green-500 transition-all font-mono"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-black uppercase tracking-widest text-gray-400 mb-4">Pricing Matrix</label>
+                <div className="space-y-3">
+                  {(editingId ? editForm.priceOptions : newPlan.priceOptions).map((opt: any, i: number) => (
+                    <div key={i} className="flex flex-col sm:flex-row items-center gap-3 p-3 bg-gray-50/50 rounded-2xl border border-gray-100">
+                      <span className="w-full sm:w-24 text-[10px] font-black uppercase tracking-widest text-gray-500">{opt.duration}</span>
+                      <div className="flex items-center gap-2 flex-grow w-full">
+                        <input
                           type="number"
+                          placeholder="Base ₹"
                           value={opt.actualPrice}
-                          onChange={e => updateNewPlanPrice(index, 'actualPrice', e.target.value)}
-                          className="w-full px-3 py-1.5 border rounded-lg text-sm"
-                          placeholder="e.g. 5000"
+                          onChange={e => editingId ? updateEditPlanPrice(i, 'actualPrice', e.target.value) : updateNewPlanPrice(i, 'actualPrice', e.target.value)}
+                          className="w-full px-3 py-2 bg-white border border-gray-100 rounded-lg outline-none focus:border-green-500 text-xs font-mono"
                         />
-                      </div>
-                      <div>
-                        <label className="text-[10px] uppercase font-bold text-gray-400">Offer Price</label>
-                        <input 
+                        <input
                           type="number"
+                          placeholder="Offer ₹"
                           value={opt.offerPrice}
-                          onChange={e => updateNewPlanPrice(index, 'offerPrice', e.target.value)}
-                          className="w-full px-3 py-1.5 border rounded-lg text-sm"
-                          placeholder="e.g. 4500"
+                          onChange={e => editingId ? updateEditPlanPrice(i, 'offerPrice', e.target.value) : updateNewPlanPrice(i, 'offerPrice', e.target.value)}
+                          className="w-full px-3 py-2 bg-white border border-gray-100 rounded-lg outline-none focus:border-green-500 text-xs font-mono"
                         />
                       </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
+                <button 
+                  onClick={editingId ? handleUpdatePlan : handleAddPlan}
+                  disabled={uploading}
+                  className="w-full mt-8 bg-black text-white p-4 rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-gray-800 transition-all shadow-xl shadow-gray-200 disabled:opacity-50"
+                >
+                  {uploading ? 'Processing Matrix...' : editingId ? 'Update Matrix' : 'Deploy Protocol'}
+                </button>
               </div>
             </div>
-            <div className="md:col-span-2">
-              <label className="block text-sm font-bold text-gray-700 mb-2">Features (Comma separated)</label>
-              <textarea 
-                value={newPlan.features} 
-                onChange={e => setNewPlan({...newPlan, features: e.target.value})}
-                className="w-full px-4 py-2 border rounded-xl outline-none focus:ring-2 focus:ring-green-500 h-24 resize-none"
-                placeholder="Feature 1, Feature 2, Feature 3..."
-              />
-            </div>
-            <div className="md:col-span-2">
-              <button 
-                type="submit"
-                disabled={uploading}
-                className="w-full bg-green-600 text-white py-3 rounded-xl font-bold hover:bg-green-700 transition-all disabled:opacity-50 flex items-center justify-center space-x-2"
-              >
-                {uploading ? <Loader2 size={20} className="animate-spin" /> : null}
-                <span>{uploading ? 'Processing...' : 'Create Plan'}</span>
-              </button>
-            </div>
-          </form>
-        </motion.div>
-      )}
-      
-      <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <div className="bg-white rounded-[2rem] border border-gray-100 shadow-sm overflow-hidden">
         {loading ? (
           <div className="p-12 text-center"><Loader2 className="animate-spin mx-auto text-green-600" /></div>
+        ) : filteredPlans.length === 0 ? (
+          <div className="p-12 text-center text-gray-400 font-medium italic">No system protocols initialized</div>
         ) : (
-          <table className="w-full text-left">
-            <thead className="bg-gray-50 border-b border-gray-100">
-              <tr>
-                <th className="px-6 py-4 text-sm font-bold text-gray-500 uppercase">Plan Name</th>
-                <th className="px-6 py-4 text-sm font-bold text-gray-500 uppercase">Pricing Options</th>
-                <th className="px-6 py-4 text-sm font-bold text-gray-500 uppercase">Order</th>
-                <th className="px-6 py-4 text-sm font-bold text-gray-500 uppercase">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {filteredPlans.length === 0 ? (
+          <div className="overflow-x-auto no-scrollbar">
+            <table className="w-full text-left min-w-[800px]">
+              <thead className="bg-gray-50 border-b border-gray-100">
                 <tr>
-                  <td colSpan={4} className="px-6 py-12 text-center text-gray-500 font-medium">
-                    {searchQuery ? `No matching plans found for "${searchQuery}"` : "No membership plans found."}
-                  </td>
+                  <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Protocol</th>
+                  <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Entry Pricing</th>
+                  <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Order</th>
+                  <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest text-right">Actions</th>
                 </tr>
-              ) : (
-                filteredPlans.map((plan) => (
-                  <tr key={plan.id} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-6 py-4">
-                    {editingId === plan.id ? (
-                      <input 
-                        type="text" 
-                        value={editForm.name} 
-                        onChange={e => setEditForm({...editForm, name: e.target.value})}
-                        className="px-2 py-1 border rounded"
-                      />
-                    ) : (
-                      <span className="font-bold text-gray-900">{plan.name}</span>
-                    )}
-                  </td>
-                  <td className="px-6 py-4">
-                    {editingId === plan.id ? (
-                      <div className="space-y-2">
-                        {editForm.priceOptions.map((opt: any, idx: number) => (
-                          <div key={idx} className="flex gap-2 items-center text-[10px]">
-                            <span className="w-12 font-bold">{opt.duration}:</span>
-                            <input 
-                              type="number" 
-                              value={opt.actualPrice} 
-                              onChange={e => updateEditPlanPrice(idx, 'actualPrice', e.target.value)}
-                              className="w-16 border rounded p-1"
-                              placeholder="Act"
-                            />
-                            <input 
-                              type="number" 
-                              value={opt.offerPrice} 
-                              onChange={e => updateEditPlanPrice(idx, 'offerPrice', e.target.value)}
-                              className="w-16 border rounded p-1"
-                              placeholder="Off"
-                            />
-                          </div>
+              </thead>
+              <tbody className="divide-y divide-gray-50">
+                {filteredPlans.map((plan) => (
+                  <tr key={plan.id} className="hover:bg-gray-50/50 transition-colors">
+                    <td className="px-6 py-4">
+                      <div>
+                        <h3 className="font-black text-gray-900 text-xs uppercase tracking-tight">{plan.name}</h3>
+                        <p className="text-[10px] text-gray-400 font-medium truncate max-w-[200px]">{(plan.features || []).join(', ')}</p>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex flex-wrap gap-2">
+                        {(plan.priceOptions || []).slice(0, 2).map((po: any, i: number) => (
+                          <span key={i} className="px-2.5 py-1 rounded-md text-[9px] font-black uppercase tracking-widest bg-gray-100 text-gray-600 border border-gray-200">
+                            {po.duration}: ₹{po.offerPrice || po.actualPrice}
+                          </span>
                         ))}
                       </div>
-                    ) : (
-                      <div className="space-y-1">
-                        {(plan.priceOptions || []).map((opt: any, i: number) => (
-                          <div key={i} className="text-[10px] flex justify-between gap-4">
-                            <span className="font-bold text-gray-500">{opt.duration}:</span>
-                            <span className="font-black text-gray-900">₹{opt.offerPrice} <span className="line-through text-gray-400 font-normal">₹{opt.actualPrice}</span></span>
-                          </div>
-                        ))}
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className="font-mono text-xs font-black text-gray-300">#{plan.order}</span>
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        <button 
+                          onClick={() => startEdit(plan)}
+                          className="p-2.5 text-gray-400 hover:text-black hover:bg-gray-50 rounded-xl transition-all"
+                        >
+                          <Edit3 size={18} />
+                        </button>
+                        <button 
+                          onClick={() => deletePlan(plan.id)}
+                          className={cn(
+                            "p-2.5 rounded-xl transition-all flex items-center gap-2",
+                            deletingId === plan.id ? "bg-red-600 text-white shadow-lg shadow-red-200" : "text-gray-400 hover:text-red-500 hover:bg-red-50"
+                          )}
+                        >
+                          <Trash2 size={18} />
+                          {deletingId === plan.id && <span className="text-[10px] font-bold uppercase tracking-tight">Confirm?</span>}
+                        </button>
                       </div>
-                    )}
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-500">
-                    {editingId === plan.id ? (
-                      <input 
-                        type="number" 
-                        value={editForm.order} 
-                        onChange={e => setEditForm({...editForm, order: e.target.value})}
-                        className="px-2 py-1 border rounded w-16"
-                      />
-                    ) : (
-                      plan.order || 0
-                    )}
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="flex space-x-2">
-                          {editingId === plan.id ? (
-                            <>
-                              <button onClick={handleUpdatePlan} disabled={uploading} className="text-green-600 hover:text-green-700 disabled:opacity-50">
-                                {uploading ? <Loader2 size={18} className="animate-spin" /> : <SaveIcon size={18} />}
-                              </button>
-                              <button onClick={() => { setEditingId(null); setEditForm(null); }} className="text-gray-400 hover:text-gray-600">
-                                <XCircle size={18} />
-                              </button>
-                            </>
-                          ) : (
-                        <>
-                          <button 
-                            type="button"
-                            onClick={() => startEdit(plan)} 
-                            className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                            title="Edit Plan"
-                          >
-                            <Edit2 size={18} />
-                          </button>
-                          <button 
-                            type="button"
-                            onClick={(e) => {
-                              e.preventDefault();
-                              deletePlan(plan.id);
-                            }}
-                            className={cn(
-                              "p-2 rounded-lg transition-all flex items-center space-x-1",
-                              deletingId === plan.id 
-                                ? "bg-red-600 text-white shadow-lg" 
-                                : "text-red-500 hover:bg-red-50"
-                            )}
-                            title={deletingId === plan.id ? "Click again to confirm" : "Delete Plan"}
-                          >
-                            <Trash2 size={18} />
-                            {deletingId === plan.id && <span className="text-[10px] font-bold uppercase">Confirm?</span>}
-                          </button>
-                        </>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              )))}
-            </tbody>
-          </table>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
     </div>
@@ -2511,11 +2337,14 @@ const ServiceManager = () => {
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   return (
-    <div className="p-8">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-        <h1 className="text-3xl font-bold">Training Programs</h1>
-        <div className="flex flex-col md:flex-row items-center gap-4 w-full md:w-auto">
-          <div className="relative group w-full md:w-80">
+    <div className="space-y-6 sm:space-y-8">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-black uppercase tracking-tight text-gray-900">Training Programs</h1>
+          <p className="text-sm text-gray-400 font-medium uppercase tracking-widest mt-1">Curate specializations & modules</p>
+        </div>
+        <div className="flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto">
+          <div className="relative group w-full sm:w-72">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-hover:text-green-500 transition-colors" size={18} />
             <input
               type="text"
@@ -2525,12 +2354,12 @@ const ServiceManager = () => {
               className="w-full pl-11 pr-4 py-3 bg-white border border-gray-100 rounded-2xl shadow-sm outline-none focus:border-green-500 focus:ring-4 focus:ring-green-500/5 transition-all text-sm font-medium"
             />
           </div>
-          <div className="flex items-center space-x-2 w-full md:w-auto">
+          <div className="flex items-center space-x-2 w-full sm:w-auto">
             <button 
               onClick={() => setShowAddForm(!showAddForm)}
-              className="px-6 py-3 bg-black text-white rounded-2xl text-sm font-bold hover:bg-gray-800 transition-all flex items-center space-x-2"
+              className="flex-1 sm:flex-none flex items-center justify-center space-x-2 px-6 py-3 bg-black text-white rounded-2xl text-sm font-bold hover:bg-gray-800 transition-all"
             >
-              {showAddForm ? <><XCircle size={18} /> <span>Cancel</span></> : <><Plus size={18} /> <span>Add Service</span></>}
+              {showAddForm ? <><XCircle size={18} /> <span>Cancel</span></> : <><Plus size={18} /> <span>Add</span></>}
             </button>
             <button 
               onClick={seedServices}
@@ -2543,140 +2372,93 @@ const ServiceManager = () => {
       </div>
 
       {showAddForm && (
-        <motion.div 
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm mb-8"
-        >
-          <h2 className="text-xl font-bold mb-6 text-gray-900">Add Training Program</h2>
-          <form onSubmit={handleAddService} className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="bg-white p-6 sm:p-8 rounded-[2rem] border border-gray-100 shadow-sm">
+          <h2 className="text-xl font-bold mb-6 text-gray-900">New specialization</h2>
+          <form onSubmit={handleAddService} className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-bold text-gray-700 mb-2">Program Title</label>
-              <input 
-                required
-                type="text" 
-                value={newService.title} 
-                onChange={e => setNewService({...newService, title: e.target.value})}
-                className="w-full px-4 py-2 border rounded-xl outline-none focus:ring-2 focus:ring-green-500"
-                placeholder="e.g. CrossFit Training"
-              />
+              <label className="block text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">Program Title</label>
+              <input required type="text" value={newService.title} onChange={e => setNewService({...newService, title: e.target.value})} className="w-full px-4 py-3 bg-gray-50 border-gray-100 rounded-xl outline-none focus:border-green-500 transition-all font-bold" placeholder="e.g. CrossFit Training" />
             </div>
             <div>
-              <label className="block text-sm font-bold text-gray-700 mb-2">Display Order</label>
-              <input 
-                type="number" 
-                value={newService.order} 
-                onChange={e => setNewService({...newService, order: Number(e.target.value)})}
-                className="w-full px-4 py-2 border rounded-xl outline-none focus:ring-2 focus:ring-green-500"
-              />
+              <label className="block text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">Display Order</label>
+              <input type="number" value={newService.order} onChange={e => setNewService({...newService, order: Number(e.target.value)})} className="w-full px-4 py-3 bg-gray-50 border-gray-100 rounded-xl outline-none focus:border-green-500 transition-all" />
             </div>
             <div className="md:col-span-2">
-              <label className="block text-sm font-bold text-gray-700 mb-2">Description</label>
-              <textarea 
-                required
-                value={newService.description} 
-                onChange={e => setNewService({...newService, description: e.target.value})}
-                className="w-full px-4 py-2 border rounded-xl outline-none focus:ring-2 focus:ring-green-500 h-24 resize-none"
-                placeholder="Briefly describe the training program..."
-              />
+              <label className="block text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">Description</label>
+              <textarea required value={newService.description} onChange={e => setNewService({...newService, description: e.target.value})} className="w-full px-4 py-3 bg-gray-50 border-gray-100 rounded-xl outline-none focus:border-green-500 transition-all h-24 resize-none" placeholder="Describe the outcome..." />
             </div>
             <div className="md:col-span-2">
-              <label className="block text-sm font-bold text-gray-700 mb-2">Features (Comma separated)</label>
-              <textarea 
-                value={newService.features} 
-                onChange={e => setNewService({...newService, features: e.target.value})}
-                className="w-full px-4 py-2 border rounded-xl outline-none focus:ring-2 focus:ring-green-500 h-24 resize-none"
-                placeholder="WOD, Cardio, Gymnastics..."
-              />
+              <label className="block text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">Features (Comma separated)</label>
+              <textarea value={newService.features} onChange={e => setNewService({...newService, features: e.target.value})} className="w-full px-4 py-3 bg-gray-50 border-gray-100 rounded-xl outline-none focus:border-green-500 transition-all h-24 resize-none text-xs" placeholder="e.g. Mobility, Foundation, Strength" />
             </div>
             <div className="md:col-span-2">
-              <button 
-                type="submit"
-                disabled={uploading}
-                className="w-full bg-green-600 text-white py-3 rounded-xl font-bold hover:bg-green-700 transition-all disabled:opacity-50"
-              >
-                {uploading ? 'Processing...' : 'Create Program'}
+              <button type="submit" disabled={uploading} className="w-full bg-green-600 text-white p-4 rounded-xl font-black uppercase tracking-widest hover:bg-green-700 transition-all shadow-lg shadow-green-100 disabled:opacity-50">
+                {uploading ? 'Architecting...' : 'Release Program'}
               </button>
             </div>
           </form>
         </motion.div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
         {loading ? (
           <div className="col-span-full py-12 text-center"><Loader2 className="animate-spin mx-auto text-green-600" /></div>
         ) : services.length === 0 ? (
-          <div className="col-span-full bg-white p-12 rounded-3xl border border-gray-100 text-center text-gray-400 italic">No services found. Seed them to start!</div>
+          <div className="col-span-full bg-white p-12 rounded-[2rem] border border-gray-100 text-center text-gray-400 font-medium italic">No programs released yet</div>
         ) : (
           filteredServices.map(svc => (
-            <div key={svc.id} className="bg-white rounded-3xl border border-gray-100 overflow-hidden shadow-sm hover:shadow-md transition-all flex flex-col">
+            <div key={svc.id} className="bg-white rounded-[2rem] border border-gray-100 overflow-hidden shadow-sm hover:shadow-md transition-all flex flex-col">
               <div className="h-40 relative group">
                 {svc.imageUrl ? (
                   <img src={svc.imageUrl} alt={svc.title} className="w-full h-full object-cover" />
                 ) : (
-                  <div className="w-full h-full bg-gray-100 flex items-center justify-center"><Briefcase size={32} className="text-gray-300" /></div>
+                  <div className="w-full h-full bg-gray-50 flex items-center justify-center border-b border-gray-100"><Briefcase size={32} className="text-gray-200" /></div>
                 )}
-                <div className="absolute top-4 left-4 bg-black/60 text-white text-[10px] font-black uppercase px-2 py-1 rounded">Order: {svc.order}</div>
+                <div className="absolute top-4 left-4 bg-black/60 backdrop-blur-sm text-white text-[8px] font-black uppercase px-2 py-1 rounded tracking-widest">RANK {svc.order}</div>
               </div>
               
-              <div className="p-6 flex-grow">
+              <div className="p-5 flex-grow">
                 {editingId === svc.id ? (
-                  <div className="space-y-4">
-                    <input 
-                      type="text" 
-                      value={editForm.title} 
-                      onChange={e => setEditForm({...editForm, title: e.target.value})}
-                      className="w-full px-3 py-2 border rounded-xl text-sm font-bold"
-                    />
-                    <textarea 
-                      value={editForm.description} 
-                      onChange={e => setEditForm({...editForm, description: e.target.value})}
-                      className="w-full px-3 py-2 border rounded-xl text-xs h-20"
-                    />
-                    <input 
-                      type="number" 
-                      value={editForm.order} 
-                      onChange={e => setEditForm({...editForm, order: e.target.value})}
-                      className="w-full px-3 py-2 border rounded-xl text-xs"
-                      placeholder="Order"
-                    />
+                  <div className="space-y-3">
+                    <input type="text" value={editForm.title} onChange={e => setEditForm({...editForm, title: e.target.value})} className="w-full px-3 py-2 bg-gray-50 border rounded-xl text-xs font-black uppercase" />
+                    <textarea value={editForm.description} onChange={e => setEditForm({...editForm, description: e.target.value})} className="w-full px-3 py-2 bg-gray-50 border rounded-xl text-[10px] h-20" />
+                    <input type="number" value={editForm.order} onChange={e => setEditForm({...editForm, order: e.target.value})} className="w-full px-3 py-2 bg-gray-50 border rounded-xl text-[10px]" />
                   </div>
                 ) : (
                   <>
-                    <h3 className="text-lg font-bold text-gray-900 mb-2">{svc.title}</h3>
-                    <p className="text-xs text-gray-500 line-clamp-3 mb-4">{svc.description}</p>
-                    <div className="flex flex-wrap gap-1 mb-4">
-                      {(svc.features || []).slice(0, 3).map((f: string, i: number) => (
-                        <span key={i} className="text-[9px] bg-gray-50 text-gray-400 px-2 py-0.5 rounded-full font-bold uppercase tracking-tight">{f}</span>
+                    <h3 className="text-sm font-black text-gray-900 uppercase tracking-tight mb-2">{svc.title}</h3>
+                    <p className="text-[11px] text-gray-500 leading-relaxed line-clamp-3 mb-4 font-medium">{svc.description}</p>
+                    <div className="flex flex-wrap gap-1.5 mt-auto">
+                      {(svc.features || []).slice(0, 4).map((f: string, i: number) => (
+                        <span key={i} className="text-[8px] bg-gray-100 text-gray-400 px-2 py-0.5 rounded-md font-black uppercase tracking-tighter">{f}</span>
                       ))}
-                      {(svc.features || []).length > 3 && <span className="text-[9px] text-gray-300">+{svc.features.length - 3} more</span>}
                     </div>
                   </>
                 )}
               </div>
               
-              <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex justify-between items-center">
+              <div className="px-5 py-3 bg-gray-50/50 border-t border-gray-100 flex justify-between items-center group">
                 {editingId === svc.id ? (
-                  <div className="flex space-x-2 w-full">
-                    <button onClick={saveEdit} className="flex-1 bg-green-600 text-white py-2 rounded-xl text-xs font-bold">Save</button>
-                    <button onClick={() => setEditingId(null)} className="px-4 py-2 border border-gray-300 rounded-xl text-xs font-bold">Cancel</button>
+                  <div className="flex gap-2 w-full">
+                    <button onClick={saveEdit} className="flex-1 bg-green-600 text-white py-2 rounded-xl text-[10px] font-black uppercase tracking-widest">Update</button>
+                    <button onClick={() => setEditingId(null)} className="px-4 py-2 bg-white border border-gray-200 rounded-xl text-[10px] font-black uppercase tracking-widest">Cancel</button>
                   </div>
                 ) : (
                   <>
-                    <button onClick={() => startEdit(svc)} className="text-blue-600 hover:text-blue-700 flex items-center space-x-1 text-xs font-bold"><Edit2 size={14} /> <span>Edit</span></button>
+                    <button onClick={() => startEdit(svc)} className="text-blue-500 hover:text-blue-600 flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest transition-colors"><Edit2 size={12} /> Edit</button>
                     <button 
                       onClick={() => {
                         if (deletingId === svc.id) {
                           deleteDoc(doc(db, 'gymServices', svc.id));
-                          toast.success('Service deleted');
+                          toast.success('Program removed');
                         } else {
                           setDeletingId(svc.id);
                           setTimeout(() => setDeletingId(null), 3000);
                         }
                       }}
-                      className={cn("text-xs font-bold transition-all", deletingId === svc.id ? "text-red-700 bg-red-100 px-2 py-1 rounded" : "text-red-500")}
+                      className={cn("text-[10px] font-black uppercase tracking-widest transition-all", deletingId === svc.id ? "text-red-700 bg-red-100 px-2 py-1 rounded" : "text-red-400 hover:text-red-600")}
                     >
-                      {deletingId === svc.id ? 'Confirm?' : 'Delete'}
+                      {deletingId === svc.id ? 'Confirm?' : 'Remove'}
                     </button>
                   </>
                 )}
@@ -2699,11 +2481,9 @@ const PlanApprovalManager = () => {
 
   useEffect(() => {
     if (!isAdmin) return;
-    // Removing orderBy to ensure all documents appear even if createdAt is missing temporarily
     const q = query(collection(db, 'planApprovalRequests'));
     const unsubscribe = onSnapshot(q, (snapshot) => {
       let data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as any));
-      // Sort in memory instead
       data.sort((a: any, b: any) => (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0));
       setRequests(data);
       setLoading(false);
@@ -2717,7 +2497,7 @@ const PlanApprovalManager = () => {
   }, [requests, filter]);
 
   const handleAction = async (request: any, status: 'approved' | 'rejected', message: string = '') => {
-    const loadingToast = toast.loading(`${status === 'approved' ? 'Approving' : 'Rejecting'} plan modification...`);
+    const loadingToast = toast.loading(`${status === 'approved' ? 'Approving' : 'Rejecting'}...`);
     try {
       await updateDoc(doc(db, 'planApprovalRequests', request.id), {
         status,
@@ -2732,99 +2512,115 @@ const PlanApprovalManager = () => {
           updatedAt: serverTimestamp()
         });
 
-        // Notify Trainer
         await createNotification(
           request.trainerId,
           'Plan Approved',
-          `Admin has approved your plan modification for ${request.userName}.`,
+          `Admin approved your plan for ${request.userName}.`,
           NotificationType.SUCCESS,
           '/trainer'
         );
-
-        toast.success('Plan approved and updated successfully', { id: loadingToast });
+        toast.success('Matrix updated', { id: loadingToast });
       } else {
-        // Notify Trainer
         await createNotification(
           request.trainerId,
           'Plan Rejected',
-          `Admin has rejected your plan modification for ${request.userName}: ${message}`,
+          `Admin rejected plan for ${request.userName}: ${message}`,
           NotificationType.ERROR,
           '/trainer'
         );
-
-        toast.success('Plan modification rejected', { id: loadingToast });
+        toast.success('Modification rejected', { id: loadingToast });
       }
       setDenyingId(null);
       setAdminMsg('');
     } catch (err) {
       handleFirestoreError(err, OperationType.UPDATE, `planApprovalRequests/${request.id}`);
-      toast.error(`Error: ${status} failed`, { id: loadingToast });
     }
   };
 
   if (loading) return <div className="p-12 text-center"><Loader2 className="animate-spin mx-auto text-green-600" /></div>;
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center space-x-2 bg-white p-2 rounded-2xl border border-gray-100 shadow-sm w-fit mb-6">
-        {(['all', 'pending', 'approved', 'rejected'] as const).map((s) => (
-          <button
-            key={s}
-            onClick={() => setFilter(s)}
-            className={cn(
-              "px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
-              filter === s ? "bg-gray-900 text-white shadow-md scale-105" : "text-gray-400 hover:text-gray-600 hover:bg-gray-50"
-            )}
-          >
-            {s}
-          </button>
-        ))}
+    <div className="space-y-6 sm:space-y-8">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-black uppercase tracking-tight text-gray-900">Protocol Approvals</h1>
+          <p className="text-sm text-gray-400 font-medium uppercase tracking-widest mt-1">Review & finalize trainer requests</p>
+        </div>
+
+        <div className="overflow-x-auto no-scrollbar -mx-4 px-4 sm:mx-0 sm:px-0">
+          <div className="flex items-center space-x-2 bg-white p-2 rounded-2xl border border-gray-100 shadow-sm w-fit">
+            {(['all', 'pending', 'approved', 'rejected'] as const).map((s) => (
+              <button
+                key={s}
+                onClick={() => setFilter(s)}
+                className={cn(
+                  "px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap",
+                  filter === s ? "bg-gray-900 text-white shadow-md scale-105" : "text-gray-400 hover:text-gray-600 hover:bg-gray-50"
+                )}
+              >
+                {s}
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
 
       {filteredRequests.length === 0 ? (
-        <div className="p-12 text-center text-gray-400 italic bg-white rounded-3xl border border-gray-100 shadow-sm uppercase text-[10px] font-black tracking-widest">
-          No {filter !== 'all' ? filter : ''} approval requests found
+        <div className="p-12 text-center text-gray-400 italic bg-white rounded-[2rem] border border-gray-100 shadow-sm uppercase text-[10px] font-black tracking-widest">
+          No {filter !== 'all' ? filter : ''} requests in queue
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-4">
           {filteredRequests.map((r) => (
-            <div key={r.id} className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6">
-              <div className="flex flex-col gap-4">
+            <div key={r.id} className="bg-white p-5 sm:p-6 rounded-[2rem] border border-gray-100 shadow-sm flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+              <div className="flex flex-col gap-5 flex-grow">
                 <div className="flex items-center space-x-4">
-                  <div className="w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 font-bold border border-blue-100 uppercase">
+                  <div className="w-12 h-12 rounded-2xl bg-blue-50 flex items-center justify-center text-blue-600 font-black text-lg border border-blue-100 uppercase">
                     {r.userName?.[0]}
                   </div>
                   <div>
-                    <h3 className="font-bold text-gray-900">{r.userName}</h3>
-                    <p className="text-[10px] text-gray-400 font-black uppercase tracking-widest leading-none mt-1">Requested by: {r.trainerName}</p>
-                    <p className="text-[10px] text-gray-300 font-bold mt-1">Date: {r.createdAt?.toDate().toLocaleString()}</p>
+                    <h3 className="font-black text-gray-900 text-sm uppercase tracking-tight leading-none">{r.userName}</h3>
+                    <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                      <p className="text-[9px] text-gray-400 font-black uppercase tracking-widest bg-gray-50 px-2 py-0.5 rounded border border-gray-100">Trainer: {r.trainerName}</p>
+                      <p className="text-[9px] text-gray-300 font-bold uppercase tracking-tighter">
+                        {r.createdAt?.toDate() ? new Date(r.createdAt.toDate()).toLocaleDateString() : 'N/A'}
+                      </p>
+                    </div>
                   </div>
                 </div>
 
-                <div className="bg-gray-50 rounded-2xl p-4 border border-gray-100">
-                  <h4 className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">Requested Modification</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="bg-gray-50/50 rounded-2xl p-4 border border-gray-100">
+                  <h4 className="text-[9px] font-black uppercase tracking-widest text-gray-300 mb-3 leading-none">Modified Payload</h4>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                     <div>
-                      <span className="text-[10px] text-gray-400 font-bold block mb-1">Calories</span>
-                      <p className="text-sm font-bold text-gray-900">{r.requestedPlanData?.nutrition?.calories} kcal</p>
+                      <span className="text-[8px] text-gray-400 font-black uppercase block mb-1">Calories</span>
+                      <p className="text-xs font-black text-gray-900 tracking-tight">{r.requestedPlanData?.nutrition?.calories} kcal</p>
                     </div>
                     <div>
-                      <span className="text-[10px] text-gray-400 font-bold block mb-1">Status</span>
-                      <p className="text-sm font-bold text-gray-900 capitalize">{r.requestedPlanData?.status}</p>
+                      <span className="text-[8px] text-gray-400 font-black uppercase block mb-1">Status</span>
+                      <p className="text-xs font-black text-gray-900 uppercase tracking-widest">{r.requestedPlanData?.status}</p>
+                    </div>
+                    <div>
+                      <span className="text-[8px] text-gray-400 font-black uppercase block mb-1">Water</span>
+                      <p className="text-xs font-black text-gray-900 tracking-tight">{r.requestedPlanData?.nutrition?.water}L</p>
+                    </div>
+                    <div>
+                      <span className="text-[8px] text-gray-400 font-black uppercase block mb-1">Trainer</span>
+                      <p className="text-xs font-black text-gray-900 uppercase tracking-widest truncate">{r.trainerName}</p>
                     </div>
                   </div>
                   {r.adminMessage && (
                     <div className="mt-3 pt-3 border-t border-gray-100">
-                      <span className="text-[10px] text-red-400 font-bold block mb-1">Admin Note</span>
-                      <p className="text-xs text-red-600 italic">"{r.adminMessage}"</p>
+                      <span className="text-[9px] text-red-500/50 font-black uppercase tracking-widest block mb-1">Internal Note</span>
+                      <p className="text-[11px] text-red-600 font-medium italic leading-relaxed">"{r.adminMessage}"</p>
                     </div>
                   )}
                 </div>
               </div>
 
-              <div className="flex items-center space-x-3 mt-4 md:mt-0">
+              <div className="flex items-center justify-between lg:justify-end lg:flex-shrink-0 gap-3">
                 <span className={cn(
-                  "px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border",
+                  "px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest border shadow-sm",
                   r.status === 'pending' ? "bg-yellow-50 text-yellow-600 border-yellow-100" :
                   r.status === 'approved' ? "bg-green-50 text-green-600 border-green-100" :
                   "bg-red-50 text-red-600 border-red-100"
@@ -2836,49 +2632,33 @@ const PlanApprovalManager = () => {
                   <div className="flex items-center space-x-2">
                     <button 
                       onClick={() => handleAction(r, 'approved')}
-                      className="p-2 bg-green-50 text-green-600 rounded-xl hover:bg-green-600 hover:text-white transition-all shadow-sm"
-                      title="Approve Changes"
+                      className="p-2.5 bg-green-50 text-green-600 rounded-xl hover:bg-green-600 hover:text-white transition-all shadow-sm border border-green-100"
                     >
-                      <CheckCircle size={20} />
+                      <CheckCircle size={18} />
                     </button>
                     <button 
                       onClick={() => setDenyingId(r.id)}
-                      className="p-2 bg-red-50 text-red-600 rounded-xl hover:bg-red-600 hover:text-white transition-all shadow-sm"
-                      title="Reject & Add Note"
+                      className="p-2.5 bg-red-50 text-red-600 rounded-xl hover:bg-red-600 hover:text-white transition-all shadow-sm border border-red-100"
                     >
-                      <XCircle size={20} />
+                      <XCircle size={18} />
                     </button>
                   </div>
                 )}
-              </div>
 
-              <AnimatePresence>
                 {denyingId === r.id && (
-                  <motion.div 
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
-                    exit={{ opacity: 0, height: 0 }}
-                    className="w-full md:w-auto pt-4 md:pt-0"
-                  >
-                    <div className="flex items-center space-x-2">
-                      <input 
-                        type="text" 
-                        value={adminMsg}
-                        onChange={(e) => setAdminMsg(e.target.value)}
-                        placeholder="Reason for rejection..."
-                        className="flex-1 md:w-64 px-3 py-2 bg-gray-50 border border-gray-100 rounded-xl text-xs font-medium focus:ring-2 focus:ring-red-500 outline-none"
-                      />
-                      <button 
-                        onClick={() => handleAction(r, 'rejected', adminMsg)}
-                        className="px-4 py-2 bg-red-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest"
-                      >
-                        Confirm
-                      </button>
-                      <button onClick={() => setDenyingId(null)} className="p-2 text-gray-400"><XCircle size={18} /></button>
-                    </div>
+                  <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="flex-grow lg:flex-none flex items-center gap-2">
+                    <input 
+                      type="text" 
+                      placeholder="Reason for rejection..." 
+                      value={adminMsg} 
+                      onChange={e => setAdminMsg(e.target.value)}
+                      className="w-full lg:w-48 px-3 py-2 bg-gray-50 border border-gray-100 rounded-xl outline-none focus:border-red-500 text-[10px] font-medium"
+                    />
+                    <button onClick={() => handleAction(r, 'rejected', adminMsg)} className="px-3 py-2 bg-red-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest whitespace-nowrap">Reject</button>
+                    <button onClick={() => setDenyingId(null)} className="p-2 text-gray-400 font-bold uppercase text-[9px] tracking-widest">Back</button>
                   </motion.div>
                 )}
-              </AnimatePresence>
+              </div>
             </div>
           ))}
         </div>
@@ -2893,7 +2673,6 @@ const TrainerManager = () => {
   const [isAdding, setIsAdding] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeTab, setActiveTab] = useState<'manage'>('manage');
   const { isAdmin } = useFirebase();
 
   const [formData, setFormData] = useState({
@@ -2930,20 +2709,49 @@ const TrainerManager = () => {
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name || !formData.staffId || !formData.email) {
-      toast.error('Please fill in required fields');
+      toast.error('Required fields missing');
       return;
     }
-    const loadingToast = toast.loading('Adding trainer...');
+    const loadingToast = toast.loading('Verifying trainer credentials...');
     try {
+      const emailLower = formData.email.trim().toLowerCase();
+      
+      // 1. Check if user exists in members and has trainer role
+      const userSnapshot = await getDocs(query(collection(db, 'users'), where('email', '==', emailLower)));
+      
+      if (userSnapshot.empty) {
+        toast.error('User not found in Member section. Add them as a member first.', { id: loadingToast });
+        return;
+      }
+
+      const userDoc = userSnapshot.docs[0];
+      const userData = userDoc.data();
+
+      if (userData.role !== 'trainer') {
+        toast.error('User does not have "Trainer" role in Members section. Update their role first.', { id: loadingToast });
+        return;
+      }
+
+      // 2. Check if already in trainers collection
+      const existingTrainer = await getDocs(query(collection(db, 'trainers'), where('email', '==', emailLower)));
+      if (!existingTrainer.empty) {
+        toast.error('This trainer is already registered.', { id: loadingToast });
+        return;
+      }
+
+      // 3. Add to trainers collection
       await addDoc(collection(db, 'trainers'), {
         ...formData,
+        email: emailLower,
         numberOfClients: Number(formData.numberOfClients),
         createdAt: serverTimestamp()
       });
-      toast.success('Trainer added successfully', { id: loadingToast });
+
+      toast.success('Trainer registered successfully', { id: loadingToast });
       setIsAdding(false);
       setFormData({ name: '', staffId: '', speciality: '', numberOfClients: 0, email: '' });
     } catch (err) {
+      toast.error('Failed to register trainer');
       handleFirestoreError(err, OperationType.CREATE, 'trainers');
     }
   };
@@ -2954,10 +2762,20 @@ const TrainerManager = () => {
       setTimeout(() => setDeletingId(null), 3000);
       return;
     }
-    const loadingToast = toast.loading('Deleting trainer...');
+    const loadingToast = toast.loading('Removing trainer...');
     try {
+      // Find trainer to get their email and reset user role
+      const trainerToPurge = trainers.find(t => t.id === id);
+      if (trainerToPurge?.email) {
+        const userSnapshot = await getDocs(query(collection(db, 'users'), where('email', '==', trainerToPurge.email)));
+        if (!userSnapshot.empty) {
+          const userDoc = userSnapshot.docs[0];
+          await updateDoc(doc(db, 'users', userDoc.id), { role: 'customer' });
+        }
+      }
+
       await deleteDoc(doc(db, 'trainers', id));
-      toast.success('Trainer deleted', { id: loadingToast });
+      toast.success('Trainer removed', { id: loadingToast });
       setDeletingId(null);
     } catch (err) {
       handleFirestoreError(err, OperationType.DELETE, `trainers/${id}`);
@@ -2965,16 +2783,19 @@ const TrainerManager = () => {
   };
 
   return (
-    <div className="p-8">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-        <h1 className="text-3xl font-bold">Trainer Management</h1>
+    <div className="space-y-6 sm:space-y-8">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-black uppercase tracking-tight text-gray-900">Trainer Registry</h1>
+          <p className="text-sm text-gray-400 font-medium uppercase tracking-widest mt-1">Manage trainer staff & specialties</p>
+        </div>
 
-        <div className="flex flex-col md:flex-row items-center gap-4 w-full md:w-auto">
-          <div className="relative group w-full md:w-80">
+        <div className="flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto">
+          <div className="relative group w-full sm:w-72">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-hover:text-green-500 transition-colors" size={18} />
             <input
               type="text"
-              placeholder="Search trainers..."
+              placeholder="Search registry..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-11 pr-4 py-3 bg-white border border-gray-100 rounded-2xl shadow-sm outline-none focus:border-green-500 focus:ring-4 focus:ring-green-500/5 transition-all text-sm font-medium"
@@ -2982,142 +2803,108 @@ const TrainerManager = () => {
           </div>
           <button 
             onClick={() => setIsAdding(!isAdding)}
-            className="w-full md:w-auto bg-black text-white px-6 py-3 rounded-2xl font-bold flex items-center justify-center space-x-2 hover:bg-gray-800 transition-all whitespace-nowrap"
+            className="w-full sm:w-auto bg-black text-white px-6 py-3 rounded-2xl font-black uppercase tracking-widest text-xs flex items-center justify-center space-x-2 hover:bg-gray-800 transition-all shadow-lg shadow-gray-200"
           >
-            {isAdding ? <><XCircle size={20} /> <span>Cancel</span></> : <><Plus size={20} /> <span>Add Trainer</span></>}
+            {isAdding ? <><XCircle size={16} /> <span>Cancel</span></> : <><Plus size={16} /> <span>ADD TRAINERS</span></>}
           </button>
         </div>
       </div>
 
       {isAdding && (
-            <motion.div 
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm mb-8"
-            >
-              <form onSubmit={handleAdd} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <div>
-                  <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Name *</label>
-                  <input
-                    type="text"
-                    value={formData.name}
-                    onChange={e => setFormData({ ...formData, name: e.target.value })}
-                    className="w-full px-4 py-3 rounded-xl border border-gray-200 outline-none focus:border-green-500"
-                    placeholder="Trainer Name"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Staff ID *</label>
-                  <input
-                    type="text"
-                    value={formData.staffId}
-                    onChange={e => setFormData({ ...formData, staffId: e.target.value })}
-                    className="w-full px-4 py-3 rounded-xl border border-gray-200 outline-none focus:border-green-500"
-                    placeholder="STF001"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Email *</label>
-                  <input
-                    type="email"
-                    value={formData.email}
-                    onChange={e => setFormData({ ...formData, email: e.target.value })}
-                    className="w-full px-4 py-3 rounded-xl border border-gray-200 outline-none focus:border-green-500"
-                    placeholder="trainer@dnacult.com"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Speciality</label>
-                  <input
-                    type="text"
-                    value={formData.speciality}
-                    onChange={e => setFormData({ ...formData, speciality: e.target.value })}
-                    className="w-full px-4 py-3 rounded-xl border border-gray-200 outline-none focus:border-green-500"
-                    placeholder="Weight Lifting, Yoga, etc."
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Clients Count</label>
-                  <input
-                    type="number"
-                    value={formData.numberOfClients}
-                    onChange={e => setFormData({ ...formData, numberOfClients: parseInt(e.target.value) })}
-                    className="w-full px-4 py-3 rounded-xl border border-gray-200 outline-none focus:border-green-500"
-                  />
-                </div>
-                <div className="flex items-end">
-                  <button type="submit" className="w-full bg-green-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-green-700 transition-all">
-                    Save Trainer
-                  </button>
-                </div>
-              </form>
-            </motion.div>
-          )}
+        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="bg-white p-6 sm:p-8 rounded-[2rem] border border-gray-100 shadow-sm">
+          <form onSubmit={handleAdd} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div>
+              <label className="block text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">Trainer Name *</label>
+              <input type="text" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl outline-none focus:border-green-500 transition-all font-bold" placeholder="Full name" required />
+            </div>
+            <div>
+              <label className="block text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">Trainer ID *</label>
+              <input type="text" value={formData.staffId} onChange={e => setFormData({ ...formData, staffId: e.target.value })} className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl outline-none focus:border-green-500 transition-all font-mono" placeholder="STF-000" required />
+            </div>
+            <div>
+              <label className="block text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">Email Identity *</label>
+              <input type="email" value={formData.email} onChange={e => setFormData({ ...formData, email: e.target.value })} className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl outline-none focus:border-green-500 transition-all" placeholder="name@dnacult.com" required />
+            </div>
+            <div>
+              <label className="block text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">Specialization</label>
+              <input type="text" value={formData.speciality} onChange={e => setFormData({ ...formData, speciality: e.target.value })} className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl outline-none focus:border-green-500 transition-all" placeholder="e.g. Hypertrophy" />
+            </div>
+            <div>
+              <label className="block text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">Base Load (Clients)</label>
+              <input type="number" value={formData.numberOfClients} onChange={e => setFormData({ ...formData, numberOfClients: parseInt(e.target.value) })} className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl outline-none focus:border-green-500 transition-all" />
+            </div>
+            <div className="flex items-end">
+              <button type="submit" className="w-full bg-green-600 text-white p-4 rounded-xl font-black uppercase tracking-widest hover:bg-green-700 transition-all shadow-lg shadow-green-100">
+                Add Trainer
+              </button>
+            </div>
+          </form>
+        </motion.div>
+      )}
 
-          <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
-            {loading ? (
-              <div className="p-12 text-center"><Loader2 className="animate-spin mx-auto text-green-600" /></div>
-            ) : filteredTrainers.length === 0 ? (
-              <div className="p-12 text-center text-gray-500 font-medium">
-                {searchQuery ? `No matching trainers found for "${searchQuery}"` : "No trainers found. Add your first trainer!"}
-              </div>
-            ) : (
-              <table className="w-full text-left">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest">Name</th>
-                    <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest">Staff ID</th>
-                    <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest">Speciality</th>
-                    <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest">Clients</th>
-                    <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest">Login Mail</th>
-                    <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest text-right">Actions</th>
+      <div className="bg-white rounded-[2rem] border border-gray-100 shadow-sm overflow-hidden">
+        {loading ? (
+          <div className="p-12 text-center"><Loader2 className="animate-spin mx-auto text-green-600" /></div>
+        ) : filteredTrainers.length === 0 ? (
+          <div className="p-12 text-center text-gray-400 font-medium italic">No trainers registered</div>
+        ) : (
+          <div className="overflow-x-auto no-scrollbar">
+            <table className="w-full text-left min-w-[900px]">
+              <thead className="bg-gray-50 border-b border-gray-100">
+                <tr>
+                  <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Trainer</th>
+                  <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">ID Code</th>
+                  <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Specialization</th>
+                  <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Load</th>
+                  <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Email</th>
+                  <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-50">
+                {filteredTrainers.map((trainer) => (
+                  <tr key={trainer.id} className="hover:bg-gray-50/50 transition-colors">
+                    <td className="px-6 py-4 font-black uppercase text-gray-900 text-xs tracking-tight">{trainer.name}</td>
+                    <td className="px-6 py-4">
+                      <span className="px-2.5 py-1 rounded-md text-[9px] font-black uppercase tracking-widest bg-blue-50 text-blue-700 border border-blue-100">
+                        {trainer.staffId}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className="text-[10px] font-black uppercase text-gray-400 tracking-tighter">{trainer.speciality || 'Generalist'}</span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center space-x-2">
+                        <Users size={12} className="text-gray-300" />
+                        <span className="font-black text-gray-900 text-xs">{trainer.numberOfClients}</span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 text-[10px] text-gray-400 font-medium">{trainer.email}</td>
+                    <td className="px-6 py-4 text-right">
+                      <button 
+                        onClick={() => handleDelete(trainer.id)}
+                        className={cn(
+                          "p-2 rounded-xl transition-all flex items-center space-x-2 ml-auto",
+                          deletingId === trainer.id 
+                            ? "bg-red-600 text-white shadow-lg" 
+                            : "text-red-400 hover:bg-red-50 hover:text-red-600"
+                        )}
+                      >
+                        <Trash2 size={16} />
+                        {deletingId === trainer.id && <span className="text-[9px] font-black uppercase tracking-widest">Purge?</span>}
+                      </button>
+                    </td>
                   </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-50">
-                  {filteredTrainers.map((trainer) => (
-                    <tr key={trainer.id} className="hover:bg-gray-50/50 transition-colors">
-                      <td className="px-6 py-4 font-bold text-gray-900">{trainer.name}</td>
-                      <td className="px-6 py-4">
-                        <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-blue-50 text-blue-700 border border-blue-100">
-                          {trainer.staffId}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-600">{trainer.speciality || 'N/A'}</td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center space-x-2">
-                          <Users size={14} className="text-gray-400" />
-                          <span className="font-bold text-gray-900">{trainer.numberOfClients}</span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-500">{trainer.email}</td>
-                      <td className="px-6 py-4 text-right">
-                        <button 
-                          onClick={() => handleDelete(trainer.id)}
-                          className={cn(
-                            "p-2 rounded-lg transition-all flex items-center space-x-2 ml-auto",
-                            deletingId === trainer.id 
-                              ? "bg-red-600 text-white shadow-lg" 
-                              : "text-red-500 hover:bg-red-50"
-                          )}
-                        >
-                          <Trash2 size={18} />
-                          {deletingId === trainer.id && <span className="text-[10px] font-bold uppercase transition-all">Confirm?</span>}
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
+                ))}
+              </tbody>
+            </table>
           </div>
+        )}
+      </div>
     </div>
   );
 };
 
-const AdminSidebar = () => {
+const AdminSidebar = ({ isOpen, onClose }: { isOpen: boolean, onClose: () => void }) => {
   const location = useLocation();
   const [counts, setCounts] = useState({ workouts: 0, approvals: 0 });
 
@@ -3141,45 +2928,79 @@ const AdminSidebar = () => {
   ];
 
   return (
-    <div className="w-64 bg-white border-r border-gray-200 min-h-screen flex flex-col pt-8">
-      <div className="px-8 mb-8">
-        <Link to="/" className="flex items-center space-x-2 mb-8">
-          <span className="text-xl font-bold tracking-tighter text-green-700">DNA <span className="text-black">CULT</span></span>
-        </Link>
-        <h2 className="text-xs font-bold text-gray-400 uppercase tracking-widest">Admin Menu</h2>
-      </div>
-      <nav className="flex-grow px-2 space-y-1">
-        {menuItems.map((item) => (
-          <Link
-            key={item.path}
-            to={item.path}
-            className={cn(
-              "flex items-center justify-between px-4 py-3 rounded-xl font-medium transition-all",
-              location.pathname === item.path ? "bg-green-50 text-green-700" : "text-gray-600 hover:bg-gray-50"
-            )}
-          >
-            <div className="flex items-center space-x-3">
-              {item.icon}
-              <span>{item.name}</span>
-            </div>
-            {item.badge > 0 && (
-              <span className="bg-red-500 text-white text-[10px] font-black px-1.5 py-0.5 rounded-full min-w-[1.2rem] text-center">
-                {item.badge}
-              </span>
-            )}
+    <>
+      {/* Mobile Overlay */}
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={onClose}
+            className="fixed inset-0 bg-black/50 z-40 lg:hidden backdrop-blur-sm"
+          />
+        )}
+      </AnimatePresence>
+
+      <div className={cn(
+        "fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-gray-200 transform lg:translate-x-0 lg:static lg:inset-auto transition-transform duration-300 ease-in-out flex flex-col pt-8",
+        isOpen ? "translate-x-0" : "-translate-x-full"
+      )}>
+        <div className="px-6 sm:px-8 mb-8 flex items-center justify-between">
+          <Link to="/" className="flex items-center space-x-2">
+            <span className="text-xl font-bold tracking-tighter text-green-700">DNA <span className="text-black">CULT</span></span>
           </Link>
-        ))}
-      </nav>
-      <div className="p-4 border-t border-gray-100">
-        <Link 
-          to="/" 
-          className="flex items-center space-x-3 px-4 py-3 rounded-xl font-medium text-gray-600 hover:bg-gray-50 transition-all"
-        >
-          <ArrowLeft size={20} />
-          <span>Back to Site</span>
-        </Link>
+          <button onClick={onClose} className="lg:hidden p-2 text-gray-400 hover:text-gray-600 transition-colors">
+            <XCircle size={24} />
+          </button>
+        </div>
+        
+        <div className="px-6 sm:px-8 mb-4">
+          <h2 className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Admin Menu</h2>
+        </div>
+
+        <nav className="flex-grow px-2 space-y-1 overflow-y-auto no-scrollbar">
+          {menuItems.map((item) => (
+            <Link
+              key={item.path}
+              to={item.path}
+              onClick={() => {
+                if (window.innerWidth < 1024) onClose();
+              }}
+              className={cn(
+                "flex items-center justify-between px-4 py-3 rounded-xl font-medium transition-all group",
+                location.pathname === item.path ? "bg-green-50 text-green-700" : "text-gray-600 hover:bg-gray-50"
+              )}
+            >
+              <div className="flex items-center space-x-3">
+                <span className={cn(
+                  "transition-transform group-hover:scale-110",
+                  location.pathname === item.path ? "text-green-600" : "text-gray-400"
+                )}>
+                  {item.icon}
+                </span>
+                <span className="text-sm">{item.name}</span>
+              </div>
+              {item.badge && item.badge > 0 && (
+                <span className="bg-red-500 text-white text-[10px] font-black px-1.5 py-0.5 rounded-full min-w-[1.2rem] text-center">
+                  {item.badge}
+                </span>
+              )}
+            </Link>
+          ))}
+        </nav>
+
+        <div className="p-4 border-t border-gray-100">
+          <Link 
+            to="/" 
+            className="flex items-center space-x-3 px-4 py-3 rounded-xl font-medium text-gray-600 hover:bg-gray-50 transition-all"
+          >
+            <ArrowLeft size={20} />
+            <span>Back to Site</span>
+          </Link>
+        </div>
       </div>
-    </div>
+    </>
   );
 };
 
@@ -3222,44 +3043,56 @@ const Overview = () => {
   ];
 
   return (
-    <div className="p-8">
-      <h1 className="text-3xl font-bold mb-8">Dashboard Overview</h1>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-        {statCards.map((stat) => (
-          <div key={stat.name} className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm flex items-center space-x-4">
-            <div className={cn("p-4 rounded-2xl", stat.color)}>{stat.icon}</div>
-            <div>
-              <p className="text-sm text-gray-500 font-medium">{stat.name}</p>
-              <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
+    <div className="space-y-6 sm:space-y-8">
+      <div>
+        <h1 className="text-2xl sm:text-3xl font-black uppercase tracking-tight text-gray-900">Dashboard Overview</h1>
+        <p className="text-sm text-gray-400 font-medium uppercase tracking-widest mt-1">Real-time performance metrics</p>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+        {statCards.map((stat, idx) => (
+          <motion.div 
+            key={stat.name}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: idx * 0.05 }}
+            className="bg-white p-5 sm:p-6 rounded-2xl sm:rounded-3xl border border-gray-100 shadow-sm flex items-center space-x-4 group hover:border-green-500/30 transition-all"
+          >
+            <div className={cn("p-3 sm:p-4 rounded-xl sm:rounded-2xl transition-transform group-hover:scale-110", stat.color)}>
+              {React.cloneElement(stat.icon as React.ReactElement, { size: 24 })}
             </div>
-          </div>
+            <div>
+              <p className="text-[10px] sm:text-xs text-gray-400 font-black uppercase tracking-widest leading-none mb-1.5">{stat.name}</p>
+              <p className="text-xl sm:text-2xl font-black text-gray-900 leading-none">{stat.value}</p>
+            </div>
+          </motion.div>
         ))}
       </div>
 
       {recentApprovals.length > 0 && (
-        <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
-          <div className="p-6 border-b border-gray-50 flex items-center justify-between">
-            <h2 className="text-lg font-bold flex items-center gap-2">
-              <Clock className="text-yellow-500" size={20} />
-              Recent Pending Approval Requests
+        <div className="bg-white rounded-2xl sm:rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
+          <div className="p-5 sm:p-6 border-b border-gray-50 flex items-center justify-between bg-gray-50/50">
+            <h2 className="text-base sm:text-lg font-black flex items-center gap-2 uppercase tracking-tight text-gray-900">
+              <Clock className="text-yellow-500" size={18} />
+              Pending Approvals
             </h2>
-            <Link to="/admin/approvals" className="text-xs font-black uppercase tracking-widest text-green-600 hover:text-green-700">View All</Link>
+            <Link to="/admin/approvals" className="text-[10px] font-black uppercase tracking-widest text-green-600 hover:text-green-700 bg-white px-3 py-1.5 rounded-lg border border-gray-100 shadow-sm transition-all">View All</Link>
           </div>
           <div className="divide-y divide-gray-50">
             {recentApprovals.map((req) => (
-              <div key={req.id} className="p-6 flex items-center justify-between hover:bg-gray-50/50 transition-colors">
-                <div className="flex items-center space-x-4">
-                  <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 font-bold border border-blue-100 uppercase text-xs">
+              <div key={req.id} className="p-4 sm:p-6 flex items-center justify-between hover:bg-gray-50/10 transition-colors">
+                <div className="flex items-center space-x-3 sm:space-x-4">
+                  <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600 font-bold border border-blue-100 uppercase text-xs">
                     {req.userName?.[0]}
                   </div>
                   <div>
-                    <h3 className="font-bold text-gray-900 text-sm">{req.userName}</h3>
-                    <p className="text-[10px] text-gray-400 font-black uppercase tracking-widest leading-none mt-1">Requested by: {req.trainerName}</p>
+                    <h3 className="font-black text-gray-900 text-sm uppercase tracking-tight">{req.userName}</h3>
+                    <p className="text-[9px] text-gray-400 font-black uppercase tracking-widest leading-none mt-1">By: {req.trainerName}</p>
                   </div>
                 </div>
                 <Link 
                   to="/admin/approvals" 
-                  className="px-4 py-2 bg-gray-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-black transition-all"
+                  className="px-4 py-2 bg-gray-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-black transition-all shadow-lg shadow-gray-200"
                 >
                   Review
                 </Link>
@@ -3274,6 +3107,7 @@ const Overview = () => {
 
 const AdminDashboard = () => {
   const { isAdmin, loading } = useFirebase();
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   if (loading) {
     return (
@@ -3305,25 +3139,43 @@ const AdminDashboard = () => {
   }
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
-      <AdminSidebar />
-      <main className="flex-grow relative">
-        <div className="absolute top-8 right-8 z-20">
+    <div className="flex min-h-screen bg-gray-50 overflow-hidden">
+      <AdminSidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
+      
+      <main className="flex-grow relative h-screen overflow-y-auto no-scrollbar">
+        {/* Mobile Header */}
+        <div className="lg:hidden sticky top-0 z-30 flex items-center justify-between p-4 bg-white border-b border-gray-100 shadow-sm">
+          <div className="flex items-center space-x-3">
+            <button
+              onClick={() => setIsSidebarOpen(true)}
+              className="p-2 -ml-2 text-gray-600 hover:text-black transition-colors"
+            >
+              <LayoutDashboard size={24} />
+            </button>
+            <span className="text-lg font-black tracking-tighter text-green-700 uppercase">Admin</span>
+          </div>
           <NotificationBell />
         </div>
-        <Routes>
-          <Route index element={<Overview />} />
-          <Route path="members" element={<MemberManager />} />
-          <Route path="users" element={<UserManager />} />
-          <Route path="plans" element={<MembershipPlanManager />} />
-          <Route path="services" element={<ServiceManager />} />
-          <Route path="ai-plans" element={<AIPlanManager />} />
-          <Route path="trainers" element={<TrainerManager />} />
-          <Route path="approvals" element={<div className="p-8"><h1 className="text-3xl font-bold mb-8">Plan Modification Approvals</h1><PlanApprovalManager /></div>} />
-          <Route path="memberships" element={<MembershipManager />} />
-          <Route path="workouts" element={<DailyWorkoutManager />} />
-          <Route path="settings" element={<div className="p-8"><h1 className="text-3xl font-bold">Settings</h1><p className="text-gray-500 mt-4">Admin settings coming soon...</p></div>} />
-        </Routes>
+
+        <div className="hidden lg:block absolute top-8 right-8 z-20">
+          <NotificationBell />
+        </div>
+
+        <div className="p-4 sm:p-8">
+          <Routes>
+            <Route index element={<Overview />} />
+            <Route path="members" element={<MemberManager />} />
+            <Route path="users" element={<UserManager />} />
+            <Route path="plans" element={<MembershipPlanManager />} />
+            <Route path="services" element={<ServiceManager />} />
+            <Route path="ai-plans" element={<AIPlanManager />} />
+            <Route path="trainers" element={<TrainerManager />} />
+            <Route path="approvals" element={<div className="sm:p-0"><h1 className="text-2xl sm:text-3xl font-black mb-6 sm:mb-8 uppercase tracking-tight">Plan Modification Approvals</h1><PlanApprovalManager /></div>} />
+            <Route path="memberships" element={<MembershipManager />} />
+            <Route path="workouts" element={<DailyWorkoutManager />} />
+            <Route path="settings" element={<div className="sm:p-0"><h1 className="text-2xl sm:text-3xl font-black uppercase tracking-tight">Settings</h1><p className="text-gray-500 mt-4 font-medium">Admin settings coming soon...</p></div>} />
+          </Routes>
+        </div>
       </main>
     </div>
   );
