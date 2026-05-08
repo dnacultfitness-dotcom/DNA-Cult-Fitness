@@ -60,7 +60,8 @@ const ClientsList = ({ onSelectClient }: { onSelectClient: (client: any) => void
       for (const u of usersList) {
         clientsMap.set(u.id, {
           ...u,
-          membership: null // Will be filled below if exists
+          membership: null, // Will be filled below if exists
+          hasPlan: false
         });
       }
 
@@ -78,13 +79,14 @@ const ClientsList = ({ onSelectClient }: { onSelectClient: (client: any) => void
         } else {
           // Fetch user if not already in list
           try {
-            const userDoc = await getDocs(query(collection(db, 'users'), where('email', '==', mem.email)));
-            if (!userDoc.empty) {
-              const uData = userDoc.docs[0];
+            const userSnap = await getDocs(query(collection(db, 'users'), where('email', '==', mem.email)));
+            if (!userSnap.empty) {
+              const uData = userSnap.docs[0];
               clientsMap.set(uData.id, {
                 id: uData.id,
                 ...uData.data(),
-                membership: mem
+                membership: mem,
+                hasPlan: false
               });
             } else {
               // Fallback if user doc not found (shouldn't happen)
@@ -92,7 +94,8 @@ const ClientsList = ({ onSelectClient }: { onSelectClient: (client: any) => void
                 id: `mem-${mem.id}`,
                 displayName: mem.name || 'Unknown',
                 email: mem.email,
-                membership: mem
+                membership: mem,
+                hasPlan: false
               });
             }
           } catch (err) {
@@ -101,7 +104,20 @@ const ClientsList = ({ onSelectClient }: { onSelectClient: (client: any) => void
         }
       }
 
-      setClients(Array.from(clientsMap.values()));
+      // Quick check for plans for these users to show indicator
+      const finalClients = Array.from(clientsMap.values());
+      for (const client of finalClients) {
+         try {
+           const planSnap = await getDocs(query(collection(db, 'aiPlans'), where('userId', '==', client.id), where('isActive', '==', true)));
+           if (!planSnap.empty) {
+             client.hasPlan = true;
+           }
+         } catch (e) {
+           // Skip if fails
+         }
+      }
+
+      setClients(finalClients);
       setLoading(false);
     };
 
@@ -189,6 +205,15 @@ const ClientsList = ({ onSelectClient }: { onSelectClient: (client: any) => void
                 </div>
                 <span className="font-bold text-green-600">{client.membership?.currentWorkoutIndex || 0}</span>
               </div>
+              {client.hasPlan && (
+                <div className="flex items-center justify-between text-xs p-3 bg-brand-green/5 rounded-2xl border border-brand-green/10">
+                  <div className="flex items-center space-x-2 text-brand-green">
+                    <Sparkles size={14} />
+                    <span className="font-medium">AI Strategy</span>
+                  </div>
+                  <span className="font-black text-brand-green uppercase tracking-tighter">Ready</span>
+                </div>
+              )}
             </div>
 
             <div className="mt-4 pt-4 border-t border-gray-50 flex items-center justify-end text-[10px] font-black uppercase text-brand-green group-hover:translate-x-1 transition-transform">
@@ -222,14 +247,24 @@ const ClientDetail = ({ client, onBack }: { client: any, onBack: () => void }) =
 
   useEffect(() => {
     // Fetch AI Plan
-    const q = query(collection(db, 'aiPlans'), where('userId', '==', client.id), where('isActive', '==', true));
+    const q = query(collection(db, 'aiPlans'), where('userId', '==', client.id));
     const unsubPlan = onSnapshot(q, (snap) => {
       if (!snap.empty) {
         let data = snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as any));
-        data.sort((a, b) => (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0));
+        // Find newest plan, preferring active ones
+        data.sort((a, b) => {
+          if (a.isActive && !b.isActive) return -1;
+          if (!a.isActive && b.isActive) return 1;
+          return (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0);
+        });
         const plan = data[0];
         setSelectedPlan(plan);
-        setEditData(JSON.parse(JSON.stringify(plan.planData)));
+        if (plan.planData) {
+          setEditData(JSON.parse(JSON.stringify(plan.planData)));
+        }
+      } else {
+        setSelectedPlan(null);
+        setEditData(null);
       }
       setLoading(false);
     });
