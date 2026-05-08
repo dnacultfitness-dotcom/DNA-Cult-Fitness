@@ -60,7 +60,7 @@ const ClientsList = ({ onSelectClient }: { onSelectClient: (client: any) => void
       for (const u of usersList) {
         clientsMap.set(u.id, {
           ...u,
-          membership: membershipsMap.get(u.id) || null,
+          membership: Array.from(membershipsMap.values()).find((m: any) => m.userId === u.id || m.email === u.email) || null,
           hasPlan: false
         });
       }
@@ -69,10 +69,20 @@ const ClientsList = ({ onSelectClient }: { onSelectClient: (client: any) => void
       for (const mem of Array.from(membershipsMap.values())) {
         const userId = mem.userId;
         
-        if (userId && clientsMap.has(userId)) {
-          // Update existing user from usersList with their membership info
-          clientsMap.set(userId, {
-            ...clientsMap.get(userId),
+        // Find existing client in map either by ID or email
+        let existingClientId = null;
+        for (const [id, c] of clientsMap.entries()) {
+          if (id === userId || (c.email && c.email === mem.email)) {
+            existingClientId = id;
+            break;
+          }
+        }
+
+        if (existingClientId) {
+          // Update existing user with their membership info if not already set or more complete
+          const current = clientsMap.get(existingClientId);
+          clientsMap.set(existingClientId, {
+            ...current,
             membership: mem
           });
         } else {
@@ -114,9 +124,12 @@ const ClientsList = ({ onSelectClient }: { onSelectClient: (client: any) => void
       const finalClients = Array.from(clientsMap.values());
       for (const client of finalClients) {
          try {
-           const planSnap = await getDocs(query(collection(db, 'aiPlans'), where('userId', '==', client.id), where('isActive', '==', true)));
-           if (!planSnap.empty) {
-             client.hasPlan = true;
+           // Ensure we have a valid ID to query by
+           if (client.id && !client.id.startsWith('mem-')) {
+             const planSnap = await getDocs(query(collection(db, 'aiPlans'), where('userId', '==', client.id), where('isActive', '==', true)));
+             if (!planSnap.empty) {
+               client.hasPlan = true;
+             }
            }
          } catch (e) {
            // Skip if fails
@@ -417,8 +430,12 @@ const ClientDetail = ({ client, onBack }: { client: any, onBack: () => void }) =
                 )}
              </div>
              <div>
-               <h2 className="text-3xl font-black">{client.displayName || 'Client'}</h2>
-               <p className="text-gray-400 font-medium">Customer ID: {client.customerId || 'Not Assigned'}</p>
+                <h2 className="text-3xl font-black">{client.displayName || 'Client'}</h2>
+                <div className="flex items-center space-x-4 mt-1">
+                  <p className="text-brand-green font-bold text-sm uppercase tracking-widest leading-none">ID: {client.customerId || 'NOT ASSIGNED'}</p>
+                  <span className="w-1 h-1 bg-gray-600 rounded-full" />
+                  <p className="text-gray-400 font-medium text-sm leading-none">{client.email}</p>
+                </div>
              </div>
           </div>
           <div className="flex items-center space-x-4">
@@ -433,6 +450,26 @@ const ClientDetail = ({ client, onBack }: { client: any, onBack: () => void }) =
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-8">
+          {/* Client Stats/Profile Info */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+             <div className="bg-white p-4 rounded-3xl border border-gray-100 shadow-sm">
+                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Height</p>
+                <p className="text-lg font-bold text-gray-900">{client.height || '--'} cm</p>
+             </div>
+             <div className="bg-white p-4 rounded-3xl border border-gray-100 shadow-sm">
+                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Weight</p>
+                <p className="text-lg font-bold text-gray-900">{client.weight || '--'} kg</p>
+             </div>
+             <div className="bg-white p-4 rounded-3xl border border-gray-100 shadow-sm">
+                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Experience</p>
+                <p className="text-lg font-bold text-gray-900 truncate uppercase tracking-tighter">{client.experienceLevel || '--'}</p>
+             </div>
+             <div className="bg-white p-4 rounded-3xl border border-gray-100 shadow-sm">
+                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Goal</p>
+                <p className="text-lg font-bold text-gray-900 truncate uppercase tracking-tighter">{client.goal || '--'}</p>
+             </div>
+          </div>
+
           <div className="bg-white rounded-[40px] border border-gray-100 shadow-sm p-8 overflow-hidden">
             <div className="flex items-center justify-between mb-8">
               <div>
