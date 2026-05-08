@@ -56,43 +56,49 @@ const ClientsList = ({ onSelectClient }: { onSelectClient: (client: any) => void
     const syncClients = async () => {
       const clientsMap = new Map();
 
-      // Process direct user assignments
+      // Process direct user assignments (reliable source of customerId)
       for (const u of usersList) {
         clientsMap.set(u.id, {
           ...u,
-          membership: null, // Will be filled below if exists
+          membership: membershipsMap.get(u.id) || null,
           hasPlan: false
         });
       }
 
-      // Process membership assignments
+      // Process membership assignments (source for clients that might not have user doc linked yet)
       for (const mem of Array.from(membershipsMap.values())) {
         const userId = mem.userId;
-        if (!userId) continue;
-
-        if (clientsMap.has(userId)) {
-          // Update existing user with their membership info
+        
+        if (userId && clientsMap.has(userId)) {
+          // Update existing user from usersList with their membership info
           clientsMap.set(userId, {
             ...clientsMap.get(userId),
             membership: mem
           });
         } else {
-          // Fetch user if not already in list
+          // Fetch user if not already in list or if userId is missing but we have email
           try {
             const userSnap = await getDocs(query(collection(db, 'users'), where('email', '==', mem.email)));
             if (!userSnap.empty) {
-              const uData = userSnap.docs[0];
-              clientsMap.set(uData.id, {
-                id: uData.id,
-                ...uData.data(),
+              const uDoc = userSnap.docs[0];
+              clientsMap.set(uDoc.id, {
+                id: uDoc.id,
+                ...uDoc.data(),
                 membership: mem,
                 hasPlan: false
               });
+            } else if (userId) {
+               // If we have userId but email query failed (rare)
+               const uDoc = await getDocs(query(collection(db, 'users'), where('id', '==', userId)));
+               if (!uDoc.empty) {
+                 const d = uDoc.docs[0];
+                 clientsMap.set(d.id, { id: d.id, ...d.data(), membership: mem, hasPlan: false });
+               }
             } else {
-              // Fallback if user doc not found (shouldn't happen)
+              // Fallback for orphaned memberships
               clientsMap.set(`mem-${mem.id}`, {
                 id: `mem-${mem.id}`,
-                displayName: mem.name || 'Unknown',
+                displayName: mem.name || 'Unknown Client',
                 email: mem.email,
                 membership: mem,
                 hasPlan: false
@@ -124,11 +130,17 @@ const ClientsList = ({ onSelectClient }: { onSelectClient: (client: any) => void
     const unsubMemberships = onSnapshot(membershipsQuery, (snapshot) => {
       membershipsMap = new Map(snapshot.docs.map(doc => [doc.id, { id: doc.id, ...doc.data() }]));
       syncClients();
+    }, (err) => {
+      handleFirestoreError(err, OperationType.LIST, 'memberships');
+      setLoading(false);
     });
 
     const unsubUsers = onSnapshot(usersQuery, (snapshot) => {
       usersList = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       syncClients();
+    }, (err) => {
+      handleFirestoreError(err, OperationType.LIST, 'users');
+      setLoading(false);
     });
 
     return () => {
@@ -267,6 +279,9 @@ const ClientDetail = ({ client, onBack }: { client: any, onBack: () => void }) =
         setEditData(null);
       }
       setLoading(false);
+    }, (err) => {
+      handleFirestoreError(err, OperationType.GET, 'aiPlans');
+      setLoading(false);
     });
 
     // Fetch Daily Workouts
@@ -275,6 +290,8 @@ const ClientDetail = ({ client, onBack }: { client: any, onBack: () => void }) =
       let data = snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as any));
       data.sort((a, b) => (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0));
       setDailyWorkouts(data);
+    }, (err) => {
+      handleFirestoreError(err, OperationType.LIST, 'dailyWorkouts');
     });
 
     // Fetch Appointments
@@ -283,6 +300,8 @@ const ClientDetail = ({ client, onBack }: { client: any, onBack: () => void }) =
       let data = snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as any));
       data.sort((a, b) => (b.date?.toMillis() || 0) - (a.date?.toMillis() || 0));
       setAppointments(data);
+    }, (err) => {
+      handleFirestoreError(err, OperationType.LIST, 'appointments');
     });
 
     return () => { unsubPlan(); unsubWorkouts(); unsubAppts(); };

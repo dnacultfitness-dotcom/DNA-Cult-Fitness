@@ -33,8 +33,11 @@ service cloud.firestore {
     // USERS COLLECTION
     // -------------------------------------------------------------------------
     match /users/{userId} {
-      // Users can get their own profile
-      allow get: if isUser(userId);
+      // Users can get their own profile, and assigned trainers can get it too
+      allow get: if isUser(userId) || (isSignedIn() && resource.data.assignedTrainerUid == request.auth.uid);
+      
+      // Trainers can list users assigned to them
+      allow list: if isSignedIn() && (resource.data.assignedTrainerUid == request.auth.uid);
       
       // Users can create their own profile as 'client' by default
       // They cannot set themselves as admin.
@@ -65,8 +68,11 @@ service cloud.firestore {
     // MEMBERSHIPS COLLECTION
     // -------------------------------------------------------------------------
     match /memberships/{membershipId} {
-      // Users can read their own membership status
-      allow read: if isSignedIn() && (resource.data.userId == request.auth.uid);
+      // Users can read their own membership status, and assigned trainers can read them
+      allow read: if isSignedIn() && (
+        resource.data.userId == request.auth.uid || 
+        get(/databases/$(database)/documents/users/$(resource.data.userId)).data.assignedTrainerUid == request.auth.uid
+      );
       // Users can create a membership application
       allow create: if isSignedIn() && (request.resource.data.userId == request.auth.uid);
       // Admins manage approvals and validity (handled by global admin rule, 
@@ -79,10 +85,36 @@ service cloud.firestore {
     // AI PLANS COLLECTION
     // -------------------------------------------------------------------------
     match /aiPlans/{planId} {
-      // Users own their AI plans
-      allow read, write: if isSignedIn() && (
-        (resource != null && resource.data.userId == request.auth.uid) || 
-        (resource == null && request.resource.data.userId == request.auth.uid)
+      // Users own their AI plans, and their assigned trainers can read them
+      allow read: if isSignedIn() && (
+        isUser(resource.data.userId) || 
+        get(/databases/$(database)/documents/users/$(resource.data.userId)).data.assignedTrainerUid == request.auth.uid
+      );
+      allow write: if isSignedIn() && isUser(request.resource.data.userId);
+    }
+
+    // -------------------------------------------------------------------------
+    // PLAN APPROVAL REQUESTS
+    // -------------------------------------------------------------------------
+    match /planApprovalRequests/{requestId} {
+      allow create: if isSignedIn();
+      allow read: if isSignedIn() && (
+        resource.data.trainerId == request.auth.uid || 
+        resource.data.userId == request.auth.uid
+      );
+    }
+
+    // -------------------------------------------------------------------------
+    // APPOINTMENTS
+    // -------------------------------------------------------------------------
+    match /appointments/{appointmentId} {
+      allow read: if isSignedIn() && (
+        resource.data.trainerId == request.auth.uid || 
+        resource.data.userId == request.auth.uid
+      );
+      allow create: if isSignedIn();
+      allow update, delete: if isSignedIn() && (
+        resource.data.trainerId == request.auth.uid
       );
     }
 
@@ -90,23 +122,25 @@ service cloud.firestore {
     // WEEKLY REPORTS COLLECTION
     // -------------------------------------------------------------------------
     match /weeklyReports/{reportId} {
-      allow read, write: if isSignedIn() && (
-        (resource != null && resource.data.userId == request.auth.uid) || 
-        (resource == null && request.resource.data.userId == request.auth.uid)
+      allow read: if isSignedIn() && (
+        isUser(resource.data.userId) || 
+        get(/databases/$(database)/documents/users/$(resource.data.userId)).data.assignedTrainerUid == request.auth.uid
       );
+      allow create: if isSignedIn() && isUser(request.resource.data.userId);
     }
 
     // -------------------------------------------------------------------------
     // DAILY WORKOUTS COLLECTION
     // -------------------------------------------------------------------------
     match /dailyWorkouts/{workoutId} {
-      // Users track their own workouts
-      allow read, create: if isSignedIn() && (
-        (resource != null && resource.data.userId == request.auth.uid) || 
-        (resource == null && request.resource.data.userId == request.auth.uid)
+      // Users track their own workouts, trainers can read them
+      allow read: if isSignedIn() && (
+        isUser(resource.data.userId) || 
+        get(/databases/$(database)/documents/users/$(resource.data.userId)).data.assignedTrainerUid == request.auth.uid
       );
+      allow create: if isSignedIn() && isUser(request.resource.data.userId);
       // Users can only update their own if not approved yet
-      allow update: if isSignedIn() && (resource.data.userId == request.auth.uid) && 
+      allow update: if isSignedIn() && isUser(resource.data.userId) && 
                       resource.data.status == 'pending';
     }
 
