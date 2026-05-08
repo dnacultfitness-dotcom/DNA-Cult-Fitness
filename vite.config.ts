@@ -16,7 +16,7 @@ export default defineConfig(({mode}) => {
         '@': fileURLToPath(new URL('./src', import.meta.url)),
       },
     },
-    base: './',
+    base: '/',
     build: {
       outDir: 'dist',
       assetsDir: 'assets',
