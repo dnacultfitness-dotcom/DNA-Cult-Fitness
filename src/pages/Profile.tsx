@@ -197,30 +197,40 @@ const Profile = () => {
     try {
       // Update personal details
       const detailsDocRef = doc(db, 'users', user.uid, 'details', 'personal');
-      await setDoc(detailsDocRef, {
+      const h = parseFloat(formData.height) || 0;
+      const w = parseFloat(formData.weight) || 0;
+      
+      const detailsData = {
         name: formData.name,
         phone: formData.phone,
-        weight: parseFloat(formData.weight),
-        height: parseFloat(formData.height),
+        weight: w,
+        height: h,
         gender: formData.gender,
         injury: formData.injury,
         lifestyleDisease: formData.lifestyleDisease,
         goal: formData.goal,
         updatedAt: serverTimestamp()
-      }, { merge: true });
+      };
 
-      // Update profile photoURL if changed
-      if (formData.photoURL !== profile?.photoURL) {
-        const userDocRef = doc(db, 'users', user.uid);
-        await updateDoc(userDocRef, {
-          photoURL: formData.photoURL,
-          lastActive: serverTimestamp()
-        });
-      }
+      await setDoc(detailsDocRef, detailsData, { merge: true });
+
+      // Sync important fields to root user doc for visibility in Trainer Hub / Admin
+      const userDocRef = doc(db, 'users', user.uid);
+      await updateDoc(userDocRef, {
+        displayName: formData.name,
+        photoURL: formData.photoURL,
+        height: h,
+        weight: w,
+        gender: formData.gender,
+        goal: formData.goal,
+        experienceLevel: formData.experienceLevel || '',
+        lastActive: serverTimestamp()
+      });
 
       setSuccess(true);
       toast.success('Profile updated successfully!');
       setActiveTab('overview');
+      navigate('/profile?tab=overview'); // Force URL update for consistency
       setTimeout(() => setSuccess(false), 3000);
     } catch (err) {
       handleFirestoreError(err, OperationType.WRITE, `users/${user.uid}`);

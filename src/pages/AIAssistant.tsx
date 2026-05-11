@@ -69,7 +69,7 @@ const ProgressTracker = () => {
     try {
       await addDoc(collection(db, 'weeklyReports'), {
         userId: user.uid,
-        weight: parseFloat(newReport.weight),
+        weight: parseFloat(newReport.weight) || 0,
         notes: newReport.notes,
         createdAt: serverTimestamp()
       });
@@ -278,12 +278,25 @@ const AIAssistant = () => {
 
     try {
       // Save personal details first
+      const h = parseFloat(formData.height) || 0;
+      const w = parseFloat(formData.weight) || 0;
+      
       const detailsRef = doc(db, 'users', user.uid, 'details', 'personal');
       await setDoc(detailsRef, {
         ...formData,
-        height: parseFloat(formData.height),
-        weight: parseFloat(formData.weight),
+        height: h,
+        weight: w,
         updatedAt: serverTimestamp()
+      });
+
+      // Sync to root user doc for visibility
+      await updateDoc(doc(db, 'users', user.uid), {
+        displayName: formData.name,
+        height: h,
+        weight: w,
+        goal: formData.goal,
+        gender: formData.gender,
+        lastActive: serverTimestamp()
       });
 
       const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || '' });

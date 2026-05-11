@@ -20,7 +20,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
-import { db, collection, query, where, onSnapshot, doc, addDoc, getDocs, serverTimestamp, handleFirestoreError, OperationType, orderBy } from '../firebase';
+import { db, collection, query, where, onSnapshot, doc, addDoc, getDocs, getDoc, serverTimestamp, handleFirestoreError, OperationType, orderBy } from '../firebase';
 import { useFirebase } from '../components/FirebaseProvider';
 import { toast } from 'sonner';
 import { NotificationBell } from '../components/NotificationBell';
@@ -120,20 +120,47 @@ const ClientsList = ({ onSelectClient }: { onSelectClient: (client: any) => void
         }
       }
 
-      // Quick check for plans for these users to show indicator
+      // Quick check for plans for these users to show indicator and status
       const finalClients = Array.from(clientsMap.values());
       for (const client of finalClients) {
-         try {
-           // Ensure we have a valid ID to query by
-           if (client.id && !client.id.startsWith('mem-')) {
-             const planSnap = await getDocs(query(collection(db, 'aiPlans'), where('userId', '==', client.id), where('isActive', '==', true)));
-             if (!planSnap.empty) {
-               client.hasPlan = true;
-             }
-           }
-         } catch (e) {
-           // Skip if fails
-         }
+          try {
+            // Ensure we have a valid ID to query by
+            if (client.id && !client.id.startsWith('mem-')) {
+              // Get all plans for this user
+              const allPlansSnap = await getDocs(query(collection(db, 'aiPlans'), where('userId', '==', client.id)));
+              const activePlan = await getDocs(query(collection(db, 'aiPlans'), where('userId', '==', client.id), where('isActive', '==', true)));
+              
+              const hasModRequest = await getDocs(query(collection(db, 'planApprovalRequests'), where('userId', '==', client.id), where('status', '==', 'pending')));
+              
+              if (!activePlan.empty) {
+                client.hasPlan = true;
+                client.aiPlanStatus = 'Active';
+              } else if (!allPlansSnap.empty) {
+                client.hasPlan = true;
+                client.aiPlanStatus = 'Generated';
+              } else {
+                client.aiPlanStatus = 'Awaiting';
+              }
+
+              if (!hasModRequest.empty) {
+                client.aiPlanStatus = 'Awaiting Update';
+              }
+
+              // Also fetch personal details if missing from root user doc
+              if (!client.height || !client.weight) {
+                const detailsSnap = await getDoc(doc(db, 'users', client.id, 'details', 'personal'));
+                if (detailsSnap.exists()) {
+                  const d = detailsSnap.data();
+                  client.height = d.height;
+                  client.weight = d.weight;
+                  client.goal = d.goal;
+                  client.gender = d.gender;
+                }
+              }
+            }
+          } catch (e) {
+            console.error("Error syncing client info:", e);
+          }
       }
 
       setClients(finalClients);
@@ -230,13 +257,18 @@ const ClientsList = ({ onSelectClient }: { onSelectClient: (client: any) => void
                 </div>
                 <span className="font-bold text-green-600">{client.membership?.currentWorkoutIndex || 0}</span>
               </div>
-              {client.hasPlan && (
-                <div className="flex items-center justify-between text-xs p-3 bg-brand-green/5 rounded-2xl border border-brand-green/10">
-                  <div className="flex items-center space-x-2 text-brand-green">
+              {client.aiPlanStatus && (
+                <div className={cn(
+                  "flex items-center justify-between text-xs p-3 rounded-2xl border transition-all",
+                  client.aiPlanStatus === 'Active' ? "bg-green-50 border-green-100 text-green-700" :
+                  client.aiPlanStatus === 'Awaiting Update' ? "bg-amber-50 border-amber-100 text-amber-700" :
+                  "bg-gray-50 border-gray-100 text-gray-500"
+                )}>
+                  <div className="flex items-center space-x-2">
                     <Sparkles size={14} />
-                    <span className="font-medium">AI Strategy</span>
+                    <span className="font-medium font-bold uppercase tracking-widest text-[9px]">AI Plan Status</span>
                   </div>
-                  <span className="font-black text-brand-green uppercase tracking-tighter">Ready</span>
+                  <span className="font-black uppercase tracking-tighter">{client.aiPlanStatus}</span>
                 </div>
               )}
             </div>

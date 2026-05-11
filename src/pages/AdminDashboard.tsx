@@ -721,12 +721,13 @@ const MembershipManager = () => {
     if (!searchQuery.trim()) return memberships;
     const q = searchQuery.toLowerCase();
     return memberships.filter(m => {
-      const name = (m.name || '').toLowerCase();
+      const userAccount = (userMap as any)[m.userId];
+      const name = (userAccount?.displayName || m.name || '').toLowerCase();
       const email = (m.email || '').toLowerCase();
       const phone = (m.phone || '').toLowerCase();
       return name.includes(q) || email.includes(q) || phone.includes(q);
     });
-  }, [memberships, searchQuery]);
+  }, [memberships, searchQuery, userMap]);
 
   return (
     <div className="space-y-6 sm:space-y-8">
@@ -778,7 +779,7 @@ const MembershipManager = () => {
                     </div>
                     <div className="space-y-1 sm:space-y-2">
                       <div className="flex items-center flex-wrap gap-2">
-                        <span className="font-black text-gray-900 uppercase tracking-tight">{m.name}</span>
+                        <span className="font-black text-gray-900 uppercase tracking-tight">{userAccount?.displayName || m.name}</span>
                         <span className={cn(
                           "px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-widest",
                           m.status === 'pending' ? "bg-yellow-50 text-yellow-600 border border-yellow-100" : 
@@ -2381,7 +2382,7 @@ const ServiceManager = () => {
             </div>
             <div>
               <label className="block text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">Display Order</label>
-              <input type="number" value={newService.order} onChange={e => setNewService({...newService, order: Number(e.target.value)})} className="w-full px-4 py-3 bg-gray-50 border-gray-100 rounded-xl outline-none focus:border-green-500 transition-all" />
+              <input type="number" value={newService.order || ''} onChange={e => setNewService({...newService, order: e.target.value === '' ? 0 : Number(e.target.value)})} className="w-full px-4 py-3 bg-gray-50 border-gray-100 rounded-xl outline-none focus:border-green-500 transition-all" />
             </div>
             <div className="md:col-span-2">
               <label className="block text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">Description</label>
@@ -2831,7 +2832,7 @@ const TrainerManager = () => {
             </div>
             <div>
               <label className="block text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">Base Load (Clients)</label>
-              <input type="number" value={formData.numberOfClients} onChange={e => setFormData({ ...formData, numberOfClients: parseInt(e.target.value) })} className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl outline-none focus:border-green-500 transition-all" />
+              <input type="number" value={formData.numberOfClients || ''} onChange={e => setFormData({ ...formData, numberOfClients: e.target.value === '' ? 0 : parseInt(e.target.value) })} className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl outline-none focus:border-green-500 transition-all" />
             </div>
             <div className="flex items-end">
               <button type="submit" className="w-full bg-green-600 text-white p-4 rounded-xl font-black uppercase tracking-widest hover:bg-green-700 transition-all shadow-lg shadow-green-100">
