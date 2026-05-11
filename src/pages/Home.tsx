@@ -7,7 +7,7 @@ import { AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
 
 const Home = () => {
-  const { user } = useFirebase();
+  const { user, profile, loading } = useFirebase();
   const [currentIndex, setCurrentIndex] = React.useState(0);
   const [direction, setDirection] = React.useState(0);
 
@@ -139,12 +139,27 @@ const Home = () => {
               transition={{ duration: 0.8, delay: 0.6 }}
               className="flex flex-col sm:flex-row flex-wrap gap-4 sm:gap-5"
             >
+              {user && profile?.role === 'client' && (
+                <Link to="/profile?tab=workout" className="bg-brand-green text-black px-6 sm:px-10 py-4 sm:py-5 rounded-full font-black text-base sm:text-lg hover:bg-white transition-all flex items-center justify-center group shadow-2xl shadow-brand-green/20 uppercase tracking-tight order-first sm:order-none" id="hero-workout-btn">
+                  Today's Workout <Dumbbell className="ml-2 group-hover:rotate-12 transition-transform" size={20} />
+                </Link>
+              )}
+
               {user ? (
-                <Link to="/profile" className="bg-brand-green text-black px-6 sm:px-10 py-4 sm:py-5 rounded-full font-black text-base sm:text-lg hover:bg-white transition-all flex items-center justify-center group shadow-2xl shadow-brand-green/20 uppercase tracking-tight">
+                <Link 
+                  to="/profile" 
+                  className={cn(
+                    "px-6 sm:px-10 py-4 sm:py-5 rounded-full font-black text-base sm:text-lg transition-all flex items-center justify-center group shadow-2xl uppercase tracking-tight",
+                    profile?.role === 'client' 
+                      ? "bg-white/10 backdrop-blur-md text-white border border-white/20 hover:bg-white hover:text-black" 
+                      : "bg-brand-green text-black hover:bg-white shadow-brand-green/20"
+                  )} 
+                  id="hero-profile-btn"
+                >
                   My Profile <LayoutDashboard className="ml-2 group-hover:translate-x-1 transition-transform" size={20} />
                 </Link>
               ) : (
-                <Link to="/membership" className="bg-brand-green text-black px-6 sm:px-10 py-4 sm:py-5 rounded-full font-black text-base sm:text-lg hover:bg-white transition-all flex items-center justify-center group shadow-2xl shadow-brand-green/20 uppercase tracking-tight">
+                <Link to="/membership" className="bg-brand-green text-black px-6 sm:px-10 py-4 sm:py-5 rounded-full font-black text-base sm:text-lg hover:bg-white transition-all flex items-center justify-center group shadow-2xl shadow-brand-green/20 uppercase tracking-tight" id="hero-join-btn">
                   Join Now <ArrowRight className="ml-2 group-hover:translate-x-1 transition-transform" size={20} />
                 </Link>
               )}

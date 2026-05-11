@@ -452,7 +452,7 @@ const UserManager = () => {
     const q = searchQuery.toLowerCase();
     return users.filter(user => {
       const membership = memberships.find(m => m.userId === user.id);
-      const name = (membership?.name || user.displayName || '').toLowerCase();
+      const name = (user.displayName || membership?.name || '').toLowerCase();
       const email = (user.email || '').toLowerCase();
       return name.includes(q) || email.includes(q);
     });
@@ -536,7 +536,7 @@ const UserManager = () => {
                             </div>
                             <div>
                               <p className="font-black text-gray-900 text-xs uppercase tracking-tight">
-                                {membership?.name || user.displayName || 'No Name'}
+                                {user.displayName || membership?.name || 'No Name'}
                               </p>
                               <p className="text-[10px] text-gray-400 font-medium">{user.email}</p>
                             </div>
@@ -1228,7 +1228,7 @@ const MemberManager = () => {
                           )}
                         </div>
                         <div>
-                          <p className="font-black text-gray-900 uppercase text-xs tracking-tight leading-tight">{member.name}</p>
+                          <p className="font-black text-gray-900 uppercase text-xs tracking-tight leading-tight">{member.userData?.displayName || member.name}</p>
                           <p className="text-[10px] text-gray-400 font-medium">{member.phone} • {member.userData?.email}</p>
                         </div>
                       </div>

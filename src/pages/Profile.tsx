@@ -33,7 +33,7 @@ import {
   LogOut,
   Clock
 } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { toast } from 'sonner';
 import { cn } from '../lib/utils';
 import PhoneInput from '../components/PhoneInput';
@@ -47,6 +47,15 @@ const Profile = () => {
   const [activeTab, setActiveTab] = useState<'overview' | 'settings' | 'workout'>('overview');
   const [isSetupMode, setIsSetupMode] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const tabParam = params.get('tab');
+    if (tabParam === 'workout' || tabParam === 'settings' || tabParam === 'overview') {
+      setActiveTab(tabParam as any);
+    }
+  }, [location.search]);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -211,6 +220,7 @@ const Profile = () => {
 
       setSuccess(true);
       toast.success('Profile updated successfully!');
+      setActiveTab('overview');
       setTimeout(() => setSuccess(false), 3000);
     } catch (err) {
       handleFirestoreError(err, OperationType.WRITE, `users/${user.uid}`);
