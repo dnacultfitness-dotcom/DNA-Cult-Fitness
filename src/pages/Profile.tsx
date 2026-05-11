@@ -128,14 +128,60 @@ const Profile = () => {
   }, [personalDetails, profile]);
 
   useEffect(() => {
-    // Firestore and Storage disabled as per user instruction
-    setDashboardLoading(false);
-    setWorkoutStatusLoading(false);
-    
-    /*
-    if (!user) return;
-    ...
-    */
+    if (!user) {
+      setDashboardLoading(false);
+      setWorkoutStatusLoading(false);
+      return;
+    }
+
+    setDashboardLoading(true);
+    setWorkoutStatusLoading(true);
+
+    // Fetch membership
+    const membershipQuery = query(collection(db, 'memberships'), where('userId', '==', user.uid));
+    const unsubscribeMembership = onSnapshot(membershipQuery, (snapshot) => {
+      if (!snapshot.empty) {
+        setMembership({ id: snapshot.docs[0].id, ...snapshot.docs[0].data() });
+      } else {
+        setMembership(null);
+      }
+      setDashboardLoading(false);
+    }, (error) => handleFirestoreError(error, OperationType.LIST, 'memberships'));
+
+    // Fetch active plan
+    const planQuery = query(collection(db, 'aiPlans'), where('userId', '==', user.uid), where('isActive', '==', true));
+    const unsubscribePlan = onSnapshot(planQuery, (snapshot) => {
+      if (!snapshot.empty) {
+        setActivePlan({ id: snapshot.docs[0].id, ...snapshot.docs[0].data() });
+      } else {
+        setActivePlan(null);
+      }
+    }, (error) => handleFirestoreError(error, OperationType.LIST, 'aiPlans'));
+
+    // Fetch weekly reports
+    const reportsQuery = query(collection(db, 'weeklyReports'), where('userId', '==', user.uid), orderBy('createdAt', 'desc'));
+    const unsubscribeReports = onSnapshot(reportsQuery, (snapshot) => {
+      setRecentReports(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    }, (error) => handleFirestoreError(error, OperationType.LIST, 'weeklyReports'));
+
+    // Fetch today's workout status
+    const today = getLocalDateString();
+    const todayWorkoutQuery = query(collection(db, 'dailyWorkouts'), where('userId', '==', user.uid), where('date', '==', today));
+    const unsubscribeTodayWorkout = onSnapshot(todayWorkoutQuery, (snapshot) => {
+      if (!snapshot.empty) {
+        setTodayWorkout({ id: snapshot.docs[0].id, ...snapshot.docs[0].data() });
+      } else {
+        setTodayWorkout(null);
+      }
+      setWorkoutStatusLoading(false);
+    }, (error) => handleFirestoreError(error, OperationType.LIST, 'dailyWorkouts'));
+
+    return () => {
+      unsubscribeMembership();
+      unsubscribePlan();
+      unsubscribeReports();
+      unsubscribeTodayWorkout();
+    };
   }, [user]);
 
   const handleWorkoutAction = async (action: 'done' | 'skipped') => {
