@@ -357,6 +357,62 @@ const RoleSelect = ({ userId, currentRole }: { userId: string, currentRole: stri
   );
 };
 
+const PlanOrderInput = ({ planId, initialOrder }: { planId: string, initialOrder: number }) => {
+  const [value, setValue] = useState(initialOrder);
+  const [isEditing, setIsEditing] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  const handleUpdate = async () => {
+    setLoading(true);
+    try {
+      await updateDoc(doc(db, 'membershipPlans', planId), { order: Number(value) });
+      toast.success('Order updated');
+      setIsEditing(false);
+    } catch (err) {
+      handleFirestoreError(err, OperationType.UPDATE, `membershipPlans/${planId}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (isEditing) {
+    return (
+      <div className="flex items-center space-x-2">
+        <input
+          type="number"
+          value={value}
+          onChange={(e) => setValue(Number(e.target.value))}
+          className="w-16 px-2 py-1 text-xs border border-gray-200 rounded outline-none focus:ring-1 focus:ring-green-500 font-mono"
+          autoFocus
+          onKeyDown={(e) => e.key === 'Enter' && handleUpdate()}
+        />
+        <button 
+          onClick={handleUpdate} 
+          disabled={loading}
+          className="text-green-600 hover:text-green-700 disabled:opacity-50"
+        >
+          {loading ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle size={14} />}
+        </button>
+        <button onClick={() => setIsEditing(false)} className="text-gray-400 hover:text-gray-600">
+          <XCircle size={14} />
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div 
+      onClick={() => setIsEditing(true)}
+      className="group flex items-center space-x-2 cursor-pointer hover:bg-gray-100 px-2 py-1 rounded transition-colors w-fit"
+    >
+      <span className="font-mono text-xs font-black text-gray-400">
+        #{initialOrder}
+      </span>
+      <Edit2 size={10} className="text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+    </div>
+  );
+};
+
 const UserManager = () => {
   const [users, setUsers] = useState<any[]>([]);
   const [memberships, setMemberships] = useState<any[]>([]);
@@ -2147,7 +2203,7 @@ const MembershipPlanManager = () => {
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <span className="font-mono text-xs font-black text-gray-300">#{plan.order}</span>
+                      <PlanOrderInput planId={plan.id} initialOrder={plan.order || 0} />
                     </td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex items-center justify-end gap-2">

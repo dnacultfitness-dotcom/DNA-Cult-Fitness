@@ -16,7 +16,9 @@ import {
   Send,
   MessageSquare,
   Activity,
-  Info
+  Info,
+  AlertCircle,
+  HeartPulse
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
@@ -146,15 +148,18 @@ const ClientsList = ({ onSelectClient }: { onSelectClient: (client: any) => void
                 client.aiPlanStatus = 'Awaiting Update';
               }
 
-              // Also fetch personal details if missing from root user doc
-              if (!client.height || !client.weight) {
+              // Also fetch personal details if missing from root user doc or to ensure full data
+              if (client.id && !client.id.startsWith('mem-')) {
                 const detailsSnap = await getDoc(doc(db, 'users', client.id, 'details', 'personal'));
                 if (detailsSnap.exists()) {
                   const d = detailsSnap.data();
-                  client.height = d.height;
-                  client.weight = d.weight;
-                  client.goal = d.goal;
-                  client.gender = d.gender;
+                  client.height = d.height || client.height;
+                  client.weight = d.weight || client.weight;
+                  client.goal = d.goal || client.goal;
+                  client.gender = d.gender || client.gender;
+                  client.experienceLevel = d.experienceLevel || client.experienceLevel;
+                  client.injury = d.injury || client.injury;
+                  client.lifestyleDisease = d.lifestyleDisease || client.lifestyleDisease;
                 }
               }
             }
@@ -502,14 +507,37 @@ const ClientDetail = ({ client, onBack }: { client: any, onBack: () => void }) =
              </div>
           </div>
 
+          {(client.injury || client.lifestyleDisease) && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+               {client.injury && (
+                 <div className="bg-red-50 p-4 rounded-3xl border border-red-100">
+                    <p className="text-[10px] font-black text-red-400 uppercase tracking-widest mb-1 flex items-center">
+                      <AlertCircle size={12} className="mr-1" /> Injuries
+                    </p>
+                    <p className="text-sm font-bold text-red-900">{client.injury}</p>
+                 </div>
+               )}
+               {client.lifestyleDisease && (
+                 <div className="bg-amber-50 p-4 rounded-3xl border border-amber-100">
+                    <p className="text-[10px] font-black text-amber-400 uppercase tracking-widest mb-1 flex items-center">
+                      <HeartPulse size={12} className="mr-1" /> Conditions
+                    </p>
+                    <p className="text-sm font-bold text-amber-900">{client.lifestyleDisease}</p>
+                 </div>
+               )}
+            </div>
+          )}
+
           <div className="bg-white rounded-[40px] border border-gray-100 shadow-sm p-8 overflow-hidden">
-            <div className="flex items-center justify-between mb-8">
+            <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
               <div>
                 <h3 className="text-xl font-black text-gray-900 flex items-center">
                   <Sparkles size={20} className="mr-2 text-brand-green" />
                   Client AI Plan
                 </h3>
-                <p className="text-xs text-gray-400 font-bold uppercase tracking-widest mt-1">Status: Active Program</p>
+                <p className="text-xs text-gray-400 font-bold uppercase tracking-widest mt-1">
+                  Status: {selectedPlan?.isActive ? 'Active Program' : 'Inactive'}
+                </p>
               </div>
               <div className="flex items-center gap-4">
                 {!isEditing ? (
@@ -680,6 +708,35 @@ const ClientDetail = ({ client, onBack }: { client: any, onBack: () => void }) =
                   </div>
                 ) : (
                   <div className="space-y-8">
+                      {/* Highlights */}
+                      {selectedPlan.isActive && client.membership && (
+                        <section className="bg-brand-green/5 border border-brand-green/20 rounded-[30px] p-6">
+                           <div className="flex items-center justify-between mb-4">
+                              <h4 className="text-xs font-black uppercase tracking-widest text-brand-green">Today's Protocol (Day { (client.membership.currentWorkoutIndex % 7) + 1 })</h4>
+                              <span className="text-[10px] bg-brand-green text-white px-2 py-0.5 rounded-full font-black uppercase">Based on Progress</span>
+                           </div>
+                           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                              <div>
+                                 <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-2">Target Workout</p>
+                                 <div className="flex flex-wrap gap-2">
+                                    {(selectedPlan.planData.workoutPlan?.[client.membership.currentWorkoutIndex % 7]?.exercises || ['Active Recovery']).map((ex: string, i: number) => (
+                                      <span key={i} className="text-xs font-bold text-gray-900 bg-white px-3 py-1.5 rounded-xl shadow-sm border border-brand-green/10">{ex}</span>
+                                    ))}
+                                 </div>
+                              </div>
+                              <div>
+                                 <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-2">Nutritional Focus</p>
+                                 <div className="space-y-1">
+                                    <p className="text-xs font-bold text-gray-900">
+                                      {selectedPlan.planData.dietPlan?.[client.membership.currentWorkoutIndex % 7]?.lunch || 'Maintain clean macros'}
+                                    </p>
+                                    <p className="text-[10px] text-gray-500 italic">Follow standard tier guidelines</p>
+                                 </div>
+                              </div>
+                           </div>
+                        </section>
+                      )}
+
                      {/* View Mode */}
                      <section className="space-y-6">
                         <h4 className="text-xs font-black uppercase tracking-widest text-orange-600 flex items-center">

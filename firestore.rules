@@ -50,7 +50,8 @@ service cloud.firestore {
       
       // Details subcollection
       match /details/{detailId} {
-        allow read, write: if isUser(userId);
+        allow read: if isUser(userId) || (isSignedIn() && get(/databases/$(database)/documents/users/$(userId)).data.assignedTrainerUid == request.auth.uid);
+        allow write: if isUser(userId);
       }
     }
 
