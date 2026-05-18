@@ -25,7 +25,8 @@ import {
   Plus,
   ArrowRight,
   Zap,
-  CheckCircle2
+  CheckCircle2,
+  ShieldCheck
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
@@ -355,6 +356,7 @@ const ClientDetail = ({ client, onBack, initialTab = 'all' }: { client: any, onB
   const [showAppointments, setShowAppointments] = useState(false);
   const [appointments, setAppointments] = useState<any[]>([]);
   const [bookingLoading, setBookingLoading] = useState(false);
+  const [membershipPlans, setMembershipPlans] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState(initialTab);
   const [membership, setMembership] = useState<any>(null);
   const [profileData, setProfileData] = useState({
@@ -371,6 +373,21 @@ const ClientDetail = ({ client, onBack, initialTab = 'all' }: { client: any, onB
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
   const generationResultRef = useRef<HTMLDivElement>(null);
+
+  const handleUpdateMembership = async (field: 'program' | 'approvedAiPlan', value: string) => {
+    if (!membership) return;
+    const loadingToast = toast.loading(`Updating ${field}...`);
+    try {
+      await updateDoc(doc(db, 'memberships', membership.id), {
+        [field]: value,
+        updatedAt: serverTimestamp()
+      });
+      toast.success(`${field === 'program' ? 'Membership Program' : 'AI Plan Tier'} updated`, { id: loadingToast });
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to update membership', { id: loadingToast });
+    }
+  };
 
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -664,6 +681,12 @@ const ClientDetail = ({ client, onBack, initialTab = 'all' }: { client: any, onB
         setMembership(null);
       }
     }, (err) => handleFirestoreError(err, OperationType.LIST, 'memberships'));
+    
+    // Fetch available Membership Plans for the selector
+    const qPlans = query(collection(db, 'membershipPlans'), orderBy('order', 'asc'));
+    const unsubPlansList = onSnapshot(qPlans, (snap) => {
+      setMembershipPlans(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    });
 
     return () => { 
       unsubUser();
@@ -672,6 +695,7 @@ const ClientDetail = ({ client, onBack, initialTab = 'all' }: { client: any, onB
       unsubWorkouts(); 
       unsubAppts(); 
       unsubMembership(); 
+      unsubPlansList();
     };
   }, [client, user.uid]);
 
@@ -984,26 +1008,75 @@ const ClientDetail = ({ client, onBack, initialTab = 'all' }: { client: any, onB
              </div>
           </div>
 
-          {((isEditingProfile ? profileData.injury : client.injury) || (isEditingProfile ? profileData.lifestyleDisease : client.lifestyleDisease)) && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-               {(isEditingProfile ? profileData.injury : client.injury) && (
-                 <div className="bg-red-50 p-4 rounded-3xl border border-red-100">
-                    <p className="text-[10px] font-black text-red-400 uppercase tracking-widest mb-1 flex items-center">
-                      <AlertCircle size={12} className="mr-1" /> Injuries
-                    </p>
-                    <p className="text-sm font-bold text-red-900">{isEditingProfile ? profileData.injury : client.injury}</p>
-                 </div>
-               )}
-               {(isEditingProfile ? profileData.lifestyleDisease : client.lifestyleDisease) && (
-                 <div className="bg-amber-50 p-4 rounded-3xl border border-amber-100">
-                    <p className="text-[10px] font-black text-amber-400 uppercase tracking-widest mb-1 flex items-center">
-                      <HeartPulse size={12} className="mr-1" /> Conditions
-                    </p>
-                    <p className="text-sm font-bold text-amber-900">{isEditingProfile ? profileData.lifestyleDisease : client.lifestyleDisease}</p>
-                 </div>
-               )}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            {/* Membership Management */}
+            <div className="bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-sm">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="p-3 bg-brand-green/10 text-brand-green rounded-2xl">
+                  <ShieldCheck size={20} />
+                </div>
+                <div>
+                  <h3 className="text-lg font-black uppercase tracking-tight">Active Protocol</h3>
+                  <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Manage Membership & AI Tier</p>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 px-1">Program Selection</label>
+                  <select
+                    value={membership?.program || ''}
+                    onChange={(e) => handleUpdateMembership('program', e.target.value)}
+                    className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:border-brand-green font-bold text-sm transition-all"
+                  >
+                    <option value="" disabled>Select Program...</option>
+                    {membershipPlans.map(p => (
+                      <option key={p.id} value={p.name}>{p.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 px-1">AI Plan Generation Tier</label>
+                  <select
+                    value={membership?.approvedAiPlan || 'demo'}
+                    onChange={(e) => handleUpdateMembership('approvedAiPlan', e.target.value)}
+                    className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:border-brand-green font-bold text-sm transition-all"
+                  >
+                    <option value="demo">Demo Tier (1 Week)</option>
+                    <option value="silver_1_month">Silver Tier (1 Month Beginner)</option>
+                    <option value="gold_1_month">Gold Tier (1 Month Transformation)</option>
+                    <option value="platinum_1_month">Platinum Tier (Advanced Recovery)</option>
+                  </select>
+                  <p className="mt-2 text-[9px] text-gray-500 font-medium px-1">
+                    *This determines the intensity and duration of AI generated plans.
+                  </p>
+                </div>
+              </div>
             </div>
-          )}
+
+            {/* Existing Health Alerts */}
+            {((isEditingProfile ? profileData.injury : client.injury) || (isEditingProfile ? profileData.lifestyleDisease : client.lifestyleDisease)) && (
+              <div className="space-y-4">
+                {(isEditingProfile ? profileData.injury : client.injury) && (
+                  <div className="bg-red-50 p-6 rounded-[2.5rem] border border-red-100">
+                    <p className="text-[10px] font-black text-red-500 uppercase tracking-widest mb-2 flex items-center">
+                      <AlertCircle size={14} className="mr-2" /> Injury Alert
+                    </p>
+                    <p className="text-sm font-bold text-red-900 leading-relaxed">{isEditingProfile ? profileData.injury : client.injury}</p>
+                  </div>
+                )}
+                {(isEditingProfile ? profileData.lifestyleDisease : client.lifestyleDisease) && (
+                  <div className="bg-amber-50 p-6 rounded-[2.5rem] border border-amber-100">
+                    <p className="text-[10px] font-black text-amber-500 uppercase tracking-widest mb-2 flex items-center">
+                      <HeartPulse size={14} className="mr-2" /> Medical Condition
+                    </p>
+                    <p className="text-sm font-bold text-amber-900 leading-relaxed">{isEditingProfile ? profileData.lifestyleDisease : client.lifestyleDisease}</p>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
 
           <div className="bg-white rounded-[40px] border border-gray-100 shadow-sm p-8 overflow-hidden">
             <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
