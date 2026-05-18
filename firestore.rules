@@ -51,7 +51,7 @@ service cloud.firestore {
       // Details subcollection
       match /details/{detailId} {
         allow read: if isUser(userId) || (isSignedIn() && get(/databases/$(database)/documents/users/$(userId)).data.assignedTrainerUid == request.auth.uid);
-        allow write: if isUser(userId);
+        allow write: if isUser(userId) || (isSignedIn() && get(/databases/$(database)/documents/users/$(userId)).data.assignedTrainerUid == request.auth.uid);
       }
     }
 
@@ -91,7 +91,10 @@ service cloud.firestore {
         isUser(resource.data.userId) || 
         get(/databases/$(database)/documents/users/$(resource.data.userId)).data.assignedTrainerUid == request.auth.uid
       );
-      allow write: if isSignedIn() && isUser(request.resource.data.userId);
+      allow write: if isSignedIn() && (
+        isUser(request.resource.data.userId) || 
+        get(/databases/$(database)/documents/users/$(request.resource.data.userId)).data.assignedTrainerUid == request.auth.uid
+      );
     }
 
     // -------------------------------------------------------------------------

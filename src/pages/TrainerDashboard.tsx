@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Routes, Route, Link, useLocation, useNavigate } from 'react-router-dom';
 import { 
   Users, 
@@ -18,15 +18,23 @@ import {
   Activity,
   Info,
   AlertCircle,
-  HeartPulse
+  HeartPulse,
+  Ruler,
+  Weight,
+  User,
+  Plus,
+  ArrowRight,
+  Zap,
+  CheckCircle2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
-import { db, collection, query, where, onSnapshot, doc, addDoc, getDocs, getDoc, serverTimestamp, handleFirestoreError, OperationType, orderBy } from '../firebase';
+import { db, collection, query, where, onSnapshot, doc, addDoc, getDocs, getDoc, serverTimestamp, handleFirestoreError, OperationType, orderBy, updateDoc, writeBatch, setDoc } from '../firebase';
 import { useFirebase } from '../components/FirebaseProvider';
 import { toast } from 'sonner';
 import { NotificationBell } from '../components/NotificationBell';
 import { createNotification, NotificationType, notifyAdmins } from '../utils/notifications';
+import { GoogleGenAI, Type } from "@google/genai";
 
 const ClientsList = ({ onSelectClient }: { onSelectClient: (client: any, tab?: string) => void }) => {
   const { trainerData, user } = useFirebase();
@@ -348,6 +356,194 @@ const ClientDetail = ({ client, onBack, initialTab = 'all' }: { client: any, onB
   const [appointments, setAppointments] = useState<any[]>([]);
   const [bookingLoading, setBookingLoading] = useState(false);
   const [activeTab, setActiveTab] = useState(initialTab);
+  const [membership, setMembership] = useState<any>(null);
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [profileData, setProfileData] = useState({
+    displayName: client.displayName || '',
+    height: client.height || '',
+    weight: client.weight || '',
+    gender: client.gender || 'male',
+    goal: client.goal || '',
+    injury: client.injury || '',
+    lifestyleDisease: client.lifestyleDisease || '',
+    experienceLevel: client.experienceLevel || ''
+  });
+  const [isGeneratingAI, setIsGeneratingAI] = useState(false);
+  const generationResultRef = useRef<HTMLDivElement>(null);
+
+  const handleUpdateProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmitting(true);
+    const loadingToast = toast.loading('Updating customer profile...');
+
+    try {
+      // Update details subcollection
+      const detailsRef = doc(db, 'users', client.id, 'details', 'personal');
+      await setDoc(detailsRef, {
+        name: profileData.displayName,
+        height: parseFloat(profileData.height.toString()) || 0,
+        weight: parseFloat(profileData.weight.toString()) || 0,
+        gender: profileData.gender,
+        goal: profileData.goal,
+        injury: profileData.injury,
+        lifestyleDisease: profileData.lifestyleDisease,
+        experienceLevel: profileData.experienceLevel,
+        updatedAt: serverTimestamp()
+      }, { merge: true });
+
+      // Sync to root user doc
+      await updateDoc(doc(db, 'users', client.id), {
+        displayName: profileData.displayName,
+        height: parseFloat(profileData.height.toString()) || 0,
+        weight: parseFloat(profileData.weight.toString()) || 0,
+        goal: profileData.goal,
+        gender: profileData.gender,
+        experienceLevel: profileData.experienceLevel,
+        lastActive: serverTimestamp()
+      });
+
+      toast.success('Customer profile updated successfully', { id: loadingToast });
+      setIsEditingProfile(false);
+    } catch (err) {
+      handleFirestoreError(err, OperationType.UPDATE, `users/${client.id}`);
+      toast.error('Failed to update profile', { id: loadingToast });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleGeneratePlan = async () => {
+    if (isGeneratingAI) return;
+    setIsGeneratingAI(true);
+    const loadingToast = toast.loading('Generating AI fitness protocol...');
+
+    try {
+      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || '' });
+      const model = "gemini-3-flash-preview";
+      
+      // Determine plan tier from client's membership
+      const aiPlanTier = membership?.approvedAiPlan || 'demo';
+      
+      let planDuration = "1-week demo";
+      let planInstructions = "Provide a structured 1-week demo workout plan (7 days). This is a trial version.";
+
+      if (membership?.status === 'approved') {
+        switch (aiPlanTier) {
+          case 'silver_1_month':
+            planDuration = "1-month beginner";
+            planInstructions = "Provide a structured 1-month beginner workout and diet plan. Split into a 7-day routine that should be followed for 4 weeks.";
+            break;
+          case 'gold_1_month':
+            planDuration = "1-month transformation";
+            planInstructions = "Provide a high-intensity 1-month transformation workout and diet plan. Focus on significant body recomposition.";
+            break;
+          case 'platinum_1_month':
+            planDuration = "1-month advanced transformation";
+            planInstructions = "Provide a professional-grade 1-month advanced transformation, recovery, and diet plan. Include specific recovery protocols like Ice Bath Recovery (Cold Immersion) twice a week, Steam Bath sessions for detoxification, and advanced nutritional timing.";
+            break;
+        }
+      }
+
+      const prompt = `
+        Generate a comprehensive ${planDuration} personalized diet and workout plan for the following individual:
+        Name: ${profileData.displayName}
+        Height: ${profileData.height} cm
+        Weight: ${profileData.weight} kg
+        Gender: ${profileData.gender}
+        Injuries: ${profileData.injury || 'None'}
+        Lifestyle Diseases: ${profileData.lifestyleDisease || 'None'}
+        Goal: ${profileData.goal || 'General fitness'}
+        Experience Level: ${profileData.experienceLevel || 'Beginner'}
+
+        TIER SETTINGS: ${planInstructions}
+      `;
+
+      const response = await ai.models.generateContent({
+        model: model,
+        contents: prompt,
+        config: {
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: Type.OBJECT,
+            properties: {
+              overview: { type: Type.STRING, description: `General overview and goals for the ${planDuration} plan` },
+              workoutPlan: {
+                type: Type.ARRAY,
+                items: {
+                  type: Type.OBJECT,
+                  properties: {
+                    day: { type: Type.STRING, description: "Day of the week (e.g., Day 1, Monday)" },
+                    exercises: { type: Type.ARRAY, items: { type: Type.STRING }, description: "List of exercises for the day" },
+                    notes: { type: Type.STRING, description: "Specific instructions or focus for the workout" }
+                  },
+                  required: ["day", "exercises", "notes"]
+                }
+              },
+              dietPlan: {
+                type: Type.ARRAY,
+                items: {
+                  type: Type.OBJECT,
+                  properties: {
+                    day: { type: Type.STRING, description: "Day of the week" },
+                    breakfast: { type: Type.STRING },
+                    lunch: { type: Type.STRING },
+                    snack: { type: Type.STRING },
+                    dinner: { type: Type.STRING }
+                  },
+                  required: ["day", "breakfast", "lunch", "snack", "dinner"]
+                }
+              },
+              tips: { type: Type.ARRAY, items: { type: Type.STRING }, description: "General health and safety tips" }
+            },
+            required: ["overview", "workoutPlan", "dietPlan", "tips"]
+          }
+        }
+      });
+
+      const data = JSON.parse(response.text);
+      
+      // Save plan to history and mark as active
+      const batch = writeBatch(db);
+      
+      // Deactivate other plans for this user
+      const q = query(collection(db, 'aiPlans'), where('userId', '==', client.id), where('isActive', '==', true));
+      const snapshot = await getDocs(q);
+      snapshot.forEach((d) => {
+        batch.update(doc(db, 'aiPlans', d.id), { isActive: false });
+      });
+
+      // Add new plan as active
+      const newPlanRef = doc(collection(db, 'aiPlans'));
+      batch.set(newPlanRef, {
+        userId: client.id,
+        userName: profileData.displayName,
+        trainerId: user.uid,
+        trainerName: trainerData.name,
+        planData: data,
+        isActive: true,
+        createdAt: serverTimestamp()
+      });
+      
+      await batch.commit();
+
+      toast.success("New AI plan generated and activated for client!", { id: loadingToast });
+      
+      // Auto-notify client
+      await createNotification(
+        client.id,
+        'New Fitness Plan Activated',
+        `Your trainer ${trainerData.name} has generated and activated a new personalized fitness protocol for you.`,
+        NotificationType.SUCCESS,
+        '/profile'
+      );
+
+    } catch (err) {
+      console.error("AI Generation Error:", err);
+      toast.error('Failed to generate AI plan', { id: loadingToast });
+    } finally {
+      setIsGeneratingAI(false);
+    }
+  };
 
   useEffect(() => {
     // Fetch AI Plan
@@ -396,7 +592,17 @@ const ClientDetail = ({ client, onBack, initialTab = 'all' }: { client: any, onB
       handleFirestoreError(err, OperationType.LIST, 'appointments');
     });
 
-    return () => { unsubPlan(); unsubWorkouts(); unsubAppts(); };
+    // Fetch Membership
+    const qMembership = query(collection(db, 'memberships'), where('userId', '==', client.id));
+    const unsubMembership = onSnapshot(qMembership, (snap) => {
+      if (!snap.empty) {
+        setMembership({ id: snap.docs[0].id, ...snap.docs[0].data() });
+      } else {
+        setMembership(null);
+      }
+    }, (err) => handleFirestoreError(err, OperationType.LIST, 'memberships'));
+
+    return () => { unsubPlan(); unsubWorkouts(); unsubAppts(); unsubMembership(); };
   }, [client, user.uid]);
 
   const handleBookAppointment = async (e: React.FormEvent) => {
@@ -509,7 +715,16 @@ const ClientDetail = ({ client, onBack, initialTab = 'all' }: { client: any, onB
                 )}
              </div>
              <div>
-                <h2 className="text-3xl font-black">{client.displayName || 'Client'}</h2>
+                <div className="flex items-center gap-3">
+                  <h2 className="text-3xl font-black">{profileData.displayName || 'Client'}</h2>
+                  <button 
+                    onClick={() => setIsEditingProfile(true)}
+                    className="p-2 bg-white/10 rounded-full hover:bg-brand-green transition-all"
+                    title="Edit Profile Details"
+                  >
+                    <Edit2 size={14} />
+                  </button>
+                </div>
                 <div className="flex items-center space-x-4 mt-1">
                   <p className="text-brand-green font-bold text-sm uppercase tracking-widest leading-none">ID: {client.customerId || 'NOT ASSIGNED'}</p>
                   <span className="w-1 h-1 bg-gray-600 rounded-full" />
@@ -527,44 +742,194 @@ const ClientDetail = ({ client, onBack, initialTab = 'all' }: { client: any, onB
         <div className="absolute top-0 right-0 w-64 h-64 bg-brand-green/20 blur-[100px] rounded-full -translate-y-1/2 translate-x-1/2" />
       </div>
 
+      <AnimatePresence>
+        {isEditingProfile && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-white w-full max-w-2xl rounded-[3rem] shadow-2xl overflow-hidden"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="p-8 bg-black text-white flex items-center justify-between">
+                <div>
+                  <h3 className="text-xl font-black uppercase tracking-tight">Edit Customer Profile</h3>
+                  <p className="text-xs text-gray-400 font-bold uppercase tracking-widest mt-1">Update physical metrics and goals</p>
+                </div>
+                <button 
+                  onClick={() => setIsEditingProfile(false)}
+                  className="p-2 bg-white/10 rounded-full hover:bg-white/20 transition-all"
+                >
+                  <XCircle size={24} />
+                </button>
+              </div>
+
+              <form onSubmit={handleUpdateProfile} className="p-8 space-y-6 max-h-[70vh] overflow-y-auto no-scrollbar">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Display Name</label>
+                    <div className="relative">
+                      <User className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300" size={16} />
+                      <input
+                        type="text"
+                        value={profileData.displayName}
+                        onChange={(e) => setProfileData({...profileData, displayName: e.target.value})}
+                        className="w-full pl-11 pr-4 py-3 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:border-brand-green font-bold text-sm transition-all"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Goal</label>
+                    <div className="relative">
+                      <Activity className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300" size={16} />
+                      <input
+                        type="text"
+                        value={profileData.goal}
+                        onChange={(e) => setProfileData({...profileData, goal: e.target.value})}
+                        className="w-full pl-11 pr-4 py-3 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:border-brand-green font-bold text-sm transition-all"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Height (cm)</label>
+                    <div className="relative">
+                      <Ruler className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300" size={16} />
+                      <input
+                        type="number"
+                        value={profileData.height}
+                        onChange={(e) => setProfileData({...profileData, height: e.target.value})}
+                        className="w-full pl-11 pr-4 py-3 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:border-brand-green font-bold text-sm transition-all"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Weight (kg)</label>
+                    <div className="relative">
+                      <Weight className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300" size={16} />
+                      <input
+                        type="number"
+                        step="0.1"
+                        value={profileData.weight}
+                        onChange={(e) => setProfileData({...profileData, weight: e.target.value})}
+                        className="w-full pl-11 pr-4 py-3 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:border-brand-green font-bold text-sm transition-all"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Gender</label>
+                    <select
+                      value={profileData.gender}
+                      onChange={(e) => setProfileData({...profileData, gender: e.target.value})}
+                      className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:border-brand-green font-bold text-sm transition-all"
+                    >
+                      <option value="male">Male</option>
+                      <option value="female">Female</option>
+                      <option value="other">Other</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Experience Level</label>
+                    <select
+                      value={profileData.experienceLevel}
+                      onChange={(e) => setProfileData({...profileData, experienceLevel: e.target.value})}
+                      className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:border-brand-green font-bold text-sm transition-all"
+                    >
+                      <option value="Beginner">Beginner</option>
+                      <option value="Intermediate">Intermediate</option>
+                      <option value="Advanced">Advanced</option>
+                      <option value="Professional">Professional</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="space-y-6">
+                  <div>
+                    <label className="block text-[10px] font-black text-red-400 uppercase tracking-widest mb-2 flex items-center">
+                      <AlertCircle size={12} className="mr-1" /> Injuries
+                    </label>
+                    <textarea
+                      value={profileData.injury}
+                      onChange={(e) => setProfileData({...profileData, injury: e.target.value})}
+                      rows={2}
+                      className="w-full px-4 py-3 bg-red-50/30 border border-red-100 rounded-2xl outline-none focus:border-red-500 font-bold text-sm transition-all resize-none"
+                      placeholder="List any physical restrictions..."
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-black text-amber-400 uppercase tracking-widest mb-2 flex items-center">
+                      <HeartPulse size={12} className="mr-1" /> Medical Conditions
+                    </label>
+                    <textarea
+                      value={profileData.lifestyleDisease}
+                      onChange={(e) => setProfileData({...profileData, lifestyleDisease: e.target.value})}
+                      rows={2}
+                      className="w-full px-4 py-3 bg-amber-50/30 border border-amber-100 rounded-2xl outline-none focus:border-amber-500 font-bold text-sm transition-all resize-none"
+                      placeholder="Diabetes, Hypertension, etc..."
+                    />
+                  </div>
+                </div>
+
+                <button 
+                  type="submit"
+                  disabled={submitting}
+                  className="w-full py-4 bg-brand-green text-white rounded-2xl font-black uppercase tracking-widest text-xs shadow-xl shadow-brand-green/20 hover:bg-black transition-all flex items-center justify-center gap-2"
+                >
+                  {submitting ? <Loader2 size={16} className="animate-spin" /> : <CheckCircle size={16} />}
+                  Save Profile Changes
+                </button>
+              </form>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-8">
           {/* Client Stats/Profile Info */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
              <div className="bg-white p-4 rounded-3xl border border-gray-100 shadow-sm">
                 <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Height</p>
-                <p className="text-lg font-bold text-gray-900">{client.height || '--'} cm</p>
+                <p className="text-lg font-bold text-gray-900">{(isEditingProfile ? profileData.height : client.height) || '--'} cm</p>
              </div>
              <div className="bg-white p-4 rounded-3xl border border-gray-100 shadow-sm">
                 <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Weight</p>
-                <p className="text-lg font-bold text-gray-900">{client.weight || '--'} kg</p>
+                <p className="text-lg font-bold text-gray-900">{(isEditingProfile ? profileData.weight : client.weight) || '--'} kg</p>
              </div>
              <div className="bg-white p-4 rounded-3xl border border-gray-100 shadow-sm">
                 <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Experience</p>
-                <p className="text-lg font-bold text-gray-900 truncate uppercase tracking-tighter">{client.experienceLevel || '--'}</p>
+                <p className="text-lg font-bold text-gray-900 truncate uppercase tracking-tighter">{(isEditingProfile ? profileData.experienceLevel : client.experienceLevel) || '--'}</p>
              </div>
              <div className="bg-white p-4 rounded-3xl border border-gray-100 shadow-sm">
                 <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Goal</p>
-                <p className="text-lg font-bold text-gray-900 truncate uppercase tracking-tighter">{client.goal || '--'}</p>
+                <p className="text-lg font-bold text-gray-900 truncate uppercase tracking-tighter">{(isEditingProfile ? profileData.goal : client.goal) || '--'}</p>
              </div>
           </div>
 
-          {(client.injury || client.lifestyleDisease) && (
+          {((isEditingProfile ? profileData.injury : client.injury) || (isEditingProfile ? profileData.lifestyleDisease : client.lifestyleDisease)) && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-               {client.injury && (
+               {(isEditingProfile ? profileData.injury : client.injury) && (
                  <div className="bg-red-50 p-4 rounded-3xl border border-red-100">
                     <p className="text-[10px] font-black text-red-400 uppercase tracking-widest mb-1 flex items-center">
                       <AlertCircle size={12} className="mr-1" /> Injuries
                     </p>
-                    <p className="text-sm font-bold text-red-900">{client.injury}</p>
+                    <p className="text-sm font-bold text-red-900">{isEditingProfile ? profileData.injury : client.injury}</p>
                  </div>
                )}
-               {client.lifestyleDisease && (
+               {(isEditingProfile ? profileData.lifestyleDisease : client.lifestyleDisease) && (
                  <div className="bg-amber-50 p-4 rounded-3xl border border-amber-100">
                     <p className="text-[10px] font-black text-amber-400 uppercase tracking-widest mb-1 flex items-center">
                       <HeartPulse size={12} className="mr-1" /> Conditions
                     </p>
-                    <p className="text-sm font-bold text-amber-900">{client.lifestyleDisease}</p>
+                    <p className="text-sm font-bold text-amber-900">{isEditingProfile ? profileData.lifestyleDisease : client.lifestyleDisease}</p>
                  </div>
                )}
             </div>
@@ -595,6 +960,17 @@ const ClientDetail = ({ client, onBack, initialTab = 'all' }: { client: any, onB
                 </div>
               </div>
               <div className="flex items-center gap-4">
+                <button 
+                  onClick={handleGeneratePlan}
+                  disabled={isGeneratingAI}
+                  className={cn(
+                    "px-6 py-2 bg-purple-600 text-white rounded-full font-bold text-sm flex items-center hover:bg-purple-700 transition-all shadow-lg active:scale-95 disabled:opacity-50",
+                    isGeneratingAI && "animate-pulse"
+                  )}
+                >
+                  {isGeneratingAI ? <Loader2 size={16} className="animate-spin mr-2" /> : <Zap size={16} className="mr-2" />}
+                  Generate New AI Plan
+                </button>
                 {!isEditing ? (
                   <button 
                     onClick={() => setIsEditing(true)}
