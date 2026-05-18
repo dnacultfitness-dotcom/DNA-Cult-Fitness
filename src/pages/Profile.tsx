@@ -80,7 +80,7 @@ const Profile = () => {
   const [dashboardLoading, setDashboardLoading] = useState(true);
   const [workoutStatusLoading, setWorkoutStatusLoading] = useState(true);
   const [showQuickUpdate, setShowQuickUpdate] = useState(false);
-  const [displayDay, setDisplayDay] = useState<'today' | 'tomorrow'>('today');
+  const [displayDay, setDisplayDay] = useState<'today' | 'tomorrow' | 'after_tomorrow'>('today');
   const [quickWeight, setQuickWeight] = useState('');
   const [updating, setUpdating] = useState(false);
   const [showPlanModal, setShowPlanModal] = useState(false);
@@ -100,7 +100,7 @@ const Profile = () => {
     ? Math.max(0, (membership?.currentWorkoutIndex || 1) - 1)
     : (membership?.currentWorkoutIndex || 0);
   
-  const displayIndex = displayDay === 'today' ? targetIndex : targetIndex + 1;
+  const displayIndex = displayDay === 'today' ? targetIndex : displayDay === 'tomorrow' ? targetIndex + 1 : targetIndex + 2;
 
   const [formData, setFormData] = useState({
     name: '',
@@ -712,13 +712,15 @@ const Profile = () => {
                 <div className="p-8 border-b border-gray-50 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <h2 className="bg-[#00c950]/10 px-5 py-2.5 rounded-2xl font-black text-gray-900 uppercase flex items-center tracking-tight border border-[#00c950]/10">
                     <Dumbbell size={20} className="mr-3 text-[#00c950]" /> 
-                    {displayDay === 'today' ? "Today's Training Session" : "Next Training Session Preview"}
+                    {displayDay === 'today' ? "Today's Training Session" : 
+                     displayDay === 'tomorrow' ? "Tomorrow's Training Preview" : 
+                     "Day After Tomorrow Preview"}
                   </h2>
-                  <div className="flex bg-gray-100 p-1 rounded-xl border border-gray-200">
+                  <div className="flex bg-gray-100 p-1 rounded-xl border border-gray-200 overflow-x-auto no-scrollbar">
                     <button
                       onClick={() => setDisplayDay('today')}
                       className={cn(
-                        "px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all",
+                        "px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap",
                         displayDay === 'today' ? "bg-white text-gray-900 shadow-sm" : "text-gray-400 hover:text-gray-600"
                       )}
                     >
@@ -727,11 +729,20 @@ const Profile = () => {
                     <button
                       onClick={() => setDisplayDay('tomorrow')}
                       className={cn(
-                        "px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all",
+                        "px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap",
                         displayDay === 'tomorrow' ? "bg-white text-gray-900 shadow-sm" : "text-gray-400 hover:text-gray-600"
                       )}
                     >
                       Tomorrow
+                    </button>
+                    <button
+                      onClick={() => setDisplayDay('after_tomorrow')}
+                      className={cn(
+                        "px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap",
+                        displayDay === 'after_tomorrow' ? "bg-white text-gray-900 shadow-sm" : "text-gray-400 hover:text-gray-600"
+                      )}
+                    >
+                      Day After
                     </button>
                   </div>
                 </div>
@@ -864,13 +875,32 @@ const Profile = () => {
                         )}
 
                         {displayDay === 'today' && (
-                          <div className="mb-10 flex justify-center">
+                          <div className="mb-10 flex flex-wrap justify-center gap-4">
                             <button 
                               onClick={() => setDisplayDay('tomorrow')}
                               className="px-8 py-4 bg-[#c6dcff]/10 border border-[#c6dcff]/20 rounded-[2rem] text-[10px] font-black uppercase tracking-widest text-[#c6dcff] hover:bg-[#00c950]/10 hover:text-[#00c950] hover:border-[#00c950]/20 transition-all flex items-center gap-3 group shadow-xl"
                             >
                               <Calendar size={16} className="group-hover:scale-110 transition-transform" />
-                              Preview Tomorrow's Session
+                              Preview Tomorrow
+                            </button>
+                            <button 
+                              onClick={() => setDisplayDay('after_tomorrow')}
+                              className="px-8 py-4 bg-[#c6dcff]/10 border border-[#c6dcff]/20 rounded-[2rem] text-[10px] font-black uppercase tracking-widest text-[#c6dcff] hover:bg-blue-500/10 hover:text-blue-400 hover:border-blue-500/20 transition-all flex items-center gap-3 group shadow-xl"
+                            >
+                              <Calendar size={16} className="group-hover:translate-x-1 transition-transform" />
+                              Day After Tomorrow
+                            </button>
+                          </div>
+                        )}
+
+                        {displayDay === 'tomorrow' && (
+                          <div className="mb-10 flex justify-center">
+                            <button 
+                              onClick={() => setDisplayDay('after_tomorrow')}
+                              className="px-8 py-4 bg-[#c6dcff]/10 border border-[#c6dcff]/20 rounded-[2rem] text-[10px] font-black uppercase tracking-widest text-[#c6dcff] hover:bg-blue-500/10 hover:text-blue-400 hover:border-blue-500/20 transition-all flex items-center gap-3 group shadow-xl"
+                            >
+                              <SkipForward size={16} className="group-hover:translate-x-1 transition-transform" />
+                              See Day After Tomorrow
                             </button>
                           </div>
                         )}
@@ -986,13 +1016,20 @@ const Profile = () => {
                         )}
 
                         {displayDay === 'today' ? (
-                          <div className="mt-10 flex justify-center">
+                          <div className="mt-10 flex flex-wrap justify-center gap-4">
                             <button 
                               onClick={() => setDisplayDay('tomorrow')}
                               className="px-8 py-4 bg-[#c6dcff]/10 border border-[#c6dcff]/20 rounded-[2rem] text-[10px] font-black uppercase tracking-widest text-[#c6dcff] hover:bg-[#00c950]/10 hover:text-[#00c950] hover:border-[#00c950]/20 transition-all flex items-center gap-3 group shadow-xl"
                             >
                               <Activity size={16} className="group-hover:rotate-12 transition-transform" />
-                              Explore Next Day Nutrition
+                              Tomorrow's Nutrition
+                            </button>
+                            <button 
+                              onClick={() => setDisplayDay('after_tomorrow')}
+                              className="px-8 py-4 bg-[#c6dcff]/10 border border-[#c6dcff]/20 rounded-[2rem] text-[10px] font-black uppercase tracking-widest text-[#c6dcff] hover:bg-blue-500/10 hover:text-blue-400 hover:border-blue-500/20 transition-all flex items-center gap-3 group shadow-xl"
+                            >
+                              <Sparkles size={16} className="group-hover:scale-110 transition-transform" />
+                              Day After Tomorrow
                             </button>
                           </div>
                         ) : (
