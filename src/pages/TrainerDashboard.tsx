@@ -710,31 +710,59 @@ const ClientDetail = ({ client, onBack }: { client: any, onBack: () => void }) =
                   <div className="space-y-8">
                       {/* Highlights */}
                       {selectedPlan.isActive && client.membership && (
-                        <section className="bg-brand-green/5 border border-brand-green/20 rounded-[30px] p-6">
-                           <div className="flex items-center justify-between mb-4">
-                              <h4 className="text-xs font-black uppercase tracking-widest text-brand-green">Today's Protocol (Day { (client.membership.currentWorkoutIndex % 7) + 1 })</h4>
-                              <span className="text-[10px] bg-brand-green text-white px-2 py-0.5 rounded-full font-black uppercase">Based on Progress</span>
-                           </div>
-                           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                              <div>
-                                 <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-2">Target Workout</p>
-                                 <div className="flex flex-wrap gap-2">
-                                    {(selectedPlan.planData.workoutPlan?.[client.membership.currentWorkoutIndex % 7]?.exercises || ['Active Recovery']).map((ex: string, i: number) => (
-                                      <span key={i} className="text-xs font-bold text-gray-900 bg-white px-3 py-1.5 rounded-xl shadow-sm border border-brand-green/10">{ex}</span>
-                                    ))}
-                                 </div>
-                              </div>
-                              <div>
-                                 <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-2">Nutritional Focus</p>
-                                 <div className="space-y-1">
-                                    <p className="text-xs font-bold text-gray-900">
-                                      {selectedPlan.planData.dietPlan?.[client.membership.currentWorkoutIndex % 7]?.lunch || 'Maintain clean macros'}
-                                    </p>
-                                    <p className="text-[10px] text-gray-500 italic">Follow standard tier guidelines</p>
-                                 </div>
-                              </div>
-                           </div>
-                        </section>
+                        <div className="space-y-4">
+                          <section className="bg-brand-green/5 border border-brand-green/20 rounded-[30px] p-6">
+                             <div className="flex items-center justify-between mb-4">
+                                <h4 className="text-xs font-black uppercase tracking-widest text-brand-green">Today's Protocol (Day { (client.membership.currentWorkoutIndex % 7) + 1 })</h4>
+                                <span className="text-[10px] bg-brand-green text-white px-2 py-0.5 rounded-full font-black uppercase">Active</span>
+                             </div>
+                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                   <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-2">Target Workout</p>
+                                   <div className="flex flex-wrap gap-2">
+                                      {(selectedPlan.planData.workoutPlan?.[client.membership.currentWorkoutIndex % 7]?.exercises || ['Active Recovery']).map((ex: string, i: number) => (
+                                        <span key={i} className="text-xs font-bold text-gray-900 bg-white px-3 py-1.5 rounded-xl shadow-sm border border-brand-green/10">{ex}</span>
+                                      ))}
+                                   </div>
+                                </div>
+                                <div>
+                                   <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-2">Nutritional Focus</p>
+                                   <div className="space-y-1">
+                                      <p className="text-xs font-bold text-gray-900">
+                                        {selectedPlan.planData.dietPlan?.[client.membership.currentWorkoutIndex % 7]?.lunch || 'Maintain clean macros'}
+                                      </p>
+                                      <p className="text-[10px] text-gray-500 italic">Follow standard tier guidelines</p>
+                                   </div>
+                                </div>
+                             </div>
+                          </section>
+
+                          <section className="bg-orange-50/50 border border-orange-100 rounded-[30px] p-6">
+                             <div className="flex items-center justify-between mb-4">
+                                <h4 className="text-xs font-black uppercase tracking-widest text-orange-600">Next Day's Protocol (Day { ((client.membership.currentWorkoutIndex + 1) % 7) + 1 })</h4>
+                                <span className="text-[10px] bg-orange-100 text-orange-600 px-2 py-0.5 rounded-full font-black uppercase">Upcoming</span>
+                             </div>
+                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                   <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-2">Target Workout</p>
+                                   <div className="flex flex-wrap gap-2">
+                                      {(selectedPlan.planData.workoutPlan?.[(client.membership.currentWorkoutIndex + 1) % 7]?.exercises || ['Active Recovery']).map((ex: string, i: number) => (
+                                        <span key={i} className="text-xs font-bold text-gray-900 bg-white px-3 py-1.5 rounded-xl shadow-sm border border-orange-200/20">{ex}</span>
+                                      ))}
+                                   </div>
+                                </div>
+                                <div>
+                                   <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-2">Nutritional Focus</p>
+                                   <div className="space-y-1">
+                                      <p className="text-xs font-bold text-gray-900">
+                                        {selectedPlan.planData.dietPlan?.[(client.membership.currentWorkoutIndex + 1) % 7]?.lunch || 'Maintain clean macros'}
+                                      </p>
+                                      <p className="text-[10px] text-gray-500 italic">Preparation phase</p>
+                                   </div>
+                                </div>
+                             </div>
+                          </section>
+                        </div>
                       )}
 
                      {/* View Mode */}
