@@ -130,11 +130,12 @@ const ClientsList = ({ onSelectClient }: { onSelectClient: (client: any, tab?: s
             if (client.id && !client.id.startsWith('mem-')) {
               // Get all plans for this user
               const allPlansSnap = await getDocs(query(collection(db, 'aiPlans'), where('userId', '==', client.id)));
-              const activePlan = await getDocs(query(collection(db, 'aiPlans'), where('userId', '==', client.id), where('isActive', '==', true)));
+              const activePlanSnap = await getDocs(query(collection(db, 'aiPlans'), where('userId', '==', client.id), where('isActive', '==', true)));
               
               const hasModRequest = await getDocs(query(collection(db, 'planApprovalRequests'), where('userId', '==', client.id), where('status', '==', 'pending')));
               
-              if (!activePlan.empty) {
+              if (!activePlanSnap.empty) {
+                client.activePlan = activePlanSnap.docs[0].data();
                 client.hasPlan = true;
                 client.aiPlanStatus = 'Active';
               } else if (!allPlansSnap.empty) {
@@ -274,6 +275,28 @@ const ClientsList = ({ onSelectClient }: { onSelectClient: (client: any, tab?: s
                     <span className="font-medium font-bold uppercase tracking-widest text-[9px]">AI Plan Status</span>
                   </div>
                   <span className="font-black uppercase tracking-tighter">{client.aiPlanStatus}</span>
+                </div>
+              )}
+
+              {/* Workout Summaries */}
+              {client.activePlan && client.membership && (
+                <div className="pt-2 space-y-2">
+                  <div className="bg-brand-green/5 border border-brand-green/10 rounded-2xl p-3">
+                    <p className="text-[8px] font-black text-brand-green uppercase tracking-widest mb-1.5 flex items-center">
+                      <Clock size={10} className="mr-1" /> Today's Workout
+                    </p>
+                    <p className="text-[10px] font-bold text-gray-900 line-clamp-1">
+                      {client.activePlan.planData?.workoutPlan?.[client.membership.currentWorkoutIndex % 7]?.exercises?.join(', ') || 'Active Recovery'}
+                    </p>
+                  </div>
+                  <div className="bg-orange-50 border border-orange-100 rounded-2xl p-3">
+                    <p className="text-[8px] font-black text-orange-400 uppercase tracking-widest mb-1.5 flex items-center">
+                      <Clock size={10} className="mr-1" /> Next Day
+                    </p>
+                    <p className="text-[10px] font-bold text-gray-900 line-clamp-1">
+                      {client.activePlan.planData?.workoutPlan?.[(client.membership.currentWorkoutIndex + 1) % 7]?.exercises?.join(', ') || 'Active Recovery'}
+                    </p>
+                  </div>
                 </div>
               )}
             </div>
