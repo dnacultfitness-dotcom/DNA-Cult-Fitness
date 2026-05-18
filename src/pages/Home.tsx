@@ -194,9 +194,9 @@ const Home = () => {
       </section>
 
       {/* Services Preview Carousel */}
-      <section className="py-16 sm:py-24 bg-[#c6dcff] overflow-hidden">
+      <section className="py-6 sm:py-24 bg-[#c6dcff] overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-10 sm:mb-16">
+          <div className="text-center mb-4 sm:mb-16">
             <h2 className="text-xl sm:text-3xl md:text-5xl font-black tracking-tight text-brand-dark mb-3 sm:mb-4 uppercase leading-tight">Our Core Programs</h2>
             <p className="text-xs sm:text-base text-gray-600 max-w-2xl mx-auto font-medium">
               We offer a diverse range of training styles to suit your specific goals and fitness level.
@@ -230,18 +230,18 @@ const Home = () => {
                       <div
                         key={index}
                         className={cn(
-                          "p-6 sm:p-10 bg-[#101828] rounded-[30px] sm:rounded-[40px] border border-white/5 shadow-2xl hover:shadow-brand-green/10 transition-all h-full flex flex-col justify-between group",
+                          "p-5 sm:p-10 bg-[#101828] rounded-[30px] sm:rounded-[40px] border border-white/5 shadow-2xl hover:shadow-brand-green/10 transition-all h-full flex flex-col items-center text-center justify-between group",
                           offset === 2 ? "hidden lg:flex" : offset === 1 ? "hidden md:flex" : "flex"
                         )}
                       >
                         <div>
-                          <div className="mb-6 sm:mb-8 p-3 sm:p-4 bg-white/5 rounded-2xl w-fit shadow-sm group-hover:scale-110 transition-transform duration-300">
+                          <div className="mb-3 sm:mb-8 p-3 sm:p-4 bg-white/5 rounded-2xl mx-auto w-fit shadow-sm group-hover:scale-110 transition-transform duration-300">
                             {service.icon}
                           </div>
-                          <h3 className="text-xl sm:text-2xl font-black mb-3 sm:mb-4 uppercase text-white">{service.title}</h3>
-                          <p className="text-sm sm:text-base text-gray-400 mb-6 sm:mb-8 leading-relaxed font-medium">{service.description}</p>
+                          <h3 className="text-xl sm:text-2xl font-black mb-1 sm:mb-4 uppercase text-white">{service.title}</h3>
+                          <p className="text-sm sm:text-base text-gray-400 mb-3 sm:mb-8 leading-relaxed font-medium">{service.description}</p>
                         </div>
-                        <Link to="/services" className="text-brand-green font-black flex items-center hover:translate-x-2 transition-transform uppercase tracking-tight text-sm sm:text-base">
+                        <Link to="/services" className="text-brand-green font-black flex items-center justify-center hover:translate-x-2 transition-transform uppercase tracking-tight text-sm sm:text-base">
                           Learn More <ArrowRight size={18} className="ml-2" />
                         </Link>
                       </div>
@@ -255,19 +255,19 @@ const Home = () => {
             <div className="absolute top-1/2 -translate-y-1/2 -left-2 sm:-left-4 md:-left-12 z-30">
               <button 
                 onClick={prevSlide}
-                className="p-3 sm:p-4 bg-white rounded-full shadow-xl hover:bg-brand-green hover:text-white transition-all text-brand-dark border border-gray-100 group"
+                className="p-3 sm:p-4 bg-transparent rounded-full shadow-none hover:bg-white/10 transition-all text-brand-dark border border-brand-dark/20 group"
                 aria-label="Previous slide"
               >
-                <ChevronLeft size={20} className="group-hover:scale-110 transition-transform" />
+                <ChevronLeft size={20} className="bg-white rounded-full p-1 group-hover:scale-110 transition-transform" />
               </button>
             </div>
             <div className="absolute top-1/2 -translate-y-1/2 -right-2 sm:-right-4 md:-right-12 z-30">
               <button 
                 onClick={nextSlide}
-                className="p-3 sm:p-4 bg-white rounded-full shadow-xl hover:bg-brand-green hover:text-white transition-all text-brand-dark border border-gray-100 group"
+                className="p-3 sm:p-4 bg-transparent rounded-full shadow-none hover:bg-white/10 transition-all text-brand-dark border border-brand-dark/20 group"
                 aria-label="Next slide"
               >
-                <ChevronRight size={20} className="group-hover:scale-110 transition-transform" />
+                <ChevronRight size={20} className="bg-white rounded-full p-1 group-hover:scale-110 transition-transform" />
               </button>
             </div>
           </div>

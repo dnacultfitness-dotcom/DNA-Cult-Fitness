@@ -1250,13 +1250,19 @@ const DailyWorkoutManager = () => {
                 filteredCombined.map((record) => (
                   <tr key={record.id} className="hover:bg-gray-50/50 transition-colors group">
                     <td className="px-8 py-6">
-                      <div className="flex items-center">
-                        <div className="w-10 h-10 rounded-xl bg-green-50 flex items-center justify-center text-green-600 font-black mr-4 border border-green-100 uppercase tracking-tighter">
+                      <div 
+                        className="flex items-center cursor-pointer group/client hover:bg-gray-50 p-2 -m-2 rounded-xl transition-all"
+                        onClick={() => setSelectedRecord(record)}
+                      >
+                        <div className="w-10 h-10 rounded-xl bg-green-50 flex items-center justify-center text-green-600 font-black mr-4 border border-green-100 uppercase tracking-tighter group-hover/client:bg-green-100 transition-colors">
                           {record.userName?.[0] || 'U'}
                         </div>
                         <div>
-                          <p className="font-bold text-gray-900 uppercase text-xs tracking-tight">{record.userName}</p>
-                          <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">DNA ID: {record.customerId}</p>
+                          <p className="font-bold text-gray-900 uppercase text-xs tracking-tight group-hover/client:text-green-600 transition-colors">{record.userName}</p>
+                          <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest flex items-center group-hover/client:text-gray-500 transition-colors">
+                            DNA ID: {record.customerId}
+                            <Info size={8} className="ml-1 opacity-0 group-hover/client:opacity-100 transition-opacity" />
+                          </p>
                         </div>
                       </div>
                     </td>
