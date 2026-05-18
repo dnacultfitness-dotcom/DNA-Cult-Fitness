@@ -863,6 +863,18 @@ const Profile = () => {
                           </div>
                         )}
 
+                        {displayDay === 'today' && (
+                          <div className="mb-10 flex justify-center">
+                            <button 
+                              onClick={() => setDisplayDay('tomorrow')}
+                              className="px-8 py-4 bg-[#c6dcff]/10 border border-[#c6dcff]/20 rounded-[2rem] text-[10px] font-black uppercase tracking-widest text-[#c6dcff] hover:bg-[#00c950]/10 hover:text-[#00c950] hover:border-[#00c950]/20 transition-all flex items-center gap-3 group shadow-xl"
+                            >
+                              <Calendar size={16} className="group-hover:scale-110 transition-transform" />
+                              Preview Tomorrow's Session
+                            </button>
+                          </div>
+                        )}
+
                         {displayDay === 'today' && (!todayWorkout || todayWorkout.status === 'denied') ? (
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                             <button 
@@ -970,6 +982,28 @@ const Profile = () => {
                                 No nutrition protocol found for this period.
                               </div>
                             )}
+                          </div>
+                        )}
+
+                        {displayDay === 'today' ? (
+                          <div className="mt-10 flex justify-center">
+                            <button 
+                              onClick={() => setDisplayDay('tomorrow')}
+                              className="px-8 py-4 bg-[#c6dcff]/10 border border-[#c6dcff]/20 rounded-[2rem] text-[10px] font-black uppercase tracking-widest text-[#c6dcff] hover:bg-[#00c950]/10 hover:text-[#00c950] hover:border-[#00c950]/20 transition-all flex items-center gap-3 group shadow-xl"
+                            >
+                              <Activity size={16} className="group-hover:rotate-12 transition-transform" />
+                              Explore Next Day Nutrition
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="mt-10 flex justify-center">
+                            <button 
+                              onClick={() => setDisplayDay('today')}
+                              className="px-8 py-4 bg-blue-500/10 border border-blue-500/20 rounded-[2rem] text-[10px] font-black uppercase tracking-widest text-blue-400 hover:bg-blue-500/20 transition-all flex items-center gap-3 group shadow-xl"
+                            >
+                              <ArrowLeft size={16} className="group-hover:-translate-x-1 transition-transform" />
+                              Return to Current Nutrition
+                            </button>
                           </div>
                         )}
                       </div>
