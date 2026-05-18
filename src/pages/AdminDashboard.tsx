@@ -152,7 +152,7 @@ const ValidityInput = ({ membershipId, expiryDate }: { membershipId: string, exp
   );
 };
 
-const MemberTypeSelect = ({ membershipId, currentProgram, availablePlans }: { membershipId: string, currentProgram: string, availablePlans?: any[] }) => {
+const MemberTypeSelect = ({ membershipId, userId, currentProgram, availablePlans }: { membershipId: string, userId?: string, currentProgram: string, availablePlans?: any[] }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [value, setValue] = useState(currentProgram);
   const [loading, setLoading] = useState(false);
@@ -169,10 +169,19 @@ const MemberTypeSelect = ({ membershipId, currentProgram, availablePlans }: { me
     }
     setLoading(true);
     try {
+      // 1. Update Membership record
       await updateDoc(doc(db, 'memberships', membershipId), {
         program: newVal
       });
-      toast.success('Member type updated');
+
+      // 2. Update User profile for redundancy and easier access
+      if (userId) {
+        await updateDoc(doc(db, 'users', userId), {
+          program: newVal
+        });
+      }
+
+      toast.success('Program updated successfully');
       setIsEditing(false);
     } catch (err: any) {
       handleFirestoreError(err, OperationType.UPDATE, `memberships/${membershipId}`);
@@ -413,6 +422,119 @@ const PlanOrderInput = ({ planId, initialOrder }: { planId: string, initialOrder
   );
 };
 
+const AIPlanSelector = ({ membershipId, userId, currentAiPlan, onUpdate }: { membershipId: string, userId?: string, currentAiPlan?: string, onUpdate?: (val: string) => void }) => {
+  const [loading, setLoading] = useState(false);
+  const aiPlanOptions = [
+    { id: 'demo', name: 'Demo Workout' },
+    { id: 'new_user_1_week', name: 'New User: 1 Week' },
+    { id: 'normal_1_week', name: 'Normal: 1 Week' },
+    { id: 'silver_1_month', name: 'Silver: 1 Month' },
+    { id: 'gold_1_month', name: 'Gold: 1 Month' },
+    { id: 'platinum_1_month', name: 'Platinum: 1 Month' }
+  ];
+
+  const handleUpdate = async (val: string) => {
+    if (onUpdate) {
+      onUpdate(val);
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await updateDoc(doc(db, 'memberships', membershipId), {
+        approvedAiPlan: val
+      });
+      if (userId) {
+        await updateDoc(doc(db, 'users', userId), {
+          approvedAiPlan: val
+        });
+      }
+      toast.success('AI Plan Tier updated');
+    } catch (err) {
+      handleFirestoreError(err, OperationType.UPDATE, `memberships/${membershipId}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="flex flex-col space-y-1">
+      <div className="flex items-center space-x-2">
+        <select 
+          value={currentAiPlan || 'demo'} 
+          onChange={(e) => handleUpdate(e.target.value)}
+          disabled={loading}
+          className="text-[10px] font-black uppercase tracking-widest border border-gray-100 rounded-lg px-2 py-1 outline-none bg-white focus:border-green-500 transition-colors disabled:opacity-50"
+        >
+          {aiPlanOptions.map(opt => (
+            <option key={opt.id} value={opt.id}>{opt.name}</option>
+          ))}
+        </select>
+        {loading && <Loader2 size={10} className="animate-spin text-green-500" />}
+      </div>
+    </div>
+  );
+};
+
+const MembershipActivator = ({ userId, userName, userEmail, availablePlans }: { userId: string, userName?: string, userEmail?: string, availablePlans: any[] }) => {
+  const [loading, setLoading] = useState(false);
+
+  const handleActivate = async (program: string) => {
+    if (!program) return;
+    setLoading(true);
+    try {
+      // 1. Create a membership record
+      const expiryDate = new Date();
+      expiryDate.setMonth(expiryDate.getMonth() + 1); // Default to 1 month
+
+      await addDoc(collection(db, 'memberships'), {
+        userId,
+        name: userName || 'User',
+        email: userEmail || '',
+        phone: '',
+        program,
+        status: 'approved',
+        approvedAiPlan: 'demo',
+        expiryDate,
+        createdAt: serverTimestamp()
+      });
+
+      // 2. Update user profile
+      await updateDoc(doc(db, 'users', userId), {
+        program,
+        approvedAiPlan: 'demo'
+      });
+
+      toast.success(`Membership activated: ${program}`);
+    } catch (err) {
+      handleFirestoreError(err, OperationType.CREATE, 'memberships');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const options = availablePlans?.length 
+    ? availablePlans.map(p => p.name)
+    : ["Normal", "Silver", "Gold", "Platinum", "Kick Boxing"];
+
+  return (
+    <div className="flex items-center space-x-2">
+      <select 
+        onChange={(e) => handleActivate(e.target.value)}
+        disabled={loading}
+        className="text-[10px] font-black uppercase tracking-widest border border-dashed border-gray-200 rounded-lg px-2 py-1 outline-none bg-gray-50 hover:bg-white transition-all cursor-pointer"
+        defaultValue=""
+      >
+        <option value="" disabled>+ Activate Membership</option>
+        {options.map(opt => (
+          <option key={opt} value={opt}>{opt}</option>
+        ))}
+      </select>
+      {loading && <Loader2 size={10} className="animate-spin text-green-500" />}
+    </div>
+  );
+};
+
 const UserManager = () => {
   const [users, setUsers] = useState<any[]>([]);
   const [memberships, setMemberships] = useState<any[]>([]);
@@ -626,12 +748,20 @@ const UserManager = () => {
                         <td className="px-6 py-4">
                           <div className="space-y-2">
                              {membership ? (
-                              <MemberTypeSelect membershipId={membership.id} currentProgram={membership.program} availablePlans={membershipPlans} />
+                               <div className="flex flex-col space-y-2">
+                                <MemberTypeSelect membershipId={membership.id} userId={user.id} currentProgram={membership.program} availablePlans={membershipPlans} />
+                                <AIPlanSelector membershipId={membership.id} userId={user.id} currentAiPlan={membership.approvedAiPlan} />
+                               </div>
                             ) : (
-                              <span className="text-[10px] font-black text-gray-300 uppercase tracking-widest">No Membership</span>
+                              <MembershipActivator 
+                                userId={user.id} 
+                                userName={user.displayName || membership?.name} 
+                                userEmail={user.email} 
+                                availablePlans={membershipPlans} 
+                              />
                             )}
                             {planInfo && (
-                              <div className={cn("inline-flex items-center px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-tighter border ml-2", planInfo.color)}>
+                              <div className={cn("inline-flex items-center px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-tighter border ml-0 mt-1", planInfo.color)}>
                                 <Sparkles size={8} className="mr-1" />
                                 {planInfo.label}
                               </div>
@@ -710,10 +840,17 @@ const MembershipManager = () => {
       const updateData: any = { status };
       if (approvedAiPlan) updateData.approvedAiPlan = approvedAiPlan;
       await updateDoc(doc(db, 'memberships', id), updateData);
-      
-      // Notify User
+
+      // Also sync to user profile for redundancy
       const membership = memberships.find(m => m.id === id);
       if (membership) {
+        if (approvedAiPlan) {
+          await updateDoc(doc(db, 'users', membership.userId), {
+            approvedAiPlan: approvedAiPlan
+          });
+        }
+        
+        // Notify User
         await createNotification(
           membership.userId,
           `Membership ${status === 'approved' ? 'Approved' : 'Updated'}`,
@@ -727,32 +864,6 @@ const MembershipManager = () => {
     } catch (err) {
       handleFirestoreError(err, OperationType.UPDATE, `memberships/${id}`);
     }
-  };
-
-  const aiPlanOptions = [
-    { id: 'demo', name: 'Demo Workout (No approval needed)' },
-    { id: 'new_user_1_week', name: 'New User: 1 Week Plan' },
-    { id: 'normal_1_week', name: 'Normal Member: 1 Week Plan' },
-    { id: 'silver_1_month', name: 'Silver: 1 Month Beginner Diet & Workout' },
-    { id: 'gold_1_month', name: 'Gold: 1 Month Transformation' },
-    { id: 'platinum_1_month', name: 'Platinum: 1 Month Adv Transformation' }
-  ];
-
-  const AIPlanSelector = ({ membershipId, currentAiPlan, onUpdate }: { membershipId: string, currentAiPlan?: string, onUpdate: (val: string) => void }) => {
-    return (
-      <div className="flex flex-col space-y-1">
-        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest px-1">Approved AI Plan</label>
-        <select 
-          value={currentAiPlan || 'demo'} 
-          onChange={(e) => onUpdate(e.target.value)}
-          className="text-xs font-bold border border-gray-100 rounded-xl px-3 py-2 outline-none bg-gray-50/50 focus:border-green-500 transition-colors"
-        >
-          {aiPlanOptions.map(opt => (
-            <option key={opt.id} value={opt.id}>{opt.name}</option>
-          ))}
-        </select>
-      </div>
-    );
   };
 
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -847,18 +958,22 @@ const MembershipManager = () => {
                       <p className="text-xs text-gray-500 font-medium">{m.email} • {m.phone}</p>
                       
                       <div className="flex flex-wrap items-center gap-3 pt-1">
-                        <MemberTypeSelect membershipId={m.id} currentProgram={m.program} availablePlans={membershipPlans} />
+                        <MemberTypeSelect membershipId={m.id} userId={m.userId} currentProgram={m.program} availablePlans={membershipPlans} />
                         {m.message && <p className="text-[10px] text-gray-400 font-medium italic leading-none">"{m.message}"</p>}
                       </div>
                     </div>
                   </div>
 
                   <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-8 bg-gray-50/50 p-4 rounded-2xl border border-gray-100/50 lg:bg-transparent lg:p-0 lg:border-0">
-                    <AIPlanSelector 
-                      membershipId={m.id} 
-                      currentAiPlan={m.approvedAiPlan} 
-                      onUpdate={(val) => updateStatus(m.id, m.status || 'pending', val)}
-                    />
+                    <div className="flex flex-col space-y-1">
+                      <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest px-1">Approved AI Plan</label>
+                      <AIPlanSelector 
+                        membershipId={m.id} 
+                        userId={m.userId}
+                        currentAiPlan={m.approvedAiPlan} 
+                        onUpdate={(val) => updateStatus(m.id, m.status || 'pending', val)}
+                      />
+                    </div>
                     
                     {m.status === 'approved' && (
                       <ValidityInput membershipId={m.id} expiryDate={m.expiryDate} />
@@ -907,32 +1022,101 @@ const MembershipManager = () => {
 
 const DailyWorkoutManager = () => {
   const [workouts, setWorkouts] = useState<any[]>([]);
+  const [memberships, setMemberships] = useState<any[]>([]);
+  const [aiPlans, setAiPlans] = useState<any[]>([]);
+  const [trainers, setTrainers] = useState<any[]>([]);
+  const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [denyingWorkoutId, setDenyingWorkoutId] = useState<string | null>(null);
   const [denialMessage, setDenialMessage] = useState('');
   const [submittingDeny, setSubmittingDeny] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedRecord, setSelectedRecord] = useState<any>(null);
 
   useEffect(() => {
-    const q = collection(db, 'dailyWorkouts');
-    const unsubscribe = onSnapshot(q, (snapshot) => {
+    // 1. Fetch Workout Submissions
+    const unsubWorkouts = onSnapshot(collection(db, 'dailyWorkouts'), (snapshot) => {
       const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as any));
       data.sort((a, b) => (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0));
       setWorkouts(data);
-      setLoading(false);
     }, (err) => handleFirestoreError(err, OperationType.LIST, 'dailyWorkouts'));
 
-    return () => unsubscribe();
+    // 2. Fetch Active Memberships
+    const unsubMems = onSnapshot(query(collection(db, 'memberships'), where('status', '==', 'approved')), (snapshot) => {
+      setMemberships(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    }, (err) => handleFirestoreError(err, OperationType.LIST, 'memberships'));
+
+    // 3. Fetch AI Plans
+    const unsubPlans = onSnapshot(collection(db, 'aiPlans'), (snapshot) => {
+      setAiPlans(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    }, (err) => handleFirestoreError(err, OperationType.LIST, 'aiPlans'));
+
+    // 4. Fetch Trainers
+    const unsubTrainers = onSnapshot(collection(db, 'trainers'), (snapshot) => {
+      setTrainers(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    }, (err) => handleFirestoreError(err, OperationType.LIST, 'trainers'));
+
+    // 5. Fetch User Profiles for exact names and IDs
+    const unsubUsers = onSnapshot(collection(db, 'users'), (snapshot) => {
+      setUsers(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      setLoading(false);
+    }, (err) => handleFirestoreError(err, OperationType.LIST, 'users'));
+
+    return () => {
+      unsubWorkouts();
+      unsubMems();
+      unsubPlans();
+      unsubTrainers();
+      unsubUsers();
+    };
   }, []);
 
-  const filteredWorkouts = useMemo(() => {
-    if (!searchQuery.trim()) return workouts;
+  const todayStr = useMemo(() => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }, []);
+
+  const combinedData = useMemo(() => {
+    const trainersMap = trainers.reduce((acc, t) => ({ ...acc, [t.id]: t.name }), {});
+    const usersMap = users.reduce((acc, u) => ({ ...acc, [u.id]: u }), {});
+    
+    return memberships.map(mem => {
+      const submission = workouts.find(w => w.userId === mem.userId && w.date === todayStr);
+      const plan = aiPlans.find(p => p.userId === mem.userId);
+      const userProfile = usersMap[mem.userId] || {};
+      
+      const workoutIndex = mem.currentWorkoutIndex || 0;
+      const workoutPlan = plan?.planData?.workoutPlan || [];
+      const dietPlan = plan?.planData?.dietPlan || [];
+      const scheduledWorkout = workoutPlan[workoutIndex % Math.max(1, workoutPlan.length)] || null;
+      const scheduledDiet = dietPlan[workoutIndex % Math.max(1, dietPlan.length)] || null;
+
+      return {
+        id: mem.id,
+        userId: mem.userId,
+        userName: userProfile.displayName || mem.name || 'Unknown Client',
+        customerId: userProfile.customerId || mem.id.substring(0, 8),
+        trainerName: trainersMap[mem.trainerId] || 'Not Assigned',
+        workout: scheduledWorkout ? (scheduledWorkout.exercises?.join(', ') || 'Rest Day') : 'No Plan',
+        fullWorkout: scheduledWorkout,
+        fullDiet: scheduledDiet,
+        submission: submission || null,
+        status: submission?.status || 'no-submission'
+      };
+    });
+  }, [memberships, workouts, aiPlans, trainers, users, todayStr]);
+
+  const filteredCombined = useMemo(() => {
+    if (!searchQuery.trim()) return combinedData;
     const q = searchQuery.toLowerCase();
-    return workouts.filter(w => 
-      (w.userName || '').toLowerCase().includes(q) || 
-      (w.userId || '').toLowerCase().includes(q)
+    return combinedData.filter(d => 
+      d.userName.toLowerCase().includes(q) || 
+      d.trainerName.toLowerCase().includes(q)
     );
-  }, [workouts, searchQuery]);
+  }, [combinedData, searchQuery]);
 
   const handleApprove = async (workout: any) => {
     try {
@@ -1022,12 +1206,12 @@ const DailyWorkoutManager = () => {
   return (
     <div className="space-y-8">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <h2 className="text-2xl font-black text-gray-900 uppercase tracking-tight">Today's Workout Submissions</h2>
+        <h2 className="text-2xl font-black text-gray-900 uppercase tracking-tight">Today's Protocol Tracking</h2>
         <div className="relative group w-full md:w-80">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-hover:text-green-500 transition-colors" size={18} />
           <input
             type="text"
-            placeholder="Search by name or ID..."
+            placeholder="Search by client or trainer..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-11 pr-4 py-3 bg-white border border-gray-100 rounded-2xl shadow-sm outline-none focus:border-green-500 focus:ring-4 focus:ring-green-500/5 transition-all text-sm font-medium"
@@ -1045,71 +1229,82 @@ const DailyWorkoutManager = () => {
 
       <div className="bg-white rounded-[2rem] border border-gray-100 overflow-hidden shadow-sm">
         <div className="overflow-x-auto no-scrollbar">
-          <table className="w-full text-left border-collapse min-w-[900px]">
+          <table className="w-full text-left border-collapse min-w-[1000px]">
             <thead>
                 <tr className="border-b border-gray-100 bg-gray-50">
-                  <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-gray-400">User</th>
-                  <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-gray-400">Date</th>
-                  <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-gray-400">Action</th>
+                  <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-gray-400">Client</th>
+                  <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-gray-400">Trainer</th>
+                  <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-gray-400">Target Protocol</th>
                   <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-gray-400">Status</th>
-                  <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-gray-400 text-right">Actions</th>
+                  <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-gray-400 text-right">Verification</th>
                 </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
-              {filteredWorkouts.length === 0 ? (
+              {filteredCombined.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="px-8 py-12 text-center text-gray-500 font-medium">
-                    {searchQuery ? `No matching workouts found for "${searchQuery}"` : "No workout submissions found."}
+                    {searchQuery ? `No matching records found` : "No active members found."}
                   </td>
                 </tr>
               ) : (
-                filteredWorkouts.map((workout) => (
-                  <tr key={workout.id} className="hover:bg-gray-50/50 transition-colors group">
+                filteredCombined.map((record) => (
+                  <tr key={record.id} className="hover:bg-gray-50/50 transition-colors group">
                     <td className="px-8 py-6">
                       <div className="flex items-center">
-                        <div className="w-10 h-10 rounded-full bg-green-50 flex items-center justify-center text-green-600 font-black mr-4 border border-green-100">
-                          {workout.userName?.[0] || 'U'}
+                        <div className="w-10 h-10 rounded-xl bg-green-50 flex items-center justify-center text-green-600 font-black mr-4 border border-green-100 uppercase tracking-tighter">
+                          {record.userName?.[0] || 'U'}
                         </div>
                         <div>
-                          <p className="font-bold text-gray-900 uppercase text-xs tracking-tight">{workout.userName}</p>
-                          <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">{workout.userId.substring(0, 8)}...</p>
+                          <p className="font-bold text-gray-900 uppercase text-xs tracking-tight">{record.userName}</p>
+                          <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">DNA ID: {record.customerId}</p>
                         </div>
                       </div>
                     </td>
                     <td className="px-8 py-6">
-                      <p className="text-xs font-bold text-gray-600">{workout.date}</p>
+                      <span className={cn(
+                        "inline-flex items-center px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-widest border",
+                        record.trainerName === 'Not Assigned' ? "bg-gray-50 text-gray-400 border-gray-100" : "bg-blue-50 text-blue-700 border-blue-100"
+                      )}>
+                        {record.trainerName}
+                      </span>
                     </td>
                     <td className="px-8 py-6">
-                      <span className={cn(
-                        "inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-widest border",
-                        workout.action === 'done' ? "bg-green-50 text-green-700 border-green-100" : "bg-gray-50 text-gray-400 border-gray-200"
-                      )}>
-                        {workout.action || 'done'}
-                      </span>
+                      <div 
+                        className="max-w-xs cursor-pointer group/protocol hover:bg-gray-50 p-2 -m-2 rounded-lg transition-colors"
+                        onClick={() => setSelectedRecord(record)}
+                      >
+                        <p className="text-xs font-bold text-gray-700 line-clamp-2 leading-tight uppercase tracking-tight group-hover/protocol:text-green-600 transition-colors">{record.workout}</p>
+                        <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1 opacity-0 group-hover/protocol:opacity-100 transition-opacity flex items-center">
+                          <Info size={10} className="mr-1" /> View Full Plan
+                        </p>
+                      </div>
                     </td>
                     <td className="px-8 py-6">
                       <span className={cn(
                         "inline-flex items-center px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border",
-                        workout.status === 'approved' ? "bg-emerald-50 text-emerald-700 border-emerald-100" : 
-                        workout.status === 'denied' ? "bg-red-50 text-red-700 border-red-100" : "bg-amber-50 text-amber-700 border-amber-100"
+                        record.status === 'approved' ? "bg-emerald-50 text-emerald-700 border-emerald-100" : 
+                        record.status === 'denied' ? "bg-red-50 text-red-700 border-red-100" : 
+                        record.status === 'pending' ? "bg-amber-50 text-amber-700 border-amber-100" :
+                        "bg-gray-50 text-gray-400 border-gray-200"
                       )}>
-                        {workout.status === 'approved' ? <CheckCircle size={10} className="mr-1" /> : 
-                         workout.status === 'denied' ? <XCircle size={10} className="mr-1" /> :
-                         <Loader2 size={10} className="mr-1 animate-spin" />}
-                        {workout.status}
+                        {record.status === 'approved' ? <CheckCircle size={10} className="mr-1" /> : 
+                         record.status === 'denied' ? <XCircle size={10} className="mr-1" /> :
+                         record.status === 'pending' ? <Loader2 size={10} className="mr-1 animate-spin" /> : 
+                         <Clock size={10} className="mr-1" />}
+                        {record.status === 'no-submission' ? 'Awaiting Protocol' : record.status}
                       </span>
                     </td>
                     <td className="px-8 py-6 text-right">
-                      {workout.status === 'pending' && (
+                      {record.status === 'pending' && record.submission && (
                         <div className="flex items-center justify-end space-x-2">
-                          {denyingWorkoutId === workout.id ? (
+                          {denyingWorkoutId === record.submission.id ? (
                             <div className="flex items-center space-x-2 bg-gray-50 p-2 rounded-xl border border-gray-100">
                               <input
                                 type="text"
                                 value={denialMessage}
                                 onChange={(e) => setDenialMessage(e.target.value)}
                                 onKeyDown={(e) => {
-                                  if (e.key === 'Enter') handleDeny(workout.id);
+                                  if (e.key === 'Enter') handleDeny(record.submission.id);
                                   if (e.key === 'Escape') {
                                     setDenyingWorkoutId(null);
                                     setDenialMessage('');
@@ -1119,36 +1314,25 @@ const DailyWorkoutManager = () => {
                                 className="bg-transparent border-none text-[10px] text-gray-900 font-bold outline-none w-32 placeholder:text-gray-400"
                                 autoFocus
                               />
-                              <button
-                                onClick={() => handleDeny(workout.id)}
+                               <button
+                                onClick={() => handleDeny(record.submission.id)}
                                 disabled={submittingDeny}
                                 className="text-red-500 hover:text-red-700 transition-colors p-1"
-                                title="Send"
                               >
                                 {submittingDeny ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle size={14} />}
-                              </button>
-                              <button
-                                onClick={() => {
-                                  setDenyingWorkoutId(null);
-                                  setDenialMessage('');
-                                }}
-                                className="text-gray-400 hover:text-gray-600 transition-colors p-1"
-                                title="Cancel"
-                              >
-                                <XCircle size={14} />
                               </button>
                             </div>
                           ) : (
                             <>
                               <button
-                                onClick={() => handleApprove(workout)}
-                                className="bg-green-50 text-green-700 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-green-600 hover:text-white transition-all border border-green-100"
+                                onClick={() => handleApprove(record.submission)}
+                                className="bg-green-600 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-black transition-all shadow-sm shadow-green-100"
                               >
-                                Approve
+                                Verify
                               </button>
                               <button
-                                onClick={() => setDenyingWorkoutId(workout.id)}
-                                className="bg-red-50 text-red-600 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-red-600 hover:text-white transition-all border border-red-100"
+                                onClick={() => setDenyingWorkoutId(record.submission.id)}
+                                className="bg-white text-red-500 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-red-50 transition-all border border-red-50"
                               >
                                 Deny
                               </button>
@@ -1165,6 +1349,101 @@ const DailyWorkoutManager = () => {
         </div>
       </div>
 
+      {/* Protocol Details Modal */}
+      <AnimatePresence>
+        {selectedRecord && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setSelectedRecord(null)}
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="relative bg-white w-full max-w-2xl rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
+            >
+              <div className="p-8 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
+                <div className="flex items-center space-x-4">
+                  <div className="p-3 bg-green-100 rounded-2xl text-green-600">
+                    <Activity size={24} />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-black text-gray-900 uppercase tracking-tight">{selectedRecord.userName}'s Protocol</h3>
+                    <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Target for: {todayStr}</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setSelectedRecord(null)}
+                  className="p-2 hover:bg-gray-100 rounded-xl transition-colors text-gray-400"
+                >
+                  <XCircle size={24} />
+                </button>
+              </div>
+
+              <div className="p-8 overflow-y-auto no-scrollbar space-y-8">
+                {/* Workout Section */}
+                <div className="space-y-4">
+                  <div className="flex items-center space-x-2 text-green-600">
+                    <Dumbbell size={18} />
+                    <h4 className="text-sm font-black uppercase tracking-widest">Daily Workout</h4>
+                  </div>
+                  {selectedRecord.fullWorkout ? (
+                    <div className="bg-gray-50 rounded-2xl p-6 border border-gray-100">
+                      <p className="text-lg font-black text-gray-900 uppercase tracking-tight mb-4">{selectedRecord.fullWorkout.day || 'Workout Session'}</p>
+                      <ul className="space-y-3">
+                        {selectedRecord.fullWorkout.exercises?.map((ex: string, i: number) => (
+                          <li key={i} className="flex items-center text-sm text-gray-700 font-medium">
+                            <span className="w-6 h-6 rounded-lg bg-green-100 text-green-700 flex items-center justify-center text-[10px] font-black mr-3 shrink-0">{i + 1}</span>
+                            {ex}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ) : (
+                    <p className="text-sm text-gray-500 font-medium italic">No specific workout plan found for this index.</p>
+                  )}
+                </div>
+
+                {/* Diet Section */}
+                <div className="space-y-4">
+                  <div className="flex items-center space-x-2 text-blue-600">
+                    <Activity size={18} />
+                    <h4 className="text-sm font-black uppercase tracking-widest">Nutritional Protocol</h4>
+                  </div>
+                  {selectedRecord.fullDiet ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {Object.entries(selectedRecord.fullDiet).map(([meal, details]: [string, any]) => {
+                        if (meal === 'day') return null;
+                        return (
+                          <div key={meal} className="bg-blue-50/30 rounded-2xl p-5 border border-blue-100/50">
+                            <p className="text-[10px] font-black text-blue-600 uppercase tracking-widest mb-2">{meal}</p>
+                            <p className="text-xs font-bold text-gray-800 leading-relaxed uppercase tracking-tight">{String(details)}</p>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-gray-500 font-medium italic">No specific diet plan found for this index.</p>
+                  )}
+                </div>
+              </div>
+
+              <div className="p-8 border-t border-gray-100 bg-gray-50/50 flex justify-end">
+                <button
+                  onClick={() => setSelectedRecord(null)}
+                  className="px-8 py-3 bg-black text-white rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-gray-800 transition-all shadow-lg shadow-black/10"
+                >
+                  Close Plan
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
@@ -2037,6 +2316,26 @@ const MembershipPlanManager = () => {
         order: 5, 
         features: ['Pre bridal and groom package for three month', 'Collab with hairbay studio salon & spa', 'Complete fitness and wellness program'] 
       },
+      { 
+        name: 'Ice Bath Protocol', 
+        priceOptions: [
+          { duration: '1 Session', actualPrice: 1000, offerPrice: 800 },
+          { duration: '5 Sessions', actualPrice: 4500, offerPrice: 3500 },
+          { duration: '10 Sessions', actualPrice: 8000, offerPrice: 6000 }
+        ],
+        order: 6, 
+        features: ['Full Cold Immersion', 'Mental Resilience Training', 'Rapid Recovery', 'Anti-Inflammation Boost'] 
+      },
+      { 
+        name: 'Steam Bath Protocol', 
+        priceOptions: [
+          { duration: '1 Session', actualPrice: 800, offerPrice: 600 },
+          { duration: '5 Sessions', actualPrice: 3500, offerPrice: 2500 },
+          { duration: '10 Sessions', actualPrice: 6000, offerPrice: 4500 }
+        ],
+        order: 7, 
+        features: ['Full Body Steam', 'Aromatherapy', 'Muscle Relaxation', 'Detoxification Boost'] 
+      },
     ];
 
     try {
@@ -2374,6 +2673,20 @@ const ServiceManager = () => {
         imageUrl: "https://images.unsplash.com/photo-1579619173025-79d2a18d7970?q=80&w=2070&auto=format&fit=crop",
         features: ["Custom Protein Shakes", "Healthy Snacks", "Rooftop Lounge", "Social Community"],
         order: 6
+      },
+      {
+        title: "Ice Bath Recovery",
+        description: "Experience the science of cold exposure to accelerate muscle recovery and enhance focus.",
+        imageUrl: "https://images.unsplash.com/photo-1517836357463-d25dfeac3438?q=80&w=2070&auto=format&fit=crop",
+        features: ["Sub-Zero Immersion", "Breathwork Guidance", "Optimized Recovery", "Reduced Muscle Soreness"],
+        order: 7
+      },
+      {
+        title: "Steam Bath Therapy",
+        description: "Relax your muscles and detoxify your body with our premium steam bath sessions featuring aromatherapy.",
+        imageUrl: "https://images.unsplash.com/photo-1544161515-4ab6ce6db874?q=80&w=2070&auto=format&fit=crop",
+        features: ["Deep Cleansing", "Improved Circulation", "Stress Relief", "Muscle Soothing"],
+        order: 8
       }
     ];
 
@@ -3000,7 +3313,7 @@ const AdminSidebar = ({ isOpen, onClose }: { isOpen: boolean, onClose: () => voi
       </AnimatePresence>
 
       <div className={cn(
-        "fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-gray-200 transform lg:translate-x-0 lg:static lg:inset-auto transition-transform duration-300 ease-in-out flex flex-col pt-8",
+        "fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-gray-200 transform lg:translate-x-0 lg:static lg:inset-auto transition-transform duration-300 ease-in-out flex flex-col pt-8 pb-[env(safe-area-inset-bottom)]",
         isOpen ? "translate-x-0" : "-translate-x-full"
       )}>
         <div className="px-6 sm:px-8 mb-8 flex items-center justify-between">
@@ -3196,12 +3509,12 @@ const AdminDashboard = () => {
   }
 
   return (
-    <div className="flex min-h-screen bg-gray-50 overflow-hidden">
+    <div className="flex min-h-screen min-h-[100dvh] bg-gray-50 overflow-hidden">
       <AdminSidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
       
-      <main className="flex-grow relative h-screen overflow-y-auto no-scrollbar">
+      <main className="flex-grow relative h-screen h-[100dvh] overflow-y-auto no-scrollbar pb-[env(safe-area-inset-bottom)]">
         {/* Mobile Header */}
-        <div className="lg:hidden sticky top-0 z-30 flex items-center justify-between p-4 bg-white border-b border-gray-100 shadow-sm">
+        <div className="lg:hidden sticky top-0 z-30 flex items-center justify-between p-4 bg-white border-b border-gray-100 shadow-sm pt-[env(safe-area-inset-top)]">
           <div className="flex items-center space-x-3">
             <button
               onClick={() => setIsSidebarOpen(true)}

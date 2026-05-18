@@ -1017,9 +1017,9 @@ export default function TrainerDashboard() {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col md:flex-row pt-20">
+    <div className="min-h-screen min-h-dvh bg-gray-50 flex flex-col md:flex-row pt-[calc(5rem+env(safe-area-inset-top))]">
       {/* Sidebar */}
-      <div className="w-full md:w-64 bg-white border-r border-gray-100 p-6 space-y-8 flex-shrink-0">
+      <div className="w-full md:w-64 bg-white border-r border-gray-100 p-6 space-y-8 flex-shrink-0 pb-[env(safe-area-inset-bottom)]">
         <div>
           <h1 className="text-xs font-black text-gray-400 uppercase tracking-[0.2em] mb-6 px-4">Trainer Hub</h1>
           <nav className="space-y-1">

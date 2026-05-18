@@ -256,7 +256,7 @@ const AIAssistant = () => {
     if (resultRef.current) {
       const offset = 100;
       const elementPosition = resultRef.current.getBoundingClientRect().top;
-      const offsetPosition = elementPosition + window.pageYOffset - offset;
+      const offsetPosition = elementPosition + window.scrollY - offset;
 
       window.scrollTo({
         top: offsetPosition,
@@ -328,7 +328,7 @@ const AIAssistant = () => {
             break;
           case 'platinum_1_month':
             planDuration = "1-month advanced transformation";
-            planInstructions = "Provide a professional-grade 1-month advanced transformation, recovery, and diet plan. Include specific recovery protocols and advanced nutritional timing.";
+            planInstructions = "Provide a professional-grade 1-month advanced transformation, recovery, and diet plan. Include specific recovery protocols like Ice Bath Recovery (Cold Immersion) twice a week, Steam Bath sessions for detoxification, and advanced nutritional timing.";
             break;
           default:
             planDuration = "1-week demo";
@@ -534,7 +534,7 @@ const AIAssistant = () => {
   };
 
   return (
-    <div className="pt-32 pb-24 min-h-screen bg-gray-50">
+    <div className="pt-[calc(8rem+env(safe-area-inset-top))] pb-[calc(6rem+env(safe-area-inset-bottom))] min-h-screen min-h-dvh bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-10 sm:mb-16">
           <motion.div
@@ -690,7 +690,7 @@ const AIAssistant = () => {
           <motion.div
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
-            className="lg:col-span-1 bg-white rounded-2xl shadow-xl p-6 sm:p-8 border border-gray-100 h-fit lg:sticky lg:top-24 mx-4 sm:mx-0"
+            className="lg:col-span-1 bg-white rounded-2xl shadow-xl p-6 sm:p-8 border border-gray-100 h-fit lg:sticky lg:top-[calc(6rem+env(safe-area-inset-top))] mx-4 sm:mx-0"
           >
             <form onSubmit={generatePlan} className="space-y-6">
               <div className="space-y-4">

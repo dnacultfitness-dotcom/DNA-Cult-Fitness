@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'motion/react';
-import { ArrowRight, CheckCircle2, Users, Dumbbell, Zap, Sparkles, LayoutDashboard, ChevronLeft, ChevronRight, Coffee } from 'lucide-react';
+import { ArrowRight, CheckCircle2, Users, Dumbbell, Zap, Sparkles, LayoutDashboard, ChevronLeft, ChevronRight, Coffee, Activity, Droplets } from 'lucide-react';
 import { useFirebase } from '../components/FirebaseProvider';
 import { AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
@@ -43,6 +43,16 @@ const Home = () => {
       title: "Nutrition Coaching",
       description: "Expert dietary guidance to fuel your workouts and optimize your body composition.",
       icon: <Zap className="text-brand-green" size={32} />
+    },
+    {
+      title: "Ice Bath Recovery",
+      description: "Accelerate recovery, reduce inflammation, and improve mental resilience with cold therapy.",
+      icon: <Activity className="text-brand-green" size={32} />
+    },
+    {
+      title: "Steam Bath Therapy",
+      description: "Deep cleanse, improve circulation, and relax your muscles with our premium steam bath sessions.",
+      icon: <Droplets className="text-brand-green" size={32} />
     },
     {
       title: "Rooftop Protein Bar",
@@ -89,7 +99,7 @@ const Home = () => {
   return (
     <div className="flex flex-col">
       {/* Hero Section */}
-      <section className="relative h-screen flex items-center pt-20 overflow-hidden bg-black">
+      <section className="relative min-h-screen min-h-dvh flex items-center pt-[calc(5rem+env(safe-area-inset-top))] overflow-hidden bg-black">
         {/* Parallax Background */}
         <motion.div 
           initial={{ scale: 1.1 }}

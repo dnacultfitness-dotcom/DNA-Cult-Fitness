@@ -1,5 +1,12 @@
 {
   "name": "DNA Cult Fitness",
-  "description": "A premium fitness center website with a comprehensive admin dashboard and Firebase integration.",
-  "requestFramePermissions": []
+  "description": "A premium fitness center website with a comprehensive admin dashboard, AI trainer, and real-time workout tracking with trainer oversight.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone",
+    "geolocation"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
 }

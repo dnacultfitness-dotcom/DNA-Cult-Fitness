@@ -6,3 +6,39 @@
   --color-brand-green: #00c950;
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
 }
+
+@layer base {
+  html, body {
+    height: 100%;
+    overflow-x: hidden;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    min-height: -webkit-fill-available;
+    scroll-behavior: smooth;
+    @apply antialiased text-brand-dark;
+  }
+
+  .min-h-screen {
+    min-height: 100vh;
+    min-height: 100dvh;
+  }
+
+  /* Prevent auto-zoom on iOS Safari */
+  input, select, textarea {
+    font-size: 16px !important;
+  }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
+
+@utility min-h-dvh {
+  min-height: 100dvh;
+}

@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { motion, AnimatePresence } from 'motion/react';
 import { toast } from 'sonner';
-import { CheckCircle2, ShieldCheck, Zap, Users, Award, Star, Crown, Shield, Zap as ZapIcon, Info, Loader2, Activity, Sparkles } from 'lucide-react';
+import { CheckCircle2, ShieldCheck, Zap, Users, Award, Star, Crown, Shield, Zap as ZapIcon, Info, Loader2, Activity, Sparkles, Droplets } from 'lucide-react';
 import { useFirebase } from '../components/FirebaseProvider';
 import { db, collection, addDoc, serverTimestamp, handleFirestoreError, OperationType, query, orderBy, onSnapshot } from '../firebase';
 import PhoneInput from '../components/PhoneInput';
@@ -116,6 +116,8 @@ const Membership = () => {
     if (name.includes('elite')) return <Crown className="text-brand-green" size={32} />;
     if (name.includes('basic')) return <ShieldCheck className="text-gray-500" size={32} />;
     if (name.includes('legacy')) return <Sparkles className="text-brand-green" size={32} />;
+    if (name.includes('ice')) return <Activity className="text-blue-200" size={32} />;
+    if (name.includes('steam')) return <Droplets className="text-blue-300" size={32} />;
     return <Users className="text-brand-green" size={32} />;
   };
 

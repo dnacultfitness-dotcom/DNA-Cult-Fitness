@@ -159,9 +159,11 @@ const Profile = () => {
     }, (error) => handleFirestoreError(error, OperationType.LIST, 'aiPlans'));
 
     // Fetch weekly reports
-    const reportsQuery = query(collection(db, 'weeklyReports'), where('userId', '==', user.uid), orderBy('createdAt', 'desc'));
+    const reportsQuery = query(collection(db, 'weeklyReports'), where('userId', '==', user.uid));
     const unsubscribeReports = onSnapshot(reportsQuery, (snapshot) => {
-      setRecentReports(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      let data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as any));
+      data.sort((a, b) => (b.createdAt?.toMillis?.() || 0) - (a.createdAt?.toMillis?.() || 0));
+      setRecentReports(data);
     }, (error) => handleFirestoreError(error, OperationType.LIST, 'weeklyReports'));
 
     // Fetch today's workout status
@@ -323,7 +325,7 @@ const Profile = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pt-24 pb-12">
+    <div className="min-h-screen min-h-dvh bg-gray-50 pt-[calc(6rem+env(safe-area-inset-top))] pb-[calc(3rem+env(safe-area-inset-bottom))]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         {!isSetupMode ? (
