@@ -28,7 +28,7 @@ import { toast } from 'sonner';
 import { NotificationBell } from '../components/NotificationBell';
 import { createNotification, NotificationType, notifyAdmins } from '../utils/notifications';
 
-const ClientsList = ({ onSelectClient }: { onSelectClient: (client: any) => void }) => {
+const ClientsList = ({ onSelectClient }: { onSelectClient: (client: any, tab?: string) => void }) => {
   const { trainerData, user } = useFirebase();
   const [clients, setClients] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -278,8 +278,26 @@ const ClientsList = ({ onSelectClient }: { onSelectClient: (client: any) => void
               )}
             </div>
 
-            <div className="mt-4 pt-4 border-t border-gray-50 flex items-center justify-end text-[10px] font-black uppercase text-brand-green group-hover:translate-x-1 transition-transform">
-              View & Edit Plans <ChevronRight size={12} className="ml-1" />
+            <div className="mt-4 pt-4 border-t border-gray-50 flex flex-wrap gap-2">
+              <button 
+                onClick={(e) => { e.stopPropagation(); onSelectClient(client, 'today'); }}
+                className="flex-1 px-3 py-2 bg-brand-green/10 text-brand-green rounded-xl font-black uppercase text-[9px] hover:bg-brand-green hover:text-white transition-all text-center"
+              >
+                Today
+              </button>
+              <button 
+                onClick={(e) => { e.stopPropagation(); onSelectClient(client, 'next'); }}
+                className="flex-1 px-3 py-2 bg-orange-50 text-orange-600 rounded-xl font-black uppercase text-[9px] hover:bg-orange-600 hover:text-white transition-all text-center"
+              >
+                Next Day
+              </button>
+              <button 
+                onClick={(e) => { e.stopPropagation(); onSelectClient(client, 'all'); }}
+                className="px-3 py-2 bg-gray-50 text-gray-500 rounded-xl font-black uppercase text-[9px] hover:bg-gray-200 transition-all text-center flex items-center justify-center"
+                title="View Full Plan"
+              >
+                <ChevronRight size={14} />
+              </button>
             </div>
           </motion.div>
         ))}
@@ -295,7 +313,7 @@ const ClientsList = ({ onSelectClient }: { onSelectClient: (client: any) => void
   );
 };
 
-const ClientDetail = ({ client, onBack }: { client: any, onBack: () => void }) => {
+const ClientDetail = ({ client, onBack, initialTab = 'all' }: { client: any, onBack: () => void, initialTab?: string }) => {
   const { trainerData, user } = useFirebase();
   const [selectedPlan, setSelectedPlan] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
@@ -306,6 +324,7 @@ const ClientDetail = ({ client, onBack }: { client: any, onBack: () => void }) =
   const [showAppointments, setShowAppointments] = useState(false);
   const [appointments, setAppointments] = useState<any[]>([]);
   const [bookingLoading, setBookingLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState(initialTab);
 
   useEffect(() => {
     // Fetch AI Plan
@@ -535,9 +554,22 @@ const ClientDetail = ({ client, onBack }: { client: any, onBack: () => void }) =
                   <Sparkles size={20} className="mr-2 text-brand-green" />
                   Client AI Plan
                 </h3>
-                <p className="text-xs text-gray-400 font-bold uppercase tracking-widest mt-1">
-                  Status: {selectedPlan?.isActive ? 'Active Program' : 'Inactive'}
-                </p>
+                <div className="flex items-center gap-2 mt-2">
+                  {['all', 'today', 'next'].map((tab) => (
+                    <button
+                      key={tab}
+                      onClick={() => setActiveTab(tab)}
+                      className={cn(
+                        "px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest transition-all",
+                        activeTab === tab 
+                          ? "bg-brand-green text-white shadow-sm"
+                          : "bg-gray-50 text-gray-400 hover:bg-gray-100"
+                      )}
+                    >
+                      {tab === 'all' ? 'Full Plan' : tab === 'today' ? "Today" : "Next Day"}
+                    </button>
+                  ))}
+                </div>
               </div>
               <div className="flex items-center gap-4">
                 {!isEditing ? (
@@ -707,66 +739,72 @@ const ClientDetail = ({ client, onBack }: { client: any, onBack: () => void }) =
                     </div>
                   </div>
                 ) : (
-                  <div className="space-y-8">
+                   <div className="space-y-8">
                       {/* Highlights */}
                       {selectedPlan.isActive && client.membership && (
                         <div className="space-y-4">
-                          <section className="bg-brand-green/5 border border-brand-green/20 rounded-[30px] p-6">
-                             <div className="flex items-center justify-between mb-4">
-                                <h4 className="text-xs font-black uppercase tracking-widest text-brand-green">Today's Protocol (Day { (client.membership.currentWorkoutIndex % 7) + 1 })</h4>
-                                <span className="text-[10px] bg-brand-green text-white px-2 py-0.5 rounded-full font-black uppercase">Active</span>
-                             </div>
-                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div>
-                                   <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-2">Target Workout</p>
-                                   <div className="flex flex-wrap gap-2">
-                                      {(selectedPlan.planData.workoutPlan?.[client.membership.currentWorkoutIndex % 7]?.exercises || ['Active Recovery']).map((ex: string, i: number) => (
-                                        <span key={i} className="text-xs font-bold text-gray-900 bg-white px-3 py-1.5 rounded-xl shadow-sm border border-brand-green/10">{ex}</span>
-                                      ))}
-                                   </div>
-                                </div>
-                                <div>
-                                   <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-2">Nutritional Focus</p>
-                                   <div className="space-y-1">
-                                      <p className="text-xs font-bold text-gray-900">
-                                        {selectedPlan.planData.dietPlan?.[client.membership.currentWorkoutIndex % 7]?.lunch || 'Maintain clean macros'}
-                                      </p>
-                                      <p className="text-[10px] text-gray-500 italic">Follow standard tier guidelines</p>
-                                   </div>
-                                </div>
-                             </div>
-                          </section>
+                          {(activeTab === 'today' || activeTab === 'all') && (
+                            <section className="bg-brand-green/5 border border-brand-green/20 rounded-[30px] p-6 animate-in fade-in slide-in-from-top-2 duration-300">
+                               <div className="flex items-center justify-between mb-4">
+                                  <h4 className="text-xs font-black uppercase tracking-widest text-brand-green">Today's Protocol (Day { (client.membership.currentWorkoutIndex % 7) + 1 })</h4>
+                                  <span className="text-[10px] bg-brand-green text-white px-2 py-0.5 rounded-full font-black uppercase">Active</span>
+                               </div>
+                               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                  <div>
+                                     <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-2">Target Workout</p>
+                                     <div className="flex flex-wrap gap-2">
+                                        {(selectedPlan.planData.workoutPlan?.[client.membership.currentWorkoutIndex % 7]?.exercises || ['Active Recovery']).map((ex: string, i: number) => (
+                                          <span key={i} className="text-xs font-bold text-gray-900 bg-white px-3 py-1.5 rounded-xl shadow-sm border border-brand-green/10">{ex}</span>
+                                        ))}
+                                     </div>
+                                  </div>
+                                  <div>
+                                     <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-2">Nutritional Focus</p>
+                                     <div className="space-y-1">
+                                        <p className="text-xs font-bold text-gray-900">
+                                          {selectedPlan.planData.dietPlan?.[client.membership.currentWorkoutIndex % 7]?.lunch || 'Maintain clean macros'}
+                                        </p>
+                                        <p className="text-[10px] text-gray-500 italic">Follow standard tier guidelines</p>
+                                     </div>
+                                  </div>
+                               </div>
+                            </section>
+                          )}
 
-                          <section className="bg-orange-50/50 border border-orange-100 rounded-[30px] p-6">
-                             <div className="flex items-center justify-between mb-4">
-                                <h4 className="text-xs font-black uppercase tracking-widest text-orange-600">Next Day's Protocol (Day { ((client.membership.currentWorkoutIndex + 1) % 7) + 1 })</h4>
-                                <span className="text-[10px] bg-orange-100 text-orange-600 px-2 py-0.5 rounded-full font-black uppercase">Upcoming</span>
-                             </div>
-                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div>
-                                   <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-2">Target Workout</p>
-                                   <div className="flex flex-wrap gap-2">
-                                      {(selectedPlan.planData.workoutPlan?.[(client.membership.currentWorkoutIndex + 1) % 7]?.exercises || ['Active Recovery']).map((ex: string, i: number) => (
-                                        <span key={i} className="text-xs font-bold text-gray-900 bg-white px-3 py-1.5 rounded-xl shadow-sm border border-orange-200/20">{ex}</span>
-                                      ))}
-                                   </div>
-                                </div>
-                                <div>
-                                   <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-2">Nutritional Focus</p>
-                                   <div className="space-y-1">
-                                      <p className="text-xs font-bold text-gray-900">
-                                        {selectedPlan.planData.dietPlan?.[(client.membership.currentWorkoutIndex + 1) % 7]?.lunch || 'Maintain clean macros'}
-                                      </p>
-                                      <p className="text-[10px] text-gray-500 italic">Preparation phase</p>
-                                   </div>
-                                </div>
-                             </div>
-                          </section>
+                          {(activeTab === 'next' || activeTab === 'all') && (
+                            <section className="bg-orange-50/50 border border-orange-100 rounded-[30px] p-6 animate-in fade-in slide-in-from-top-2 duration-300">
+                               <div className="flex items-center justify-between mb-4">
+                                  <h4 className="text-xs font-black uppercase tracking-widest text-orange-600">Next Day's Protocol (Day { ((client.membership.currentWorkoutIndex + 1) % 7) + 1 })</h4>
+                                  <span className="text-[10px] bg-orange-100 text-orange-600 px-2 py-0.5 rounded-full font-black uppercase">Upcoming</span>
+                               </div>
+                               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                  <div>
+                                     <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-2">Target Workout</p>
+                                     <div className="flex flex-wrap gap-2">
+                                        {(selectedPlan.planData.workoutPlan?.[(client.membership.currentWorkoutIndex + 1) % 7]?.exercises || ['Active Recovery']).map((ex: string, i: number) => (
+                                          <span key={i} className="text-xs font-bold text-gray-900 bg-white px-3 py-1.5 rounded-xl shadow-sm border border-orange-200/20">{ex}</span>
+                                        ))}
+                                     </div>
+                                  </div>
+                                  <div>
+                                     <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-2">Nutritional Focus</p>
+                                     <div className="space-y-1">
+                                        <p className="text-xs font-bold text-gray-900">
+                                          {selectedPlan.planData.dietPlan?.[(client.membership.currentWorkoutIndex + 1) % 7]?.lunch || 'Maintain clean macros'}
+                                        </p>
+                                        <p className="text-[10px] text-gray-500 italic">Preparation phase</p>
+                                     </div>
+                                  </div>
+                               </div>
+                            </section>
+                          )}
                         </div>
                       )}
 
                      {/* View Mode */}
-                     <section className="space-y-6">
+                     {activeTab === 'all' && (
+                       <>
+                         <section className="space-y-6">
                         <h4 className="text-xs font-black uppercase tracking-widest text-orange-600 flex items-center">
                           <span className="w-6 h-px bg-orange-200 mr-2" />
                           Workouts
@@ -814,7 +852,9 @@ const ClientDetail = ({ client, onBack }: { client: any, onBack: () => void }) =
                           ))}
                         </div>
                      </section>
-                  </div>
+                   </>
+                 )}
+              </div>
                 )}
               </div>
             ) : (
@@ -935,6 +975,7 @@ export default function TrainerDashboard() {
   const navigate = useNavigate();
   const location = useLocation();
   const [selectedClient, setSelectedClient] = useState<any | null>(null);
+  const [initialDetailTab, setInitialDetailTab] = useState('all');
 
   useEffect(() => {
     if (!loading && !isTrainer) {
@@ -1001,9 +1042,19 @@ export default function TrainerDashboard() {
         <Routes>
           <Route path="/" element={
             selectedClient ? (
-              <ClientDetail client={selectedClient} onBack={() => setSelectedClient(null)} />
+              <ClientDetail 
+                client={selectedClient} 
+                initialTab={initialDetailTab}
+                onBack={() => {
+                  setSelectedClient(null);
+                  setInitialDetailTab('all');
+                }} 
+              />
             ) : (
-              <ClientsList onSelectClient={setSelectedClient} />
+              <ClientsList onSelectClient={(client, tab) => {
+                setInitialDetailTab(tab || 'all');
+                setSelectedClient(client);
+              }} />
             )
           } />
           <Route path="/approvals" element={<PlanApprovals />} />
