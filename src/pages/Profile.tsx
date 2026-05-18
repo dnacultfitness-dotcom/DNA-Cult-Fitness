@@ -80,6 +80,7 @@ const Profile = () => {
   const [dashboardLoading, setDashboardLoading] = useState(true);
   const [workoutStatusLoading, setWorkoutStatusLoading] = useState(true);
   const [showQuickUpdate, setShowQuickUpdate] = useState(false);
+  const [displayDay, setDisplayDay] = useState<'today' | 'tomorrow'>('today');
   const [quickWeight, setQuickWeight] = useState('');
   const [updating, setUpdating] = useState(false);
   const [showPlanModal, setShowPlanModal] = useState(false);
@@ -98,6 +99,8 @@ const Profile = () => {
   const targetIndex = isFinishedToday 
     ? Math.max(0, (membership?.currentWorkoutIndex || 1) - 1)
     : (membership?.currentWorkoutIndex || 0);
+  
+  const displayIndex = displayDay === 'today' ? targetIndex : targetIndex + 1;
 
   const [formData, setFormData] = useState({
     name: '',
@@ -706,16 +709,31 @@ const Profile = () => {
               className="max-w-4xl mx-auto"
             >
               <div className="card-premium overflow-hidden">
-                <div className="p-8 border-b border-gray-50 flex items-center justify-between">
+                <div className="p-8 border-b border-gray-50 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <h2 className="bg-[#00c950]/10 px-5 py-2.5 rounded-2xl font-black text-gray-900 uppercase flex items-center tracking-tight border border-[#00c950]/10">
-                    <Dumbbell size={20} className="mr-3 text-[#00c950]" /> Today's Training Session
+                    <Dumbbell size={20} className="mr-3 text-[#00c950]" /> 
+                    {displayDay === 'today' ? "Today's Training Session" : "Next Training Session Preview"}
                   </h2>
-                  <button 
-                    onClick={() => setActiveTab('overview')} 
-                    className="bg-gray-50 px-5 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-[#00c950] hover:bg-[#00c950]/5 border border-transparent hover:border-[#00c950]/10 transition-all"
-                  >
-                    Back to Overview
-                  </button>
+                  <div className="flex bg-gray-100 p-1 rounded-xl border border-gray-200">
+                    <button
+                      onClick={() => setDisplayDay('today')}
+                      className={cn(
+                        "px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all",
+                        displayDay === 'today' ? "bg-white text-gray-900 shadow-sm" : "text-gray-400 hover:text-gray-600"
+                      )}
+                    >
+                      Today
+                    </button>
+                    <button
+                      onClick={() => setDisplayDay('tomorrow')}
+                      className={cn(
+                        "px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all",
+                        displayDay === 'tomorrow' ? "bg-white text-gray-900 shadow-sm" : "text-gray-400 hover:text-gray-600"
+                      )}
+                    >
+                      Tomorrow
+                    </button>
+                  </div>
                 </div>
                 <div className="p-6 sm:p-10">
                   {activePlan ? (
@@ -759,33 +777,42 @@ const Profile = () => {
                             </div>
                             <div>
                               <div className="flex items-center gap-3 mb-1">
-                                <span className="px-2 py-0.5 bg-[#00c950]/10 text-[#00c950] text-[10px] font-black uppercase tracking-widest rounded-md border border-[#00c950]/20">Active Session</span>
-                                <p className="text-[10px] font-black uppercase tracking-widest text-[#c6dcff]/50">Day {targetIndex + 1}</p>
+                                <span className={cn(
+                                  "px-2 py-0.5 text-[10px] font-black uppercase tracking-widest rounded-md border",
+                                  displayDay === 'today' ? "bg-[#00c950]/10 text-[#00c950] border-[#00c950]/20" : "bg-blue-500/10 text-blue-400 border-blue-500/20"
+                                )}>
+                                  {displayDay === 'today' ? "Active Session" : "Preview Mode"}
+                                </span>
+                                <p className="text-[10px] font-black uppercase tracking-widest text-[#c6dcff]/50">Day {displayIndex + 1}</p>
                               </div>
                               <h4 className="text-2xl font-black text-white uppercase tracking-tight">
-                                {activePlan.planData.workoutPlan && activePlan.planData.workoutPlan[targetIndex]?.day || `Training Day`}
+                                {activePlan.planData.workoutPlan && activePlan.planData.workoutPlan[displayIndex]?.day || `Training Day`}
                               </h4>
                             </div>
                           </div>
                           
                           <div className="flex items-center gap-3">
-                            {todayWorkout?.status === 'approved' && (
-                              <div className="flex items-center bg-emerald-500/10 px-5 py-2.5 rounded-2xl border border-emerald-500/20 backdrop-blur-sm">
-                                <div className="w-2 h-2 bg-emerald-500 rounded-full mr-3 animate-pulse" />
-                                <span className="text-xs font-black text-emerald-500 uppercase tracking-widest">Session Verified</span>
-                              </div>
-                            )}
-                            {todayWorkout?.status === 'denied' && (
-                              <div className="flex items-center bg-rose-500/10 px-5 py-2.5 rounded-2xl border border-rose-500/20 backdrop-blur-sm">
-                                <XCircle size={16} className="text-rose-500 mr-2" />
-                                <span className="text-xs font-black text-rose-500 uppercase tracking-widest">Revision Needed</span>
-                              </div>
-                            )}
-                            {todayWorkout?.status === 'pending' && (
-                              <div className="flex items-center bg-amber-500/10 px-5 py-2.5 rounded-2xl border border-amber-500/20 backdrop-blur-sm">
-                                <Loader2 size={16} className="text-amber-500 mr-2 animate-spin" />
-                                <span className="text-xs font-black text-amber-500 uppercase tracking-widest">Awaiting Review</span>
-                              </div>
+                            {displayDay === 'today' && (
+                              <>
+                                {todayWorkout?.status === 'approved' && (
+                                  <div className="flex items-center bg-emerald-500/10 px-5 py-2.5 rounded-2xl border border-emerald-500/20 backdrop-blur-sm">
+                                    <div className="w-2 h-2 bg-emerald-500 rounded-full mr-3 animate-pulse" />
+                                    <span className="text-xs font-black text-emerald-500 uppercase tracking-widest">Session Verified</span>
+                                  </div>
+                                )}
+                                {todayWorkout?.status === 'denied' && (
+                                  <div className="flex items-center bg-rose-500/10 px-5 py-2.5 rounded-2xl border border-rose-500/20 backdrop-blur-sm">
+                                    <XCircle size={16} className="text-rose-500 mr-2" />
+                                    <span className="text-xs font-black text-rose-500 uppercase tracking-widest">Revision Needed</span>
+                                  </div>
+                                )}
+                                {todayWorkout?.status === 'pending' && (
+                                  <div className="flex items-center bg-amber-500/10 px-5 py-2.5 rounded-2xl border border-amber-500/20 backdrop-blur-sm">
+                                    <Loader2 size={16} className="text-amber-500 mr-2 animate-spin" />
+                                    <span className="text-xs font-black text-amber-500 uppercase tracking-widest">Awaiting Review</span>
+                                  </div>
+                                )}
+                              </>
                             )}
                           </div>
                         </div>
@@ -796,19 +823,25 @@ const Profile = () => {
                               <Activity size={14} className="mr-2 text-[#00c950]" /> Exercise List
                             </p>
                             <div className="grid grid-cols-1 gap-3">
-                              {activePlan.planData.workoutPlan[targetIndex]?.exercises.map((ex: string, i: number) => (
-                                <div key={i} className="flex items-center p-5 bg-[#c6dcff]/5 rounded-2xl border border-[#c6dcff]/10 hover:bg-[#c6dcff]/10 hover:border-[#c6dcff]/20 transition-all duration-300 group/item">
-                                  <div className="w-8 h-8 bg-[#101828] rounded-lg flex items-center justify-center text-[#c6dcff] mr-4 group-hover/item:bg-[#00c950] group-hover/item:text-[#101828] transition-colors">
-                                    <span className="text-xs font-black">{i + 1}</span>
+                              {activePlan.planData.workoutPlan[displayIndex]?.exercises ? (
+                                activePlan.planData.workoutPlan[displayIndex].exercises.map((ex: string, i: number) => (
+                                  <div key={i} className="flex items-center p-5 bg-[#c6dcff]/5 rounded-2xl border border-[#c6dcff]/10 hover:bg-[#c6dcff]/10 hover:border-[#c6dcff]/20 transition-all duration-300 group/item">
+                                    <div className="w-8 h-8 bg-[#101828] rounded-lg flex items-center justify-center text-[#c6dcff] mr-4 group-hover/item:bg-[#00c950] group-hover/item:text-[#101828] transition-colors">
+                                      <span className="text-xs font-black">{i + 1}</span>
+                                    </div>
+                                    <p className="text-base text-gray-200 font-semibold leading-tight group-hover/item:text-white transition-colors">{ex}</p>
                                   </div>
-                                  <p className="text-base text-gray-200 font-semibold leading-tight group-hover/item:text-white transition-colors">{ex}</p>
+                                ))
+                              ) : (
+                                <div className="text-center py-12 bg-[#c6dcff]/5 rounded-2xl border border-[#c6dcff]/10">
+                                  <p className="text-gray-400 font-bold uppercase tracking-widest text-[10px]">End of generated plan or Rest Day</p>
                                 </div>
-                              ))}
+                              )}
                             </div>
                           </div>
                         )}
 
-                        {activePlan.planData.workoutPlan && activePlan.planData.workoutPlan[targetIndex]?.notes && (
+                        {activePlan.planData.workoutPlan && activePlan.planData.workoutPlan[displayIndex]?.notes && (
                           <div className="mb-10 p-6 bg-[#c6dcff]/5 rounded-[1.5rem] border border-[#c6dcff]/10 relative overflow-hidden">
                             <div className="absolute top-0 right-0 p-4 opacity-10">
                               <Info size={48} className="text-[#c6dcff]" />
@@ -816,7 +849,7 @@ const Profile = () => {
                             <p className="text-[10px] text-[#00c950] font-black uppercase tracking-widest mb-3 flex items-center">
                               <Sparkles size={14} className="mr-2" /> Coach's Strategy
                             </p>
-                            <p className="text-sm text-[#c6dcff]/80 font-medium leading-relaxed italic relative z-10">"{activePlan.planData.workoutPlan[targetIndex].notes}"</p>
+                            <p className="text-sm text-[#c6dcff]/80 font-medium leading-relaxed italic relative z-10">"{activePlan.planData.workoutPlan[displayIndex].notes}"</p>
                           </div>
                         )}
 
@@ -830,7 +863,7 @@ const Profile = () => {
                           </div>
                         )}
 
-                        {!todayWorkout || todayWorkout.status === 'denied' ? (
+                        {displayDay === 'today' && (!todayWorkout || todayWorkout.status === 'denied') ? (
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                             <button 
                               onClick={() => handleWorkoutAction('done')}
@@ -852,7 +885,7 @@ const Profile = () => {
                               Skip Session
                             </button>
                           </div>
-                        ) : todayWorkout.status === 'pending' ? (
+                        ) : displayDay === 'today' && todayWorkout?.status === 'pending' ? (
                           <div className="w-full py-10 bg-amber-500/5 border border-amber-500/20 rounded-[2rem] flex flex-col items-center justify-center text-center px-6">
                             <div className="w-16 h-16 bg-amber-500/10 rounded-full flex items-center justify-center mb-4">
                               <Loader2 className="animate-spin text-amber-500" size={32} />
@@ -860,13 +893,30 @@ const Profile = () => {
                             <span className="text-lg font-black text-amber-500 uppercase tracking-tight mb-2">Verification in Progress</span>
                             <p className="text-xs text-gray-400 max-w-xs font-medium leading-relaxed">Your coach is reviewing your workout submission. You'll be notified once it's approved.</p>
                           </div>
-                        ) : (
+                        ) : displayDay === 'today' ? (
                           <div className="w-full py-10 bg-emerald-500/5 border border-emerald-500/20 rounded-[2rem] flex flex-col items-center justify-center text-center px-6">
                             <div className="w-16 h-16 bg-emerald-500/10 rounded-full flex items-center justify-center mb-4">
                               <CheckCircle2 className="text-emerald-500" size={32} />
                             </div>
                             <span className="text-lg font-black text-emerald-500 uppercase tracking-tight mb-2">Session Approved</span>
                             <p className="text-xs text-gray-400 max-w-xs font-medium leading-relaxed">Excellent work! You've successfully completed this session. Get ready for your next challenge tomorrow.</p>
+                            <button 
+                              onClick={() => setDisplayDay('tomorrow')}
+                              className="mt-6 text-[10px] font-black uppercase tracking-widest text-[#00c950] hover:underline flex items-center"
+                            >
+                              View Tomorrow's Plan <ChevronRight size={14} className="ml-1" />
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="w-full py-8 text-center bg-blue-500/5 border border-blue-500/20 rounded-[2.5rem]">
+                            <p className="text-xs font-black text-blue-400 uppercase tracking-widest mb-2 font-mono">Status: Upcoming Protocol</p>
+                            <p className="text-xs text-blue-200/60 font-medium">This is a preview of your tomorrow's challenge.</p>
+                            <button 
+                              onClick={() => setDisplayDay('today')}
+                              className="mt-4 px-6 py-2 bg-blue-500/10 text-blue-400 rounded-full text-[10px] font-black uppercase tracking-widest hover:bg-blue-500/20 transition-all border border-blue-500/10"
+                            >
+                              Return to Current Session
+                            </button>
                           </div>
                         )}
                       </div>
@@ -883,11 +933,16 @@ const Profile = () => {
                             </div>
                             <div>
                               <div className="flex items-center gap-3 mb-1">
-                                <span className="px-2 py-0.5 bg-[#00c950]/10 text-[#00c950] text-[10px] font-black uppercase tracking-widest rounded-md border border-[#00c950]/20">Nutrition Plan</span>
-                                <p className="text-[10px] font-black uppercase tracking-widest text-[#c6dcff]/50">Day {targetIndex + 1}</p>
+                                <span className={cn(
+                                  "px-2 py-0.5 text-[10px] font-black uppercase tracking-widest rounded-md border",
+                                  displayDay === 'today' ? "bg-[#00c950]/10 text-[#00c950] border-[#00c950]/20" : "bg-blue-500/10 text-blue-400 border-blue-500/20"
+                                )}>
+                                  {displayDay === 'today' ? "Nutrition Plan" : "Preview Mode"}
+                                </span>
+                                <p className="text-[10px] font-black uppercase tracking-widest text-[#c6dcff]/50">Day {displayIndex + 1}</p>
                               </div>
                               <h4 className="text-2xl font-black text-white uppercase tracking-tight">
-                                {activePlan.planData.dietPlan && activePlan.planData.dietPlan[targetIndex]?.day || `Diet Day`}
+                                {activePlan.planData.dietPlan && activePlan.planData.dietPlan[displayIndex]?.day || `Diet Day`}
                               </h4>
                             </div>
                           </div>
@@ -895,11 +950,11 @@ const Profile = () => {
 
                         {activePlan.planData.dietPlan && (
                           <div className="relative space-y-6">
-                            {[
-                              { label: 'Breakfast', value: activePlan.planData.dietPlan[targetIndex]?.breakfast, icon: <Sparkles size={16} /> },
-                              { label: 'Lunch', value: activePlan.planData.dietPlan[targetIndex]?.lunch, icon: <Sparkles size={16} /> },
-                              { label: 'Snack', value: activePlan.planData.dietPlan[targetIndex]?.snack, icon: <Sparkles size={16} /> },
-                              { label: 'Dinner', value: activePlan.planData.dietPlan[targetIndex]?.dinner, icon: <Sparkles size={16} /> },
+                            {activePlan.planData.dietPlan[displayIndex] ? [
+                              { label: 'Breakfast', value: activePlan.planData.dietPlan[displayIndex]?.breakfast, icon: <Sparkles size={16} /> },
+                              { label: 'Lunch', value: activePlan.planData.dietPlan[displayIndex]?.lunch, icon: <Sparkles size={16} /> },
+                              { label: 'Snack', value: activePlan.planData.dietPlan[displayIndex]?.snack, icon: <Sparkles size={16} /> },
+                              { label: 'Dinner', value: activePlan.planData.dietPlan[displayIndex]?.dinner, icon: <Sparkles size={16} /> },
                             ].map((meal, i) => (
                               <div key={i} className="flex flex-col p-6 bg-[#c6dcff]/5 rounded-2xl border border-[#c6dcff]/10 hover:bg-[#c6dcff]/10 hover:border-[#c6dcff]/20 transition-all duration-300 group/item">
                                 <div className="flex items-center mb-3">
@@ -910,7 +965,11 @@ const Profile = () => {
                                 </div>
                                 <p className="text-base text-gray-200 font-semibold leading-relaxed group-hover/item:text-white transition-colors">{meal.value}</p>
                               </div>
-                            ))}
+                            )) : (
+                              <div className="text-center py-12 bg-[#c6dcff]/5 rounded-2xl border border-[#c6dcff]/10 text-gray-400 font-bold uppercase tracking-widest text-[10px]">
+                                No nutrition protocol found for this period.
+                              </div>
+                            )}
                           </div>
                         )}
                       </div>
