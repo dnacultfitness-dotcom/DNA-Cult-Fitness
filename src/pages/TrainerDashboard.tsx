@@ -357,7 +357,6 @@ const ClientDetail = ({ client, onBack, initialTab = 'all' }: { client: any, onB
   const [bookingLoading, setBookingLoading] = useState(false);
   const [activeTab, setActiveTab] = useState(initialTab);
   const [membership, setMembership] = useState<any>(null);
-  const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [profileData, setProfileData] = useState({
     displayName: client.displayName || '',
     height: client.height || '',
@@ -368,6 +367,8 @@ const ClientDetail = ({ client, onBack, initialTab = 'all' }: { client: any, onB
     lifestyleDisease: client.lifestyleDisease || '',
     experienceLevel: client.experienceLevel || ''
   });
+  const [clientPlans, setClientPlans] = useState<any[]>([]);
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
   const generationResultRef = useRef<HTMLDivElement>(null);
 
@@ -545,13 +546,74 @@ const ClientDetail = ({ client, onBack, initialTab = 'all' }: { client: any, onB
     }
   };
 
+  const handleActivatePlan = async (planId: string) => {
+    const loadingToast = toast.loading('Activating plan...');
+    try {
+      const batch = writeBatch(db);
+      
+      // Deactivate all plans
+      const q = query(collection(db, 'aiPlans'), where('userId', '==', client.id));
+      const snapshot = await getDocs(q);
+      snapshot.forEach((d) => {
+        batch.update(doc(db, 'aiPlans', d.id), { isActive: false });
+      });
+
+      // Activate selected
+      batch.update(doc(db, 'aiPlans', planId), { isActive: true });
+      
+      await batch.commit();
+      toast.success('Fitness plan activated on client dashboard!', { id: loadingToast });
+      
+      await createNotification(
+        client.id,
+        'Plan Updated',
+        `Your trainer has activated a new workout protocol for you. Check your dashboard!`,
+        NotificationType.INFO,
+        '/profile'
+      );
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to activate plan', { id: loadingToast });
+    }
+  };
+
   useEffect(() => {
+    // Fetch User Doc for live sync
+    const unsubUser = onSnapshot(doc(db, 'users', client.id), (snap) => {
+      if (snap.exists()) {
+        const data = snap.data();
+        setProfileData(prev => ({
+          ...prev,
+          displayName: data.displayName || prev.displayName,
+          height: data.height || prev.height,
+          weight: data.weight || prev.weight,
+          goal: data.goal || prev.goal,
+          gender: data.gender || prev.gender,
+          experienceLevel: data.experienceLevel || prev.experienceLevel
+        }));
+      }
+    });
+
+    // Fetch details subcollection separately for trauma/medical info
+    const unsubDetails = onSnapshot(doc(db, 'users', client.id, 'details', 'personal'), (snap) => {
+      if (snap.exists()) {
+        const data = snap.data();
+        setProfileData(prev => ({
+          ...prev,
+          injury: data.injury || prev.injury,
+          lifestyleDisease: data.lifestyleDisease || prev.lifestyleDisease
+        }));
+      }
+    });
+
     // Fetch AI Plan
     const q = query(collection(db, 'aiPlans'), where('userId', '==', client.id));
     const unsubPlan = onSnapshot(q, (snap) => {
       if (!snap.empty) {
         let data = snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as any));
-        // Find newest plan, preferring active ones
+        setClientPlans(data);
+        
+        // Sort for the active/display plan
         data.sort((a, b) => {
           if (a.isActive && !b.isActive) return -1;
           if (!a.isActive && b.isActive) return 1;
@@ -565,6 +627,7 @@ const ClientDetail = ({ client, onBack, initialTab = 'all' }: { client: any, onB
       } else {
         setSelectedPlan(null);
         setEditData(null);
+        setClientPlans([]);
       }
       setLoading(false);
     }, (err) => {
@@ -602,7 +665,14 @@ const ClientDetail = ({ client, onBack, initialTab = 'all' }: { client: any, onB
       }
     }, (err) => handleFirestoreError(err, OperationType.LIST, 'memberships'));
 
-    return () => { unsubPlan(); unsubWorkouts(); unsubAppts(); unsubMembership(); };
+    return () => { 
+      unsubUser();
+      unsubDetails();
+      unsubPlan(); 
+      unsubWorkouts(); 
+      unsubAppts(); 
+      unsubMembership(); 
+    };
   }, [client, user.uid]);
 
   const handleBookAppointment = async (e: React.FormEvent) => {
@@ -1001,6 +1071,55 @@ const ClientDetail = ({ client, onBack, initialTab = 'all' }: { client: any, onB
                 </button>
               </div>
             </div>
+
+            {/* Plan History Quick View */}
+            {clientPlans.length > 1 && (
+              <div className="mb-8 flex items-center gap-4 overflow-x-auto no-scrollbar py-2">
+                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex-shrink-0">Plan History:</p>
+                {clientPlans.sort((a, b) => (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0)).map((p) => (
+                  <button
+                    key={p.id}
+                    onClick={() => {
+                      setSelectedPlan(p);
+                      setEditData(JSON.parse(JSON.stringify(p.planData)));
+                    }}
+                    className={cn(
+                      "flex-shrink-0 px-4 py-2 rounded-2xl text-[10px] font-bold border transition-all",
+                      selectedPlan?.id === p.id 
+                        ? "bg-brand-green border-brand-green text-white" 
+                        : "bg-white border-gray-100 text-gray-500 hover:border-brand-green"
+                    )}
+                  >
+                    {p.createdAt?.toDate().toLocaleDateString() || 'Draft'} {p.isActive && '★'}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* If selected plan is not active, show activate button */}
+            {selectedPlan && !selectedPlan.isActive && !isEditing && (
+              <motion.div 
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="mb-8 p-4 bg-amber-50 border border-amber-100 rounded-[30px] flex items-center justify-between shadow-sm"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-amber-100 rounded-full text-amber-600">
+                    <AlertCircle size={16} />
+                  </div>
+                  <div>
+                    <p className="text-xs font-black text-amber-900 uppercase tracking-tight">This plan is not active</p>
+                    <p className="text-[10px] text-amber-700 font-medium">Activate it to show it on the client's dashboard.</p>
+                  </div>
+                </div>
+                <button 
+                  onClick={() => handleActivatePlan(selectedPlan.id)}
+                  className="px-6 py-2 bg-brand-green text-white rounded-full font-black uppercase tracking-widest text-[10px] shadow-lg shadow-brand-green/20 hover:scale-105 transition-all"
+                >
+                  Activate Plan
+                </button>
+              </motion.div>
+            )}
 
             <AnimatePresence>
               {showAppointments && (
