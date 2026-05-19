@@ -218,16 +218,16 @@ const ClientsList = ({ onSelectClient }: { onSelectClient: (client: any, tab?: s
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
         <h2 className="text-2xl font-bold">My Clients</h2>
-        <div className="relative w-64">
+        <div className="relative w-full sm:w-64">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
           <input
             type="text"
             placeholder="Search clients..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 bg-white border border-gray-100 rounded-xl outline-none focus:border-brand-green text-sm"
+            className="w-full pl-10 pr-4 py-2 bg-white border border-gray-100 rounded-xl outline-none focus:border-brand-green text-sm text-center sm:text-left"
           />
         </div>
       </div>
@@ -673,10 +673,22 @@ const ClientDetail = ({ client, onBack, initialTab = 'all' }: { client: any, onB
     });
 
     // Fetch Membership
-    const qMembership = query(collection(db, 'memberships'), where('userId', '==', client.id));
-    const unsubMembership = onSnapshot(qMembership, (snap) => {
+    const qMembership = query(
+      collection(db, 'memberships'), 
+      where('userId', '==', client.id)
+    );
+    const unsubMembership = onSnapshot(qMembership, async (snap) => {
       if (!snap.empty) {
         setMembership({ id: snap.docs[0].id, ...snap.docs[0].data() });
+      } else if (client.email) {
+        // Fallback to email query if userId doesn't match yet
+        const qEmail = query(collection(db, 'memberships'), where('email', '==', client.email));
+        const emailSnap = await getDocs(qEmail);
+        if (!emailSnap.empty) {
+          setMembership({ id: emailSnap.docs[0].id, ...emailSnap.docs[0].data() });
+        } else {
+          setMembership(null);
+        }
       } else {
         setMembership(null);
       }
@@ -797,42 +809,42 @@ const ClientDetail = ({ client, onBack, initialTab = 'all' }: { client: any, onB
       </button>
 
       <div className="bg-black text-white p-8 rounded-[40px] shadow-2xl relative overflow-hidden">
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div className="flex items-center space-x-6">
-             <div className="w-20 h-20 rounded-full overflow-hidden border-4 border-white/10 p-1">
-                {client.photoURL ? (
-                  <img src={client.photoURL} alt="" className="w-full h-full object-cover rounded-full" />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center text-brand-green font-bold text-3xl uppercase bg-white/5 rounded-full">
-                    {client.displayName?.[0] || client.email?.[0]}
+          <div className="flex flex-col md:flex-row items-center justify-between gap-6 text-center md:text-left">
+            <div className="flex flex-col md:flex-row items-center space-y-4 md:space-y-0 md:space-x-6">
+               <div className="w-20 h-20 rounded-full overflow-hidden border-4 border-white/10 p-1">
+                  {client.photoURL ? (
+                    <img src={client.photoURL} alt="" className="w-full h-full object-cover rounded-full" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-brand-green font-bold text-3xl uppercase bg-white/5 rounded-full">
+                      {client.displayName?.[0] || client.email?.[0]}
+                    </div>
+                  )}
+               </div>
+               <div>
+                  <div className="flex items-center justify-center md:justify-start gap-3">
+                    <h2 className="text-3xl font-black">{profileData.displayName || 'Client'}</h2>
+                    <button 
+                      onClick={() => setIsEditingProfile(true)}
+                      className="p-2 bg-white/10 rounded-full hover:bg-brand-green transition-all"
+                      title="Edit Profile Details"
+                    >
+                      <Edit2 size={14} />
+                    </button>
                   </div>
-                )}
-             </div>
-             <div>
-                <div className="flex items-center gap-3">
-                  <h2 className="text-3xl font-black">{profileData.displayName || 'Client'}</h2>
-                  <button 
-                    onClick={() => setIsEditingProfile(true)}
-                    className="p-2 bg-white/10 rounded-full hover:bg-brand-green transition-all"
-                    title="Edit Profile Details"
-                  >
-                    <Edit2 size={14} />
-                  </button>
-                </div>
-                <div className="flex items-center space-x-4 mt-1">
-                  <p className="text-brand-green font-bold text-sm uppercase tracking-widest leading-none">ID: {client.customerId || 'NOT ASSIGNED'}</p>
-                  <span className="w-1 h-1 bg-gray-600 rounded-full" />
-                  <p className="text-gray-400 font-medium text-sm leading-none">{client.email}</p>
-                </div>
-             </div>
+                  <div className="flex flex-col md:flex-row items-center space-y-1 md:space-y-0 md:space-x-4 mt-1">
+                    <p className="text-brand-green font-bold text-sm uppercase tracking-widest leading-none">ID: {client.customerId || 'NOT ASSIGNED'}</p>
+                    <span className="w-1 h-1 bg-gray-600 rounded-full hidden md:block" />
+                    <p className="text-gray-400 font-medium text-sm leading-none">{client.email}</p>
+                  </div>
+               </div>
+            </div>
+            <div className="flex items-center justify-center md:justify-end space-x-4">
+               <div className="text-center md:text-right">
+                 <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1">Assigned Trainer</p>
+                 <p className="text-lg font-bold text-brand-green">{trainerData.name}</p>
+               </div>
+            </div>
           </div>
-          <div className="flex items-center space-x-4">
-             <div className="text-right">
-               <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1">Assigned Trainer</p>
-               <p className="text-lg font-bold text-brand-green">{trainerData.name}</p>
-             </div>
-          </div>
-        </div>
         <div className="absolute top-0 right-0 w-64 h-64 bg-brand-green/20 blur-[100px] rounded-full -translate-y-1/2 translate-x-1/2" />
       </div>
 
@@ -1331,20 +1343,25 @@ const ClientDetail = ({ client, onBack, initialTab = 'all' }: { client: any, onB
                   </div>
                 ) : (
                    <div className="space-y-8">
-                      {/* Highlights */}
-                      {selectedPlan.isActive && client.membership && (
+                     {/* Highlights */}
+                      {selectedPlan && membership && (
                         <div className="space-y-4">
                           {(activeTab === 'today' || activeTab === 'all') && (
                             <section className="bg-brand-green/5 border border-brand-green/20 rounded-[30px] p-6 animate-in fade-in slide-in-from-top-2 duration-300">
                                <div className="flex items-center justify-between mb-4">
-                                  <h4 className="text-xs font-black uppercase tracking-widest text-brand-green">Today's Protocol (Day { (client.membership.currentWorkoutIndex % 7) + 1 })</h4>
-                                  <span className="text-[10px] bg-brand-green text-white px-2 py-0.5 rounded-full font-black uppercase">Active</span>
+                                  <h4 className="text-xs font-black uppercase tracking-widest text-brand-green">Today's Protocol (Day { (membership.currentWorkoutIndex % 7) + 1 })</h4>
+                                  <span className={cn(
+                                    "text-[10px] px-2 py-0.5 rounded-full font-black uppercase",
+                                    selectedPlan.isActive ? "bg-brand-green text-white" : "bg-gray-100 text-gray-400"
+                                  )}>
+                                    {selectedPlan.isActive ? 'Active' : 'Preview'}
+                                  </span>
                                </div>
                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                   <div>
                                      <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-2">Target Workout</p>
                                      <div className="flex flex-wrap gap-2">
-                                        {(selectedPlan.planData.workoutPlan?.[client.membership.currentWorkoutIndex % 7]?.exercises || ['Active Recovery']).map((ex: string, i: number) => (
+                                        {(selectedPlan.planData.workoutPlan?.[membership.currentWorkoutIndex % 7]?.exercises || ['Active Recovery']).map((ex: string, i: number) => (
                                           <span key={i} className="text-xs font-bold text-gray-900 bg-white px-3 py-1.5 rounded-xl shadow-sm border border-brand-green/10">{ex}</span>
                                         ))}
                                      </div>
@@ -1353,7 +1370,7 @@ const ClientDetail = ({ client, onBack, initialTab = 'all' }: { client: any, onB
                                      <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-2">Nutritional Focus</p>
                                      <div className="space-y-1">
                                         <p className="text-xs font-bold text-gray-900">
-                                          {selectedPlan.planData.dietPlan?.[client.membership.currentWorkoutIndex % 7]?.lunch || 'Maintain clean macros'}
+                                          {selectedPlan.planData.dietPlan?.[membership.currentWorkoutIndex % 7]?.lunch || 'Maintain clean macros'}
                                         </p>
                                         <p className="text-[10px] text-gray-500 italic">Follow standard tier guidelines</p>
                                      </div>
@@ -1365,14 +1382,14 @@ const ClientDetail = ({ client, onBack, initialTab = 'all' }: { client: any, onB
                           {(activeTab === 'next' || activeTab === 'all') && (
                             <section className="bg-orange-50/50 border border-orange-100 rounded-[30px] p-6 animate-in fade-in slide-in-from-top-2 duration-300">
                                <div className="flex items-center justify-between mb-4">
-                                  <h4 className="text-xs font-black uppercase tracking-widest text-orange-600">Next Day's Protocol (Day { ((client.membership.currentWorkoutIndex + 1) % 7) + 1 })</h4>
+                                  <h4 className="text-xs font-black uppercase tracking-widest text-orange-600">Next Day's Protocol (Day { ((membership.currentWorkoutIndex + 1) % 7) + 1 })</h4>
                                   <span className="text-[10px] bg-orange-100 text-orange-600 px-2 py-0.5 rounded-full font-black uppercase">Upcoming</span>
-                               </div>
+                                </div>
                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                   <div>
                                      <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-2">Target Workout</p>
                                      <div className="flex flex-wrap gap-2">
-                                        {(selectedPlan.planData.workoutPlan?.[(client.membership.currentWorkoutIndex + 1) % 7]?.exercises || ['Active Recovery']).map((ex: string, i: number) => (
+                                        {(selectedPlan.planData.workoutPlan?.[(membership.currentWorkoutIndex + 1) % 7]?.exercises || ['Active Recovery']).map((ex: string, i: number) => (
                                           <span key={i} className="text-xs font-bold text-gray-900 bg-white px-3 py-1.5 rounded-xl shadow-sm border border-orange-200/20">{ex}</span>
                                         ))}
                                      </div>
@@ -1381,7 +1398,7 @@ const ClientDetail = ({ client, onBack, initialTab = 'all' }: { client: any, onB
                                      <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-2">Nutritional Focus</p>
                                      <div className="space-y-1">
                                         <p className="text-xs font-bold text-gray-900">
-                                          {selectedPlan.planData.dietPlan?.[(client.membership.currentWorkoutIndex + 1) % 7]?.lunch || 'Maintain clean macros'}
+                                          {selectedPlan.planData.dietPlan?.[(membership.currentWorkoutIndex + 1) % 7]?.lunch || 'Maintain clean macros'}
                                         </p>
                                         <p className="text-[10px] text-gray-500 italic">Preparation phase</p>
                                      </div>
@@ -1587,7 +1604,7 @@ export default function TrainerDashboard() {
   return (
     <div className="min-h-screen min-h-dvh bg-gray-50 flex flex-col md:flex-row pt-[calc(5rem+env(safe-area-inset-top))]">
       {/* Sidebar */}
-      <div className="w-full md:w-64 bg-white border-r border-gray-100 p-6 space-y-8 flex-shrink-0 pb-[env(safe-area-inset-bottom)]">
+      <div className="w-full md:w-64 bg-white border-r border-gray-100 p-6 space-y-8 flex-shrink-0 pb-[env(safe-area-inset-bottom)] text-center md:text-left">
         <div>
           <h1 className="text-xs font-black text-gray-400 uppercase tracking-[0.2em] mb-6 px-4">Trainer Hub</h1>
           <nav className="space-y-1">
@@ -1597,7 +1614,7 @@ export default function TrainerDashboard() {
                 to={item.path}
                 onClick={() => setSelectedClient(null)}
                 className={cn(
-                  "flex items-center space-x-3 px-4 py-3 rounded-2xl text-sm font-bold transition-all",
+                  "flex items-center justify-center md:justify-start space-x-3 px-4 py-3 rounded-2xl text-sm font-bold transition-all",
                   location.pathname === item.path && !selectedClient
                     ? "bg-brand-green text-white shadow-lg shadow-brand-green/20"
                     : "text-gray-500 hover:bg-gray-50 hover:text-gray-900"
@@ -1613,7 +1630,7 @@ export default function TrainerDashboard() {
         <div className="pt-8 border-t border-gray-50 space-y-4">
            <Link 
              to="/" 
-             className="flex items-center space-x-3 px-4 py-3 rounded-2xl text-sm font-bold text-gray-500 hover:bg-gray-50 hover:text-gray-900 transition-all"
+             className="flex items-center justify-center md:justify-start space-x-3 px-4 py-3 rounded-2xl text-sm font-bold text-gray-500 hover:bg-gray-50 hover:text-gray-900 transition-all"
            >
              <ArrowLeft size={18} />
              <span>Back to Site</span>

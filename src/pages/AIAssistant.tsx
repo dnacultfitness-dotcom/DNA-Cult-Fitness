@@ -612,20 +612,21 @@ const AIAssistant = () => {
           </div>
         ) : activeTab === 'history' ? (
           <div className="max-w-4xl mx-auto space-y-6">
-            <h2 className="text-2xl font-bold text-gray-900 flex items-center">
+            <h2 className="text-2xl font-bold text-gray-900 flex items-center justify-center sm:justify-start">
               <Clock size={24} className="mr-3 text-green-600" /> Your Generated Plans
             </h2>
             {history.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {history.map((plan) => (
-                  <div key={plan.id} className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all">
-                    <div className="flex items-center justify-between mb-4">
+                  <div key={plan.id} className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all text-center sm:text-left">
+                    <div className="flex items-center justify-center sm:justify-between mb-4">
                       <div className="flex items-center space-x-2">
                         <Sparkles size={18} className="text-green-600" />
                         <span className="font-bold text-gray-900">{plan.userName}</span>
                       </div>
-                      <span className="text-xs text-gray-400">{plan.createdAt?.toDate().toLocaleDateString()}</span>
+                      <span className="text-xs text-gray-400 hidden sm:block">{plan.createdAt?.toDate().toLocaleDateString()}</span>
                     </div>
+                    <span className="text-xs text-gray-400 sm:hidden block mb-4">{plan.createdAt?.toDate().toLocaleDateString()}</span>
                     <p className="text-sm text-gray-600 line-clamp-2 mb-6">{plan.planData.overview}</p>
                     <div className="flex flex-col space-y-3">
                       <div className="flex space-x-3">
@@ -690,12 +691,12 @@ const AIAssistant = () => {
           <motion.div
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
-            className="lg:col-span-1 bg-white rounded-2xl shadow-xl p-6 sm:p-8 border border-gray-100 h-fit lg:sticky lg:top-[calc(6rem+env(safe-area-inset-top))] mx-4 sm:mx-0"
+            className="lg:col-span-1 bg-white rounded-2xl shadow-xl p-6 sm:p-8 border border-gray-100 h-fit lg:sticky lg:top-[calc(6rem+env(safe-area-inset-top))] mx-4 sm:mx-0 text-center sm:text-left"
           >
             <form onSubmit={generatePlan} className="space-y-6">
               <div className="space-y-4">
                 <div>
-                  <label className="flex items-center text-sm font-medium text-gray-700 mb-1">
+                  <label className="flex items-center justify-center sm:justify-start text-sm font-medium text-gray-700 mb-1">
                     <User size={16} className="mr-2 text-green-600" /> Full Name
                   </label>
                   <input
@@ -704,14 +705,14 @@ const AIAssistant = () => {
                     name="name"
                     value={formData.name}
                     onChange={handleInputChange}
-                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-all"
+                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-all text-center sm:text-left"
                     placeholder="John Doe"
                   />
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="flex items-center text-sm font-medium text-gray-700 mb-1">
+                    <label className="flex items-center justify-center sm:justify-start text-sm font-medium text-gray-700 mb-1">
                       <Ruler size={16} className="mr-2 text-green-600" /> Height (cm)
                     </label>
                     <input
@@ -720,12 +721,12 @@ const AIAssistant = () => {
                       name="height"
                       value={formData.height}
                       onChange={handleInputChange}
-                      className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-all"
+                      className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-all text-center sm:text-left"
                       placeholder="175"
                     />
                   </div>
                   <div>
-                    <label className="flex items-center text-sm font-medium text-gray-700 mb-1">
+                    <label className="flex items-center justify-center sm:justify-start text-sm font-medium text-gray-700 mb-1">
                       <Weight size={16} className="mr-2 text-green-600" /> Weight (kg)
                     </label>
                     <input
@@ -734,21 +735,21 @@ const AIAssistant = () => {
                       name="weight"
                       value={formData.weight}
                       onChange={handleInputChange}
-                      className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-all"
+                      className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-all text-center sm:text-left"
                       placeholder="70"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="flex items-center text-sm font-medium text-gray-700 mb-1">
+                  <label className="flex items-center justify-center sm:justify-start text-sm font-medium text-gray-700 mb-1">
                     <Activity size={16} className="mr-2 text-green-600" /> Gender
                   </label>
                   <select
                     name="gender"
                     value={formData.gender}
                     onChange={handleInputChange}
-                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-all"
+                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-all text-center sm:text-left"
                   >
                     <option value="male">Male</option>
                     <option value="female">Female</option>
@@ -757,7 +758,7 @@ const AIAssistant = () => {
                 </div>
 
                 <div>
-                  <label className="flex items-center text-sm font-medium text-gray-700 mb-1">
+                  <label className="flex items-center justify-center sm:justify-start text-sm font-medium text-gray-700 mb-1">
                     <Sparkles size={16} className="mr-2 text-green-600" /> Fitness Goal
                   </label>
                   <input
@@ -766,13 +767,13 @@ const AIAssistant = () => {
                     name="goal"
                     value={formData.goal}
                     onChange={handleInputChange}
-                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-all"
+                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-all text-center sm:text-left"
                     placeholder="e.g. Weight loss, Muscle gain"
                   />
                 </div>
 
                 <div>
-                  <label className="flex items-center text-sm font-medium text-gray-700 mb-1">
+                  <label className="flex items-center justify-center sm:justify-start text-sm font-medium text-gray-700 mb-1">
                     <AlertCircle size={16} className="mr-2 text-green-600" /> Any Injuries?
                   </label>
                   <textarea
@@ -780,13 +781,13 @@ const AIAssistant = () => {
                     value={formData.injury}
                     onChange={handleInputChange}
                     rows={2}
-                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-all"
+                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-all text-center sm:text-left"
                     placeholder="e.g. Lower back pain"
                   />
                 </div>
 
                 <div>
-                  <label className="flex items-center text-sm font-medium text-gray-700 mb-1">
+                  <label className="flex items-center justify-center sm:justify-start text-sm font-medium text-gray-700 mb-1">
                     <HeartPulse size={16} className="mr-2 text-green-600" /> Lifestyle Diseases?
                   </label>
                   <textarea
@@ -794,7 +795,7 @@ const AIAssistant = () => {
                     value={formData.lifestyleDisease}
                     onChange={handleInputChange}
                     rows={2}
-                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-all"
+                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-all text-center sm:text-left"
                     placeholder="e.g. Diabetes"
                   />
                 </div>
@@ -828,7 +829,7 @@ const AIAssistant = () => {
             className="lg:col-span-2 space-y-8"
           >
             {!result && !loading && (
-              <div className="bg-white rounded-2xl shadow-xl p-12 border border-gray-100 text-center">
+              <div className="bg-white rounded-2xl shadow-xl p-12 border border-gray-100 text-center mx-4 sm:mx-0">
                 <div className="bg-green-50 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6">
                   <Sparkles size={40} className="text-green-600 opacity-40" />
                 </div>
@@ -838,7 +839,7 @@ const AIAssistant = () => {
             )}
 
             {loading && (
-              <div className="bg-white rounded-2xl shadow-xl p-12 border border-gray-100 text-center">
+              <div className="bg-white rounded-2xl shadow-xl p-12 border border-gray-100 text-center mx-4 sm:mx-0">
                 <Loader2 className="animate-spin text-green-600 mx-auto mb-6" size={48} />
                 <h2 className="text-2xl font-bold text-gray-900 mb-2">Crafting Your Plan...</h2>
                 <p className="text-gray-500">Our AI is analyzing your profile to create the perfect workout and diet schedule.</p>
@@ -846,19 +847,19 @@ const AIAssistant = () => {
             )}
 
             {result && (
-              <div className="space-y-8">
+              <div className="space-y-8 mx-4 sm:mx-0">
                 {/* Header & Overview */}
-                <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-100">
-                    <div className="flex items-center justify-between mb-6">
-                      <h2 className="text-2xl font-bold text-gray-900 flex items-center">
+                <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-100 text-center sm:text-left">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-6">
+                      <h2 className="text-2xl font-bold text-gray-900 flex items-center justify-center sm:justify-start">
                         <Calendar className="mr-3 text-green-600" /> 
                         {membershipInfo.status === 'approved' ? "Your Professional AI Plan" : "Your 1-Week Demo Plan"}
                       </h2>
-                      <div className="flex items-center space-x-3">
+                      <div className="flex flex-col sm:flex-row items-center space-y-3 sm:space-y-0 sm:space-x-3">
                         {currentPlanId && (
                           <button
                             onClick={() => setActivePlan(currentPlanId)}
-                            className="flex items-center space-x-2 bg-gray-900 text-white px-4 py-2 rounded-lg font-medium hover:bg-black transition-colors shadow-sm"
+                            className="w-full sm:w-auto flex items-center justify-center space-x-2 bg-gray-900 text-white px-4 py-2 rounded-lg font-medium hover:bg-black transition-colors shadow-sm"
                           >
                             <Plus size={18} />
                             <span>Add to Profile</span>
@@ -866,7 +867,7 @@ const AIAssistant = () => {
                         )}
                         <button
                           onClick={() => downloadPDF(result)}
-                          className="flex items-center space-x-2 bg-green-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-green-700 transition-colors shadow-sm"
+                          className="w-full sm:w-auto flex items-center justify-center space-x-2 bg-green-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-green-700 transition-colors shadow-sm"
                         >
                           <Download size={18} />
                           <span>Download PDF</span>
@@ -874,7 +875,7 @@ const AIAssistant = () => {
                       </div>
                     </div>
                   <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
-                    <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-2 flex items-center">
+                    <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-2 flex items-center justify-center sm:justify-start">
                       <Sparkles size={14} className="mr-2" /> Overview & Goals
                     </h3>
                     <p className="text-gray-700 leading-relaxed">{result.overview}</p>
@@ -883,7 +884,7 @@ const AIAssistant = () => {
 
                 {/* Day by Day Sorting */}
                 <div className="space-y-6">
-                  <h3 className="text-xl font-bold text-gray-900 px-2 flex items-center">
+                  <h3 className="text-xl font-bold text-gray-900 px-2 flex items-center justify-center sm:justify-start">
                     <Dumbbell className="mr-3 text-green-600" /> Weekly Schedule
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -894,13 +895,13 @@ const AIAssistant = () => {
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: index * 0.1 }}
                         className={cn(
-                          "rounded-2xl p-6 border-2 transition-all hover:shadow-lg",
+                          "rounded-2xl p-6 border-2 transition-all hover:shadow-lg text-center sm:text-left",
                           getDayColor(index)
                         )}
                       >
-                        <div className="flex items-center justify-between mb-4">
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-3">
                           <h4 className={cn("text-lg font-bold", getDayIconColor(index))}>{workout.day}</h4>
-                          <div className={cn("p-2 rounded-lg bg-white/50", getDayIconColor(index))}>
+                          <div className={cn("p-2 rounded-lg bg-white/50 w-fit mx-auto sm:mx-0", getDayIconColor(index))}>
                             <Dumbbell size={20} />
                           </div>
                         </div>
@@ -910,8 +911,8 @@ const AIAssistant = () => {
                             <h5 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Workout</h5>
                             <ul className="space-y-1">
                               {workout.exercises.map((ex, i) => (
-                                <li key={i} className="text-sm text-gray-700 flex items-start">
-                                  <span className="mr-2 mt-1.5 w-1.5 h-1.5 rounded-full bg-gray-400 flex-shrink-0" />
+                                <li key={i} className="text-sm text-gray-700 flex items-start justify-center sm:justify-start">
+                                  <span className="mr-2 mt-1.5 w-1.5 h-1.5 rounded-full bg-gray-400 flex-shrink-0 hidden sm:block" />
                                   {ex}
                                 </li>
                               ))}
@@ -919,10 +920,10 @@ const AIAssistant = () => {
                           </div>
                           
                           <div className="pt-4 border-t border-gray-200/50">
-                            <h5 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 flex items-center">
+                            <h5 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 flex items-center justify-center sm:justify-start">
                               <Utensils size={12} className="mr-1" /> Nutrition
                             </h5>
-                            <div className="grid grid-cols-2 gap-2 text-xs">
+                            <div className="grid grid-cols-2 gap-2 text-[10px] sm:text-xs">
                               <div className="bg-white/40 p-2 rounded-lg">
                                 <span className="font-bold block text-gray-600">B:</span> {result.dietPlan[index]?.breakfast}
                               </div>
@@ -950,14 +951,14 @@ const AIAssistant = () => {
                 </div>
 
                 {/* Tips Section */}
-                <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-100">
-                  <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
+                <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-100 text-center sm:text-left">
+                  <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center justify-center sm:justify-start">
                     <Info className="mr-2 text-green-600" /> Pro Tips & Precautions
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {result.tips.map((tip, i) => (
-                      <div key={i} className="flex items-start p-3 bg-green-50 rounded-lg border border-green-100">
-                        <Sparkles size={14} className="text-green-600 mr-2 mt-1 flex-shrink-0" />
+                      <div key={i} className="flex items-start p-3 bg-green-50 rounded-lg border border-green-100 justify-center sm:justify-start">
+                        <Sparkles size={14} className="text-green-600 mr-2 mt-1 flex-shrink-0 hidden sm:block" />
                         <p className="text-sm text-gray-700">{tip}</p>
                       </div>
                     ))}

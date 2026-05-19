@@ -187,13 +187,13 @@ const Membership = () => {
                     </div>
                   )}
                   
-                  <div className="p-6 sm:p-10 flex flex-col flex-grow">
+                  <div className="p-6 sm:p-10 flex flex-col items-center text-center md:items-start md:text-left flex-grow">
                     {(() => {
                       const selectedDur = selectedDurations[plan.id];
                       const selectedOpt = plan.priceOptions?.find((o: any) => o.duration === selectedDur) || plan.priceOptions?.[0];
                       if (selectedOpt && selectedOpt.offerPrice < selectedOpt.actualPrice) {
                         return (
-                          <div className="absolute top-4 sm:top-6 right-4 sm:right-6 bg-brand-green text-black text-[8px] sm:text-[10px] font-black px-2 sm:px-3 py-1 rounded-full uppercase tracking-widest z-10">
+                          <div className="absolute top-4 sm:top-6 right-4 sm:right-6 bg-brand-green text-black text-[8px] sm:text-[10px] font-black px-2 sm:px-3 py-1 rounded-full uppercase tracking-widest z-10 mx-auto md:mr-0">
                             Save ₹{selectedOpt.actualPrice - selectedOpt.offerPrice}
                           </div>
                         );
@@ -205,7 +205,7 @@ const Membership = () => {
                     <h3 className="text-2xl sm:text-3xl font-black text-gray-900 mb-2 uppercase leading-none">{plan.name}</h3>
                     
                     {/* Duration Selector */}
-                    <div className="flex flex-wrap gap-2 mb-6 sm:mb-8">
+                    <div className="flex flex-wrap gap-2 mb-6 sm:mb-8 justify-center md:justify-start">
                       {plan.priceOptions?.map((opt: any, i: number) => (
                         <button
                           key={i}
@@ -227,7 +227,7 @@ const Membership = () => {
                       const selectedOpt = plan.priceOptions?.find((o: any) => o.duration === selectedDur) || plan.priceOptions?.[0];
                       if (!selectedOpt) return <div className="h-16 sm:h-20" />;
                       return (
-                        <div className="flex items-baseline mb-8 sm:mb-10 h-16 sm:h-20">
+                        <div className="flex items-baseline mb-8 sm:mb-10 h-16 sm:h-20 justify-center md:justify-start">
                           <div>
                             <span className="text-3xl sm:text-5xl font-black text-gray-900 tracking-tighter">₹{selectedOpt.offerPrice}</span>
                             {selectedOpt.actualPrice > selectedOpt.offerPrice && (
@@ -243,8 +243,8 @@ const Membership = () => {
 
                     <ul className="space-y-3 sm:space-y-5 mb-8 sm:mb-12 flex-grow">
                       {plan.features?.map((feature: string, fIdx: number) => (
-                        <li key={fIdx} className="flex items-start text-xs sm:text-sm font-medium text-gray-600">
-                          <CheckCircle2 size={16} className="mr-3 sm:mr-4 text-brand-green flex-shrink-0 mt-0.5" />
+                        <li key={fIdx} className="flex flex-col md:flex-row items-center md:items-start text-xs sm:text-sm font-medium text-gray-600">
+                          <CheckCircle2 size={16} className="mb-1 md:mb-0 md:mr-4 text-brand-green flex-shrink-0" />
                           {feature}
                         </li>
                       ))}
@@ -272,7 +272,7 @@ const Membership = () => {
       <section id="application-form" className="py-16 sm:py-32 bg-white">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-5 gap-10 sm:gap-16">
-            <div className="lg:col-span-2">
+            <div className="lg:col-span-2 text-center lg:text-left">
               <span className="text-brand-green font-black uppercase tracking-widest text-xs sm:text-sm mb-4 sm:mb-6 block">Join the Cult</span>
               <h2 className="text-3xl sm:text-4xl md:text-6xl font-black text-gray-900 leading-tight mb-4 sm:mb-8 uppercase tracking-tighter">
                 Start Your <br /> Evolution
@@ -281,7 +281,7 @@ const Membership = () => {
                 Our selection process ensures we maintain a community of dedicated high-performers.
               </p>
               
-              <div className="space-y-4 sm:space-y-6">
+              <div className="space-y-4 sm:space-y-6 flex flex-col items-center lg:items-start">
                 <div className="flex items-center space-x-3 sm:space-x-4">
                   <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-gray-50 flex items-center justify-center text-brand-green shrink-0">
                     <ShieldCheck size={18} sm:size={20} />
@@ -299,12 +299,12 @@ const Membership = () => {
 
             <div className="lg:col-span-3">
               <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 sm:space-y-8 bg-gray-50 p-6 sm:p-10 rounded-2xl sm:rounded-[2.5rem] border border-gray-100">
-                <div className="space-y-4 sm:space-y-6">
+                <div className="space-y-4 sm:space-y-6 text-center sm:text-left">
                   <div>
                     <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 sm:mb-3">Full Name</label>
                     <input
                       {...register('name')}
-                      className="w-full px-4 sm:px-6 py-3 sm:py-4 rounded-xl sm:rounded-2xl border-none bg-white shadow-sm focus:ring-2 focus:ring-brand-green outline-none transition-all font-bold text-gray-900 text-sm sm:text-base"
+                      className="w-full px-4 sm:px-6 py-3 sm:py-4 rounded-xl sm:rounded-2xl border-none bg-white shadow-sm focus:ring-2 focus:ring-brand-green outline-none transition-all font-bold text-gray-900 text-sm sm:text-base text-center sm:text-left"
                       placeholder="John Doe"
                     />
                     {errors.name && <p className="text-red-500 text-[10px] font-black uppercase tracking-widest mt-2 ml-2">{errors.name.message}</p>}
@@ -315,7 +315,7 @@ const Membership = () => {
                       <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 sm:mb-3">Email Address</label>
                       <input
                         {...register('email')}
-                        className="w-full px-4 sm:px-6 py-3 sm:py-4 rounded-xl sm:rounded-2xl border-none bg-white shadow-sm focus:ring-2 focus:ring-brand-green outline-none transition-all font-bold text-gray-900 text-sm sm:text-base"
+                        className="w-full px-4 sm:px-6 py-3 sm:py-4 rounded-xl sm:rounded-2xl border-none bg-white shadow-sm focus:ring-2 focus:ring-brand-green outline-none transition-all font-bold text-gray-900 text-sm sm:text-base text-center sm:text-left"
                         placeholder="john@example.com"
                       />
                       {errors.email && <p className="text-red-500 text-[10px] font-black uppercase tracking-widest mt-2 ml-2">{errors.email.message}</p>}
@@ -334,7 +334,7 @@ const Membership = () => {
                     <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 sm:mb-3">Selected Program</label>
                     <select
                       {...register('program')}
-                      className="w-full px-4 sm:px-6 py-3 sm:py-4 rounded-xl sm:rounded-2xl border-none bg-white shadow-sm focus:ring-2 focus:ring-brand-green outline-none transition-all font-bold text-gray-900 appearance-none text-sm sm:text-base"
+                      className="w-full px-4 sm:px-6 py-3 sm:py-4 rounded-xl sm:rounded-2xl border-none bg-white shadow-sm focus:ring-2 focus:ring-brand-green outline-none transition-all font-bold text-gray-900 appearance-none text-sm sm:text-base text-center sm:text-left"
                     >
                       <option value="">Select a program...</option>
                       {plans.map(plan => (
@@ -356,7 +356,7 @@ const Membership = () => {
                     <textarea
                       {...register('message')}
                       rows={3}
-                      className="w-full px-4 sm:px-6 py-3 sm:py-4 rounded-xl sm:rounded-2xl border-none bg-white shadow-sm focus:ring-2 focus:ring-brand-green outline-none transition-all resize-none font-bold text-gray-900 text-sm sm:text-base"
+                      className="w-full px-4 sm:px-6 py-3 sm:py-4 rounded-xl sm:rounded-2xl border-none bg-white shadow-sm focus:ring-2 focus:ring-brand-green outline-none transition-all resize-none font-bold text-gray-900 text-sm sm:text-base text-center sm:text-left"
                       placeholder="Tell us about your fitness goals..."
                     ></textarea>
                   </div>

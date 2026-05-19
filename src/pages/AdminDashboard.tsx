@@ -3319,20 +3319,20 @@ const AdminSidebar = ({ isOpen, onClose }: { isOpen: boolean, onClose: () => voi
       </AnimatePresence>
 
       <div className={cn(
-        "fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-gray-200 transform lg:translate-x-0 lg:static lg:inset-auto transition-transform duration-300 ease-in-out flex flex-col pt-8 pb-[env(safe-area-inset-bottom)]",
+        "fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-gray-200 transform lg:translate-x-0 lg:static lg:inset-auto transition-transform duration-300 ease-in-out flex flex-col pt-8 pb-[env(safe-area-inset-bottom)] text-center lg:text-left",
         isOpen ? "translate-x-0" : "-translate-x-full"
       )}>
         <div className="px-6 sm:px-8 mb-8 flex items-center justify-between">
-          <Link to="/" className="flex items-center space-x-2">
+          <Link to="/" className="flex items-center justify-center lg:justify-start space-x-2 w-full lg:w-auto">
             <span className="text-xl font-bold tracking-tighter text-green-700">DNA <span className="text-black">CULT</span></span>
           </Link>
-          <button onClick={onClose} className="lg:hidden p-2 text-gray-400 hover:text-gray-600 transition-colors">
+          <button onClick={onClose} className="lg:hidden p-2 text-gray-400 hover:text-gray-600 transition-colors absolute right-4">
             <XCircle size={24} />
           </button>
         </div>
         
         <div className="px-6 sm:px-8 mb-4">
-          <h2 className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Admin Menu</h2>
+          <h2 className="text-[10px] font-black text-gray-400 uppercase tracking-widest text-center lg:text-left">Admin Menu</h2>
         </div>
 
         <nav className="flex-grow px-2 space-y-1 overflow-y-auto no-scrollbar">
@@ -3344,7 +3344,7 @@ const AdminSidebar = ({ isOpen, onClose }: { isOpen: boolean, onClose: () => voi
                 if (window.innerWidth < 1024) onClose();
               }}
               className={cn(
-                "flex items-center justify-between px-4 py-3 rounded-xl font-medium transition-all group",
+                "flex items-center justify-center lg:justify-between px-4 py-3 rounded-xl font-medium transition-all group",
                 location.pathname === item.path ? "bg-green-50 text-green-700" : "text-gray-600 hover:bg-gray-50"
               )}
             >
@@ -3358,7 +3358,7 @@ const AdminSidebar = ({ isOpen, onClose }: { isOpen: boolean, onClose: () => voi
                 <span className="text-sm">{item.name}</span>
               </div>
               {item.badge && item.badge > 0 && (
-                <span className="bg-red-500 text-white text-[10px] font-black px-1.5 py-0.5 rounded-full min-w-[1.2rem] text-center">
+                <span className="hidden lg:block bg-red-500 text-white text-[10px] font-black px-1.5 py-0.5 rounded-full min-w-[1.2rem] text-center ml-2">
                   {item.badge}
                 </span>
               )}
@@ -3369,7 +3369,7 @@ const AdminSidebar = ({ isOpen, onClose }: { isOpen: boolean, onClose: () => voi
         <div className="p-4 border-t border-gray-100">
           <Link 
             to="/" 
-            className="flex items-center space-x-3 px-4 py-3 rounded-xl font-medium text-gray-600 hover:bg-gray-50 transition-all"
+            className="flex items-center justify-center lg:justify-start space-x-3 px-4 py-3 rounded-xl font-medium text-gray-600 hover:bg-gray-50 transition-all"
           >
             <ArrowLeft size={20} />
             <span>Back to Site</span>
@@ -3420,7 +3420,7 @@ const Overview = () => {
 
   return (
     <div className="space-y-6 sm:space-y-8">
-      <div>
+      <div className="text-center sm:text-left">
         <h1 className="text-2xl sm:text-3xl font-black uppercase tracking-tight text-gray-900">Dashboard Overview</h1>
         <p className="text-sm text-gray-400 font-medium uppercase tracking-widest mt-1">Real-time performance metrics</p>
       </div>

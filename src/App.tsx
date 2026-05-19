@@ -133,7 +133,7 @@ const Navbar = () => {
                   to={link.path}
                   onClick={() => setIsOpen(false)}
                   className={cn(
-                    "block px-3 py-4 text-base font-medium rounded-md",
+                    "block px-3 py-4 text-base font-medium rounded-md text-center",
                     location.pathname === link.path ? "bg-white/5 text-brand-green" : "text-gray-300 hover:bg-white/5 hover:text-brand-green"
                   )}
                 >

@@ -69,7 +69,7 @@ const Contact = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col lg:flex-row gap-12 sm:gap-16">
             {/* Left: Contact Info */}
-            <div className="flex-1">
+            <div className="flex-1 text-center lg:text-left">
               <h2 className="text-2xl sm:text-3xl font-black mb-6 sm:mb-8 uppercase tracking-tight text-gray-900 line-clamp-1">Contact Information</h2>
               <p className="text-gray-600 mb-8 sm:mb-12 text-base sm:text-lg leading-relaxed">
                 Feel free to reach out to us through any of the following channels. We're always happy to hear from you.
@@ -82,7 +82,7 @@ const Contact = () => {
                     href={info.link} 
                     target={info.link.startsWith('http') ? "_blank" : undefined}
                     rel={info.link.startsWith('http') ? "noopener noreferrer" : undefined}
-                    className="flex items-start space-x-4 group"
+                    className="flex flex-col items-center lg:items-start lg:flex-row space-y-4 lg:space-y-0 lg:space-x-4 group"
                   >
                     <div className="p-3 bg-brand-green/10 rounded-xl border border-brand-green/20 flex-shrink-0 group-hover:bg-brand-green group-hover:text-black transition-all">
                       {React.cloneElement(info.icon as React.ReactElement, { size: 20 })}
@@ -97,7 +97,7 @@ const Contact = () => {
               
               <div className="pt-10 sm:pt-12 border-t border-gray-100">
                 <h3 className="text-lg sm:text-xl font-black mb-6 uppercase tracking-tight">Follow Us</h3>
-                <div className="flex space-x-4 sm:space-x-6">
+                <div className="flex space-x-4 sm:space-x-6 justify-center lg:justify-start">
                   <a href="#" className="p-3 sm:p-4 bg-gray-50 rounded-full text-gray-600 hover:bg-brand-green hover:text-black transition-all"><Instagram size={20} /></a>
                   <a href="#" className="p-3 sm:p-4 bg-gray-50 rounded-full text-gray-600 hover:bg-brand-green hover:text-black transition-all"><Facebook size={20} /></a>
                   <a href="#" className="p-3 sm:p-4 bg-gray-50 rounded-full text-gray-600 hover:bg-brand-green hover:text-black transition-all"><Youtube size={20} /></a>
@@ -107,7 +107,7 @@ const Contact = () => {
 
             {/* Right: Contact Form */}
             <div className="flex-1">
-              <div className="bg-white rounded-2xl sm:rounded-3xl shadow-2xl p-6 sm:p-12 border border-gray-100">
+              <div className="bg-white rounded-2xl sm:rounded-3xl shadow-2xl p-6 sm:p-12 border border-gray-100 text-center sm:text-left">
                 <h3 className="text-xl sm:text-2xl font-black mb-6 sm:mb-8 uppercase tracking-tight">Send a Message</h3>
                 <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
@@ -115,7 +115,7 @@ const Contact = () => {
                       <label className="block text-[10px] sm:text-sm font-black text-gray-400 uppercase tracking-widest mb-2">Full Name</label>
                       <input
                         required
-                        className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-brand-green focus:border-transparent outline-none transition-all font-bold text-gray-900 text-sm sm:text-base bg-gray-50"
+                        className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-brand-green focus:border-transparent outline-none transition-all font-bold text-gray-900 text-sm sm:text-base bg-gray-50 text-center sm:text-left"
                         placeholder="John Doe"
                       />
                     </div>
@@ -124,7 +124,7 @@ const Contact = () => {
                       <input
                         required
                         type="email"
-                        className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-brand-green focus:border-transparent outline-none transition-all font-bold text-gray-900 text-sm sm:text-base bg-gray-50"
+                        className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-brand-green focus:border-transparent outline-none transition-all font-bold text-gray-900 text-sm sm:text-base bg-gray-50 text-center sm:text-left"
                         placeholder="john@example.com"
                       />
                     </div>
@@ -142,7 +142,7 @@ const Contact = () => {
                     <label className="block text-[10px] sm:text-sm font-black text-gray-400 uppercase tracking-widest mb-2">Subject</label>
                     <input
                       required
-                      className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-brand-green focus:border-transparent outline-none transition-all font-bold text-gray-900 text-sm sm:text-base bg-gray-50"
+                      className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-brand-green focus:border-transparent outline-none transition-all font-bold text-gray-900 text-sm sm:text-base bg-gray-50 text-center sm:text-left"
                       placeholder="How can we help?"
                     />
                   </div>
@@ -152,7 +152,7 @@ const Contact = () => {
                     <textarea
                       required
                       rows={4}
-                      className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-brand-green focus:border-transparent outline-none transition-all resize-none font-bold text-gray-900 text-sm sm:text-base bg-gray-50"
+                      className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-brand-green focus:border-transparent outline-none transition-all resize-none font-bold text-gray-900 text-sm sm:text-base bg-gray-50 text-center sm:text-left"
                       placeholder="Your message here..."
                     ></textarea>
                   </div>

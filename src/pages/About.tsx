@@ -41,7 +41,7 @@ const About = () => {
       <section className="py-16 sm:py-24 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col md:flex-row gap-10 sm:gap-16 items-center">
-            <div className="flex-1">
+            <div className="flex-1 text-center md:text-left">
               <h2 className="text-2xl sm:text-3xl font-black mb-4 sm:mb-6 uppercase tracking-tight">The DNA Philosophy</h2>
               <p className="text-gray-600 mb-4 sm:mb-6 text-base sm:text-lg leading-relaxed">
                 Founded in 2020, DNA Cult Fitness started as a small community of athletes looking for a more rigorous and scientific approach to training. 
@@ -50,7 +50,7 @@ const About = () => {
               <p className="text-gray-600 mb-6 sm:mb-8 text-base sm:text-lg leading-relaxed">
                 Our name reflects our core belief: that every individual has a unique genetic potential, and our job is to provide the environment and tools to cultivate that potential to its fullest.
               </p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-8">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-8 justify-items-center md:justify-items-start">
                 <div className="flex items-center space-x-3">
                   <Award className="text-brand-green shrink-0" size={20} />
                   <span className="font-bold text-sm sm:text-base uppercase tracking-tight">Premium Quality</span>

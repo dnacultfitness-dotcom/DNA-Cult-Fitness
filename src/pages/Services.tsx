@@ -95,10 +95,10 @@ const Services = () => {
                       <h3 className="absolute bottom-4 sm:bottom-6 left-4 sm:left-6 text-xl sm:text-2xl font-black text-white uppercase tracking-tight">{plan.name}</h3>
                     </div>
                     
-                    <div className="p-6 sm:p-8 flex-grow flex flex-col">
+                    <div className="p-6 sm:p-8 flex-grow flex flex-col items-center text-center md:items-start md:text-left">
                       <div className="mb-4 sm:mb-6">
                         <p className="text-[10px] font-black uppercase tracking-[0.2em] text-brand-green mb-1">Pricing Starts At</p>
-                        <div className="flex items-baseline space-x-2">
+                        <div className="flex items-baseline space-x-2 justify-center md:justify-start">
                           <span className="text-2xl sm:text-3xl font-black text-gray-900">₹{plan.priceOptions?.[0]?.offerPrice || '---'}</span>
                           {plan.priceOptions?.[0]?.actualPrice > plan.priceOptions?.[0]?.offerPrice && (
                             <span className="text-xs sm:text-sm text-gray-400 line-through font-bold">₹{plan.priceOptions[0].actualPrice}</span>
@@ -106,10 +106,10 @@ const Services = () => {
                         </div>
                       </div>
                       
-                      <ul className="space-y-2 sm:space-y-3 mb-6 sm:mb-10 flex-grow">
+                      <ul className="space-y-2 sm:space-y-3 mb-6 sm:mb-10 flex-grow text-center md:text-left">
                         {(plan.features || []).map((feature: string, i: number) => (
-                          <li key={i} className="flex items-start text-gray-600 text-xs sm:text-sm font-medium">
-                            <CheckCircle2 className="text-brand-green mr-2 sm:mr-3 mt-0.5 flex-shrink-0" size={14} />
+                          <li key={i} className="flex flex-col md:flex-row items-center md:items-start text-gray-600 text-xs sm:text-sm font-medium">
+                            <CheckCircle2 className="text-brand-green mb-1 md:mb-0 md:mr-3 shrink-0" size={14} />
                             <span>{feature}</span>
                           </li>
                         ))}
@@ -161,15 +161,15 @@ const Services = () => {
                       <h3 className="absolute bottom-4 sm:bottom-6 left-4 sm:left-6 text-xl sm:text-2xl font-black text-white uppercase tracking-tight">{service.title}</h3>
                     </div>
                     
-                    <div className="p-6 sm:p-8 flex-grow flex flex-col">
+                    <div className="p-6 sm:p-8 flex-grow flex flex-col items-center text-center md:items-start md:text-left">
                       <p className="text-sm sm:text-base text-gray-600 mb-6 sm:mb-8 leading-relaxed font-medium">
                         {service.description}
                       </p>
                       
                       <ul className="space-y-2 sm:space-y-3 mb-6 sm:mb-10 flex-grow">
                         {(service.features || []).map((feature: string, i: number) => (
-                          <li key={i} className="flex items-start text-gray-700 text-xs sm:text-sm font-medium">
-                            <CheckCircle2 className="text-black mr-2 sm:mr-3 mt-0.5 flex-shrink-0" size={14} />
+                          <li key={i} className="flex flex-col md:flex-row items-center md:items-start text-gray-700 text-xs sm:text-sm font-medium">
+                            <CheckCircle2 className="text-black mb-1 md:mb-0 md:mr-3 shrink-0" size={14} />
                             <span>{feature}</span>
                           </li>
                         ))}

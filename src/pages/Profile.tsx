@@ -332,12 +332,12 @@ const Profile = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         {!isSetupMode ? (
-          <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-6">
-            <div>
+          <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-6 text-center md:text-left items-center md:items-end">
+            <div className="w-full md:w-auto">
               <span className="text-brand font-black uppercase tracking-widest text-xs mb-3 block">Member Portal</span>
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-center md:justify-between">
                 <h1 className="text-2xl sm:text-3xl font-black text-gray-900 uppercase tracking-tight">Your Dashboard</h1>
-                <div className="md:hidden">
+                <div className="md:hidden ml-4">
                   <NotificationBell />
                 </div>
               </div>
@@ -470,12 +470,12 @@ const Profile = () => {
 
                 {/* Membership Card */}
                 <div className="card-premium overflow-hidden">
-                  <div className="p-8 border-b border-gray-50">
-                    <h2 className="font-black text-gray-900 uppercase flex items-center tracking-tight">
+                  <div className="p-8 border-b border-gray-50 flex flex-col md:flex-row items-center md:items-start">
+                    <h2 className="font-black text-gray-900 uppercase flex items-center tracking-tight text-center md:text-left">
                       <Calendar size={20} className="mr-3 text-brand" /> Membership
                     </h2>
                   </div>
-                  <div className="p-8">
+                  <div className="p-8 flex flex-col items-center md:items-start text-center md:text-left">
                     {membership ? (
                       <div className="space-y-6">
                         <div className="flex items-center justify-between">
@@ -543,13 +543,13 @@ const Profile = () => {
               <div className="lg:col-span-2 space-y-8">
                 {/* Active Training Plan */}
                 <div className="card-premium overflow-hidden">
-                  <div className="p-8 border-b border-gray-50 flex items-center justify-between">
-                    <h2 className="font-black text-gray-900 uppercase flex items-center tracking-tight">
+                  <div className="p-8 border-b border-gray-50 flex flex-col md:flex-row items-center justify-between gap-4">
+                    <h2 className="font-black text-gray-900 uppercase flex items-center tracking-tight text-center md:text-left">
                       <Dumbbell size={20} className="mr-3 text-brand" /> Active Training Plan
                     </h2>
                     <Link to="/ai-assistant" className="text-[10px] font-black uppercase tracking-widest text-brand hover:underline">Manage Plans</Link>
                   </div>
-                  <div className="p-6 sm:p-10">
+                  <div className="p-6 sm:p-10 flex flex-col items-center md:items-start text-center md:text-left">
                     {activePlan ? (
                       <div className="space-y-6 sm:space-y-8">
                         <div className="flex items-start justify-between">
@@ -617,8 +617,8 @@ const Profile = () => {
 
                 {/* Progress Tracker */}
                 <div className="card-premium overflow-hidden">
-                  <div className="p-8 border-b border-gray-50 flex items-center justify-between">
-                    <h2 className="font-black text-gray-900 uppercase flex items-center tracking-tight">
+                  <div className="p-8 border-b border-gray-50 flex flex-col md:flex-row items-center justify-between gap-4">
+                    <h2 className="font-black text-gray-900 uppercase flex items-center tracking-tight text-center md:text-left">
                       <TrendingUp size={20} className="mr-3 text-brand" /> Progress Tracking
                     </h2>
                     <button 
@@ -628,7 +628,7 @@ const Profile = () => {
                       {showQuickUpdate ? 'Cancel' : 'Quick Update'}
                     </button>
                   </div>
-                  <div className="p-8">
+                  <div className="p-8 flex flex-col items-center md:items-start text-center md:text-left">
                     {showQuickUpdate && (
                       <motion.form 
                         initial={{ opacity: 0, height: 0 }}
@@ -709,14 +709,14 @@ const Profile = () => {
               className="max-w-4xl mx-auto"
             >
               <div className="card-premium overflow-hidden">
-                <div className="p-8 border-b border-gray-50 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                  <h2 className="bg-[#00c950]/10 px-5 py-2.5 rounded-2xl font-black text-gray-900 uppercase flex items-center tracking-tight border border-[#00c950]/10">
+                <div className="p-8 border-b border-gray-50 flex flex-col sm:flex-row items-center justify-between gap-6">
+                  <h2 className="bg-[#00c950]/10 px-5 py-2.5 rounded-2xl font-black text-gray-900 uppercase flex items-center tracking-tight border border-[#00c950]/10 text-center sm:text-left">
                     <Dumbbell size={20} className="mr-3 text-[#00c950]" /> 
                     {displayDay === 'today' ? "Today's Training Session" : 
                      displayDay === 'tomorrow' ? "Tomorrow's Training Preview" : 
                      "Day After Tomorrow Preview"}
                   </h2>
-                  <div className="flex bg-gray-100 p-1 rounded-xl border border-gray-200 overflow-x-auto no-scrollbar">
+                  <div className="flex bg-gray-100 p-1 rounded-xl border border-gray-200 overflow-x-auto no-scrollbar w-full sm:w-auto justify-center sm:justify-start">
                     <button
                       onClick={() => setDisplayDay('today')}
                       className={cn(
@@ -781,13 +781,13 @@ const Profile = () => {
                         <div className="absolute -top-24 -right-24 w-64 h-64 bg-[#00c950]/5 rounded-full blur-3xl group-hover/card:bg-[#00c950]/10 transition-colors duration-700" />
                         <div className="absolute -bottom-24 -left-24 w-64 h-64 bg-[#c6dcff]/5 rounded-full blur-3xl group-hover/card:bg-[#c6dcff]/10 transition-colors duration-700" />
 
-                        <div className="relative flex flex-col md:flex-row md:items-center justify-between mb-10 gap-6">
-                          <div className="flex items-center">
-                            <div className="w-16 h-16 bg-[#00c950] rounded-2xl flex items-center justify-center text-[#101828] mr-6 shadow-lg shadow-[#00c950]/20 rotate-3 group-hover/card:rotate-0 transition-transform duration-500">
+                        <div className="relative flex flex-col md:flex-row items-center md:items-center justify-between mb-10 gap-6 text-center md:text-left">
+                          <div className="flex flex-col md:flex-row items-center">
+                            <div className="w-16 h-16 bg-[#00c950] rounded-2xl flex items-center justify-center text-[#101828] mb-4 md:mb-0 md:mr-6 shadow-lg shadow-[#00c950]/20 rotate-3 group-hover/card:rotate-0 transition-transform duration-500">
                               <Dumbbell size={32} />
                             </div>
                             <div>
-                              <div className="flex items-center gap-3 mb-1">
+                              <div className="flex items-center justify-center md:justify-start gap-3 mb-1">
                                 <span className={cn(
                                   "px-2 py-0.5 text-[10px] font-black uppercase tracking-widest rounded-md border",
                                   displayDay === 'today' ? "bg-[#00c950]/10 text-[#00c950] border-[#00c950]/20" : "bg-blue-500/10 text-blue-400 border-blue-500/20"
@@ -833,11 +833,11 @@ const Profile = () => {
                             <p className="text-[10px] font-black text-[#c6dcff]/50 uppercase tracking-widest mb-4 flex items-center">
                               <Activity size={14} className="mr-2 text-[#00c950]" /> Exercise List
                             </p>
-                            <div className="grid grid-cols-1 gap-3">
+                            <div className="grid grid-cols-1 gap-3 w-full">
                               {activePlan.planData.workoutPlan[displayIndex]?.exercises ? (
                                 activePlan.planData.workoutPlan[displayIndex].exercises.map((ex: string, i: number) => (
-                                  <div key={i} className="flex items-center p-5 bg-[#c6dcff]/5 rounded-2xl border border-[#c6dcff]/10 hover:bg-[#c6dcff]/10 hover:border-[#c6dcff]/20 transition-all duration-300 group/item">
-                                    <div className="w-8 h-8 bg-[#101828] rounded-lg flex items-center justify-center text-[#c6dcff] mr-4 group-hover/item:bg-[#00c950] group-hover/item:text-[#101828] transition-colors">
+                                  <div key={i} className="flex flex-col md:flex-row items-center md:items-start p-5 bg-[#c6dcff]/5 rounded-2xl border border-[#c6dcff]/10 hover:bg-[#c6dcff]/10 hover:border-[#c6dcff]/20 transition-all duration-300 group/item text-center md:text-left">
+                                    <div className="w-8 h-8 bg-[#101828] rounded-lg flex items-center justify-center text-[#c6dcff] mb-4 md:mb-0 md:mr-4 group-hover/item:bg-[#00c950] group-hover/item:text-[#101828] transition-colors shrink-0">
                                       <span className="text-xs font-black">{i + 1}</span>
                                     </div>
                                     <p className="text-base text-gray-200 font-semibold leading-tight group-hover/item:text-white transition-colors">{ex}</p>
