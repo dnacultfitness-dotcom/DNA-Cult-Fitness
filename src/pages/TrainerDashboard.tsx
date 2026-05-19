@@ -374,6 +374,15 @@ const ClientDetail = ({ client, onBack, initialTab = 'all' }: { client: any, onB
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
   const generationResultRef = useRef<HTMLDivElement>(null);
 
+  const isFinishedToday = useMemo(() => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const todayStr = `${year}-${month}-${day}`;
+    return membership?.lastWorkoutDate === todayStr || dailyWorkouts.some(w => w.date === todayStr);
+  }, [membership?.lastWorkoutDate, dailyWorkouts]);
+
   const handleUpdateMembership = async (field: 'program' | 'approvedAiPlan', value: string) => {
     if (!membership) return;
     const loadingToast = toast.loading(`Updating ${field}...`);
@@ -386,6 +395,62 @@ const ClientDetail = ({ client, onBack, initialTab = 'all' }: { client: any, onB
     } catch (err) {
       console.error(err);
       toast.error('Failed to update membership', { id: loadingToast });
+    }
+  };
+
+  const handleMarkWorkoutDone = async (action: 'done' | 'skipped') => {
+    if (!client.id || !membership || submitting) return;
+    
+    // Check if already submitted for today
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const today = `${year}-${month}-${day}`;
+    
+    if (dailyWorkouts.some(w => w.date === today)) {
+       toast.error('A workout update has already been submitted for today.');
+       return;
+    }
+
+    const loadingToast = toast.loading(`Marking today's session as ${action === 'done' ? 'Done' : 'Skipped'}...`);
+    setSubmitting(true);
+    
+    try {
+      await addDoc(collection(db, 'dailyWorkouts'), {
+        userId: client.id,
+        userName: profileData.displayName || client.email,
+        date: today,
+        status: 'approved', // Auto-approved when trainer submits
+        action: action,
+        workoutIndex: membership.currentWorkoutIndex || 0,
+        trainerSubmitted: true,
+        trainerName: trainerData.name,
+        trainerUid: user.uid,
+        createdAt: serverTimestamp()
+      });
+
+      // Update membership progress
+      await updateDoc(doc(db, 'memberships', membership.id), {
+        lastWorkoutDate: today,
+        currentWorkoutIndex: (membership.currentWorkoutIndex || 0) + (action === 'done' ? 1 : 0),
+        updatedAt: serverTimestamp()
+      });
+
+      toast.success(`Today's protocol marked as ${action === 'done' ? 'Done' : 'Skipped'}`, { id: loadingToast });
+      
+      await createNotification(
+        client.id,
+        'Workout Verified',
+        `Your trainer ${trainerData.name} has manually verified your session for today. Great work!`,
+        NotificationType.SUCCESS,
+        '/profile'
+      );
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to update workout status', { id: loadingToast });
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -1352,12 +1417,36 @@ const ClientDetail = ({ client, onBack, initialTab = 'all' }: { client: any, onB
                             <section className="bg-brand-green/5 border border-brand-green/20 rounded-[30px] p-6 animate-in fade-in slide-in-from-top-2 duration-300">
                                <div className="flex items-center justify-between mb-4">
                                   <h4 className="text-xs font-black uppercase tracking-widest text-brand-green">Today's Protocol (Day { (membership.currentWorkoutIndex % 7) + 1 })</h4>
-                                  <span className={cn(
-                                    "text-[10px] px-2 py-0.5 rounded-full font-black uppercase",
-                                    selectedPlan.isActive ? "bg-brand-green text-white" : "bg-gray-100 text-gray-400"
-                                  )}>
-                                    {selectedPlan.isActive ? 'Active' : 'Preview'}
-                                  </span>
+                                  <div className="flex items-center gap-2">
+                                     {isFinishedToday ? (
+                                        <div className="flex items-center bg-green-500/10 text-green-600 px-3 py-1 rounded-xl font-black uppercase text-[10px] border border-green-500/20">
+                                           <ShieldCheck size={12} className="mr-1" /> Logged
+                                        </div>
+                                     ) : (
+                                        <div className="flex items-center gap-2">
+                                           <button 
+                                              onClick={() => handleMarkWorkoutDone('done')}
+                                              disabled={submitting}
+                                              className="text-[10px] bg-brand-green text-white px-3 py-1 rounded-lg font-black uppercase hover:bg-brand-green/90 transition-colors disabled:opacity-50 shadow-sm shadow-brand-green/20"
+                                           >
+                                              Mark Done
+                                           </button>
+                                           <button 
+                                              onClick={() => handleMarkWorkoutDone('skipped')}
+                                              disabled={submitting}
+                                              className="text-[10px] bg-white text-gray-400 border border-gray-100 px-3 py-1 rounded-lg font-black uppercase hover:bg-gray-50 transition-colors disabled:opacity-50"
+                                           >
+                                              Skip
+                                           </button>
+                                        </div>
+                                     )}
+                                     <span className={cn(
+                                        "text-[10px] px-2 py-0.5 rounded-full font-black uppercase",
+                                        selectedPlan.isActive ? "bg-brand-green text-white" : "bg-gray-100 text-gray-400"
+                                     )}>
+                                        {selectedPlan.isActive ? 'Active' : 'Preview'}
+                                     </span>
+                                  </div>
                                </div>
                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                   <div>
