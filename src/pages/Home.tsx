@@ -150,7 +150,7 @@ const Home = () => {
               className="flex flex-col sm:flex-row flex-wrap gap-4 sm:gap-5 items-center md:items-start justify-center md:justify-start"
             >
               {user && profile?.role === 'trainer' && (
-                <Link to="/trainer-dashboard" className="bg-white text-black px-6 sm:px-10 py-4 sm:py-5 rounded-full font-black text-base sm:text-lg hover:bg-brand-green transition-all flex items-center justify-center group shadow-2xl shadow-white/10 uppercase tracking-tight" id="hero-trainer-hub-btn">
+                <Link to="/trainer" className="bg-white text-black px-6 sm:px-10 py-4 sm:py-5 rounded-full font-black text-base sm:text-lg hover:bg-brand-green transition-all flex items-center justify-center group shadow-2xl shadow-white/10 uppercase tracking-tight" id="hero-trainer-hub-btn">
                   Trainer Hub <LayoutDashboard className="ml-2 group-hover:rotate-12 transition-transform" size={20} />
                 </Link>
               )}
