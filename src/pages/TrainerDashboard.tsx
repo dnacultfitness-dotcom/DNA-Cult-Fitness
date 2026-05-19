@@ -804,48 +804,48 @@ const ClientDetail = ({ client, onBack, initialTab = 'all' }: { client: any, onB
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <button onClick={onBack} className="flex items-center text-gray-500 hover:text-black transition-colors font-bold text-sm">
-        <ArrowLeft size={16} className="mr-2" /> Back to Clients
+      <button onClick={onBack} className="flex items-center text-gray-500 hover:text-black transition-colors font-bold text-sm mb-4 md:mb-0">
+        <ArrowLeft size={16} className="mr-2" /> <span className="hidden md:inline">Back to Clients</span><span className="md:hidden">Back</span>
       </button>
 
-      <div className="bg-black text-white p-8 rounded-[40px] shadow-2xl relative overflow-hidden">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-6 text-center md:text-left">
-            <div className="flex flex-col md:flex-row items-center space-y-4 md:space-y-0 md:space-x-6">
-               <div className="w-20 h-20 rounded-full overflow-hidden border-4 border-white/10 p-1">
+      <div className="bg-black text-white p-6 md:p-8 rounded-3xl md:rounded-[40px] shadow-2xl relative overflow-hidden">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-4 md:gap-6 text-center md:text-left">
+            <div className="flex flex-col md:flex-row items-center space-y-3 md:space-y-0 md:space-x-6">
+               <div className="w-16 h-16 md:w-20 md:h-20 rounded-full overflow-hidden border-4 border-white/10 p-1">
                   {client.photoURL ? (
                     <img src={client.photoURL} alt="" className="w-full h-full object-cover rounded-full" />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center text-brand-green font-bold text-3xl uppercase bg-white/5 rounded-full">
+                    <div className="w-full h-full flex items-center justify-center text-brand-green font-bold text-2xl md:text-3xl uppercase bg-white/5 rounded-full">
                       {client.displayName?.[0] || client.email?.[0]}
                     </div>
                   )}
                </div>
                <div>
-                  <div className="flex items-center justify-center md:justify-start gap-3">
-                    <h2 className="text-3xl font-black">{profileData.displayName || 'Client'}</h2>
+                  <div className="flex items-center justify-center md:justify-start gap-2 md:gap-3">
+                    <h2 className="text-xl md:text-3xl font-black">{profileData.displayName || 'Client'}</h2>
                     <button 
                       onClick={() => setIsEditingProfile(true)}
-                      className="p-2 bg-white/10 rounded-full hover:bg-brand-green transition-all"
+                      className="p-1 md:p-2 bg-white/10 rounded-full hover:bg-brand-green transition-all"
                       title="Edit Profile Details"
                     >
-                      <Edit2 size={14} />
+                      <Edit2 size={12} className="md:w-[14px] md:h-[14px]" />
                     </button>
                   </div>
                   <div className="flex flex-col md:flex-row items-center space-y-1 md:space-y-0 md:space-x-4 mt-1">
-                    <p className="text-brand-green font-bold text-sm uppercase tracking-widest leading-none">ID: {client.customerId || 'NOT ASSIGNED'}</p>
-                    <span className="w-1 h-1 bg-gray-600 rounded-full hidden md:block" />
-                    <p className="text-gray-400 font-medium text-sm leading-none">{client.email}</p>
+                    <p className="text-brand-green font-black text-[10px] md:text-sm uppercase tracking-widest leading-none">ID: {client.customerId || 'NOT ASSIGNED'}</p>
+                    <span className="hidden md:block w-1 h-1 bg-gray-600 rounded-full" />
+                    <p className="text-gray-400 font-medium text-[10px] md:text-sm leading-none truncate max-w-[150px] md:max-w-none">{client.email}</p>
                   </div>
                </div>
             </div>
-            <div className="flex items-center justify-center md:justify-end space-x-4">
+            <div className="hidden sm:flex items-center justify-center md:justify-end space-x-4">
                <div className="text-center md:text-right">
                  <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1">Assigned Trainer</p>
-                 <p className="text-lg font-bold text-brand-green">{trainerData.name}</p>
+                 <p className="text-base md:text-lg font-bold text-brand-green">{trainerData.name}</p>
                </div>
             </div>
           </div>
-        <div className="absolute top-0 right-0 w-64 h-64 bg-brand-green/20 blur-[100px] rounded-full -translate-y-1/2 translate-x-1/2" />
+        <div className="absolute top-0 right-0 w-32 md:w-64 h-32 md:h-64 bg-brand-green/20 blur-[60px] md:blur-[100px] rounded-full -translate-y-1/2 translate-x-1/2" />
       </div>
 
       <AnimatePresence>
@@ -1091,13 +1091,13 @@ const ClientDetail = ({ client, onBack, initialTab = 'all' }: { client: any, onB
           </div>
 
           <div className="bg-white rounded-[40px] border border-gray-100 shadow-sm p-8 overflow-hidden">
-            <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
+            <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 md:mb-8 gap-4">
               <div>
-                <h3 className="text-xl font-black text-gray-900 flex items-center">
+                <h3 className="text-lg md:text-xl font-black text-gray-900 flex items-center justify-center md:justify-start">
                   <Sparkles size={20} className="mr-2 text-brand-green" />
                   Client AI Plan
                 </h3>
-                <div className="flex items-center gap-2 mt-2">
+                <div className="flex items-center justify-center md:justify-start gap-2 mt-2">
                   {['all', 'today', 'next'].map((tab) => (
                     <button
                       key={tab}
@@ -1114,45 +1114,47 @@ const ClientDetail = ({ client, onBack, initialTab = 'all' }: { client: any, onB
                   ))}
                 </div>
               </div>
-              <div className="flex items-center gap-4">
+              <div className="flex items-center justify-center md:justify-end gap-2 md:gap-4 overflow-x-auto no-scrollbar pb-2 md:pb-0">
                 <button 
                   onClick={handleGeneratePlan}
                   disabled={isGeneratingAI}
                   className={cn(
-                    "px-6 py-2 bg-purple-600 text-white rounded-full font-bold text-sm flex items-center hover:bg-purple-700 transition-all shadow-lg active:scale-95 disabled:opacity-50",
+                    "flex-shrink-0 px-4 md:px-6 py-2 bg-purple-600 text-white rounded-full font-bold text-xs md:text-sm flex items-center hover:bg-purple-700 transition-all shadow-lg active:scale-95 disabled:opacity-50",
                     isGeneratingAI && "animate-pulse"
                   )}
                 >
-                  {isGeneratingAI ? <Loader2 size={16} className="animate-spin mr-2" /> : <Zap size={16} className="mr-2" />}
-                  Generate New AI Plan
+                  {isGeneratingAI ? <Loader2 size={14} className="animate-spin mr-1 md:mr-2" /> : <Zap size={14} className="mr-1 md:mr-2" />}
+                  <span className="hidden sm:inline">Generate AI Plan</span>
+                  <span className="sm:hidden">Generate</span>
                 </button>
                 {!isEditing ? (
                   <button 
                     onClick={() => setIsEditing(true)}
-                    className="px-6 py-2 bg-black text-white rounded-full font-bold text-sm flex items-center hover:bg-brand-green transition-all shadow-lg active:scale-95"
+                    className="flex-shrink-0 px-4 md:px-6 py-2 bg-black text-white rounded-full font-bold text-xs md:text-sm flex items-center hover:bg-brand-green transition-all shadow-lg active:scale-95"
                   >
-                    <Edit2 size={16} className="mr-2" />
-                    Modify Plan
+                    <Edit2 size={14} className="mr-1 md:mr-2" />
+                    Modify
                   </button>
                 ) : (
-                  <div className="flex items-center space-x-3">
-                    <button onClick={() => setIsEditing(false)} className="px-6 py-2 text-gray-400 font-bold text-sm">Cancel</button>
+                  <div className="flex items-center space-x-2 md:space-x-3 shrink-0">
+                    <button onClick={() => setIsEditing(false)} className="px-3 md:px-6 py-2 text-gray-400 font-bold text-xs md:text-sm">Cancel</button>
                     <button 
                       onClick={handleSubmitForApproval}
                       disabled={submitting}
-                      className="px-6 py-2 bg-brand-green text-white rounded-full font-bold text-sm flex items-center shadow-lg hover:shadow-brand-green/20 disabled:opacity-50"
+                      className="px-4 md:px-6 py-2 bg-brand-green text-white rounded-full font-bold text-[10px] md:text-sm flex items-center shadow-lg hover:shadow-brand-green/20 disabled:opacity-50"
                     >
-                      {submitting ? <Loader2 size={16} className="animate-spin mr-2" /> : <Send size={16} className="mr-2" />}
-                      Submit for Approval
+                      {submitting ? <Loader2 size={14} className="animate-spin mr-1 md:mr-2" /> : <Send size={14} className="mr-1 md:mr-2" />}
+                      Submit
                     </button>
                   </div>
                 )}
                 <button
                   onClick={() => setShowAppointments(!showAppointments)}
-                  className="px-6 py-2 bg-blue-600 text-white rounded-full font-bold text-sm flex items-center hover:bg-blue-700 transition-all shadow-lg"
+                  className="flex-shrink-0 px-4 md:px-6 py-2 bg-blue-600 text-white rounded-full font-bold text-xs md:text-sm flex items-center hover:bg-blue-700 transition-all shadow-lg"
                 >
-                  <Clock size={16} className="mr-2" />
-                  Appointments
+                  <Clock size={14} className="mr-1 md:mr-2" />
+                  <span className="hidden sm:inline">Appointments</span>
+                  <span className="sm:hidden">Schedules</span>
                 </button>
               </div>
             </div>
@@ -1535,7 +1537,7 @@ const PlanApprovals = () => {
 
       <div className="grid grid-cols-1 gap-6">
         {requests.map((r) => (
-          <div key={r.id} className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm flex items-center justify-between">
+          <div key={r.id} className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div className="flex items-center space-x-4">
               <div className="w-12 h-12 rounded-full overflow-hidden bg-gray-50 flex items-center justify-center font-bold text-xl text-gray-400">
                 {r.userName?.[0]?.toUpperCase()}
@@ -1546,11 +1548,11 @@ const PlanApprovals = () => {
               </div>
             </div>
 
-            <div className="flex items-center space-x-6">
-              <div className="text-right">
+            <div className="flex flex-row md:flex-row items-center justify-between md:justify-end gap-4 md:space-x-6 w-full md:w-auto pt-4 md:pt-0 border-t md:border-t-0 border-gray-50">
+              <div className="text-left md:text-right">
                 <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Status</p>
                 <div className={cn(
-                  "px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border",
+                  "px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border w-fit",
                   r.status === 'pending' ? "bg-yellow-50 text-yellow-600 border-yellow-100" :
                   r.status === 'approved' ? "bg-green-50 text-green-600 border-green-100" :
                   "bg-red-50 text-red-600 border-red-100"
@@ -1559,9 +1561,9 @@ const PlanApprovals = () => {
                 </div>
               </div>
               {r.adminMessage && (
-                <div className="max-w-xs text-right">
-                   <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Admin Feedback</p>
-                   <p className="text-xs text-gray-600 font-medium italic overflow-hidden text-ellipsis whitespace-nowrap">"{r.adminMessage}"</p>
+                <div className="max-w-[150px] md:max-w-xs text-right">
+                   <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Feedback</p>
+                   <p className="text-xs text-gray-600 font-medium italic overflow-hidden text-ellipsis whitespace-nowrap" title={r.adminMessage}>"{r.adminMessage}"</p>
                 </div>
               )}
             </div>
@@ -1602,32 +1604,32 @@ export default function TrainerDashboard() {
   ];
 
   return (
-    <div className="min-h-screen min-h-dvh bg-gray-50 flex flex-col md:flex-row pt-[calc(5rem+env(safe-area-inset-top))]">
-      {/* Sidebar */}
-      <div className="w-full md:w-64 bg-white border-r border-gray-100 p-6 space-y-8 flex-shrink-0 pb-[env(safe-area-inset-bottom)] text-center md:text-left">
-        <div>
-          <h1 className="text-xs font-black text-gray-400 uppercase tracking-[0.2em] mb-6 px-4">Trainer Hub</h1>
-          <nav className="space-y-1">
+    <div className="min-h-screen min-h-dvh bg-gray-50 flex flex-col md:flex-row pt-[calc(4rem+env(safe-area-inset-top))] md:pt-[calc(5rem+env(safe-area-inset-top))]">
+      {/* Sidebar / Top Nav on Mobile */}
+      <div className="w-full md:w-64 bg-white border-b md:border-b-0 md:border-r border-gray-100 p-4 md:p-6 flex flex-col md:space-y-8 flex-shrink-0 md:pb-[env(safe-area-inset-bottom)] sticky top-[calc(4rem+env(safe-area-inset-top))] md:relative z-30">
+        <div className="flex flex-row md:flex-col items-center md:items-stretch justify-between md:justify-start gap-4">
+          <h1 className="text-[10px] md:text-xs font-black text-gray-400 uppercase tracking-[0.2em] md:mb-6 md:px-4 shrink-0">Trainer Hub</h1>
+          <nav className="flex flex-row md:flex-col gap-1 overflow-x-auto no-scrollbar md:overflow-visible">
             {navItems.map((item) => (
               <Link
                 key={item.path}
                 to={item.path}
                 onClick={() => setSelectedClient(null)}
                 className={cn(
-                  "flex items-center justify-center md:justify-start space-x-3 px-4 py-3 rounded-2xl text-sm font-bold transition-all",
+                  "flex items-center space-x-2 md:space-x-3 px-3 md:px-4 py-2 md:py-3 rounded-xl md:rounded-2xl text-xs md:text-sm font-bold transition-all whitespace-nowrap",
                   location.pathname === item.path && !selectedClient
                     ? "bg-brand-green text-white shadow-lg shadow-brand-green/20"
                     : "text-gray-500 hover:bg-gray-50 hover:text-gray-900"
                 )}
               >
-                <item.icon size={18} />
+                <item.icon size={16} className="md:w-[18px] md:h-[18px]" />
                 <span>{item.name}</span>
               </Link>
             ))}
           </nav>
         </div>
 
-        <div className="pt-8 border-t border-gray-50 space-y-4">
+        <div className="hidden md:flex flex-col pt-8 border-t border-gray-50 space-y-4">
            <Link 
              to="/" 
              className="flex items-center justify-center md:justify-start space-x-3 px-4 py-3 rounded-2xl text-sm font-bold text-gray-500 hover:bg-gray-50 hover:text-gray-900 transition-all"
@@ -1641,6 +1643,8 @@ export default function TrainerDashboard() {
            </div>
         </div>
       </div>
+
+      {/* Mobile Footer Nav (optional but maybe later) */}
 
       {/* Content */}
       <div className="flex-grow p-4 md:p-10 max-w-7xl mx-auto w-full relative">
