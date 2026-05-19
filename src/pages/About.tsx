@@ -44,7 +44,7 @@ const About = () => {
             <div className="flex-1 text-center md:text-left">
               <h2 className="text-2xl sm:text-3xl font-black mb-4 sm:mb-6 uppercase tracking-tight">The DNA Philosophy</h2>
               <p className="text-gray-600 mb-4 sm:mb-6 text-base sm:text-lg leading-relaxed">
-                Founded in 2020, DNA Cult Fitness started as a small community of athletes looking for a more rigorous and scientific approach to training. 
+                DNA Cult Fitness started as a small community of athletes looking for a more rigorous and scientific approach to training. 
                 We realized that generic gym environments often lacked the intensity and personalized guidance needed for true transformation.
               </p>
               <p className="text-gray-600 mb-6 sm:mb-8 text-base sm:text-lg leading-relaxed">

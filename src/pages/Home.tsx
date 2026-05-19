@@ -149,6 +149,12 @@ const Home = () => {
               transition={{ duration: 0.8, delay: 0.6 }}
               className="flex flex-col sm:flex-row flex-wrap gap-4 sm:gap-5 items-center md:items-start justify-center md:justify-start"
             >
+              {user && profile?.role === 'trainer' && (
+                <Link to="/trainer-dashboard" className="bg-white text-black px-6 sm:px-10 py-4 sm:py-5 rounded-full font-black text-base sm:text-lg hover:bg-brand-green transition-all flex items-center justify-center group shadow-2xl shadow-white/10 uppercase tracking-tight" id="hero-trainer-hub-btn">
+                  Trainer Hub <LayoutDashboard className="ml-2 group-hover:rotate-12 transition-transform" size={20} />
+                </Link>
+              )}
+
               {user && profile?.role === 'client' && (
                 <Link to="/profile?tab=workout" className="bg-brand-green text-black px-6 sm:px-10 py-4 sm:py-5 rounded-full font-black text-base sm:text-lg hover:bg-white transition-all flex items-center justify-center group shadow-2xl shadow-brand-green/20 uppercase tracking-tight order-first sm:order-none" id="hero-workout-btn">
                   Today's Workout <Dumbbell className="ml-2 group-hover:rotate-12 transition-transform" size={20} />
@@ -186,7 +192,7 @@ const Home = () => {
               </motion.div>
 
               <Link to="/services" className="bg-white/5 backdrop-blur-xl border border-white/10 text-white px-6 sm:px-10 py-4 sm:py-5 rounded-full font-black text-base sm:text-lg hover:bg-white/20 transition-all text-center uppercase tracking-tight">
-                Programs
+                Core Programs
               </Link>
             </motion.div>
           </div>

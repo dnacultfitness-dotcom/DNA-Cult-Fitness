@@ -28,7 +28,7 @@ const Navbar = () => {
   const navLinks = [
     { name: 'Home', path: '/' },
     { name: 'About', path: '/about' },
-    { name: 'Services', path: '/services' },
+    { name: 'Programs', path: '/services' },
     { name: 'Membership', path: '/membership' },
     { name: 'Contact', path: '/contact' },
   ];
@@ -225,7 +225,7 @@ const Footer = () => {
             <h4 className="text-base sm:text-lg font-black mb-4 sm:mb-6 uppercase tracking-tight">Quick Links</h4>
             <ul className="space-y-3 sm:space-y-4 text-gray-400 text-sm sm:text-base">
               <li><Link to="/about" className="hover:text-brand-green transition-colors font-medium">About Us</Link></li>
-              <li><Link to="/services" className="hover:text-brand-green transition-colors font-medium">Services</Link></li>
+              <li><Link to="/services" className="hover:text-brand-green transition-colors font-medium">Programs</Link></li>
               <li><Link to="/ai-assistant" className="hover:text-brand-green transition-colors font-medium">AI Assistant</Link></li>
               <li><Link to="/membership" className="hover:text-brand-green transition-colors font-medium">Membership</Link></li>
               <li><Link to="/contact" className="hover:text-brand-green transition-colors font-medium">Contact</Link></li>
