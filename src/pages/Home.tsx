@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'motion/react';
 import { ArrowRight, CheckCircle2, Users, Dumbbell, Zap, Sparkles, LayoutDashboard, ChevronLeft, ChevronRight, Coffee, Activity, Droplets } from 'lucide-react';
 import { useFirebase } from '../components/FirebaseProvider';
@@ -7,7 +7,8 @@ import { AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
 
 const Home = () => {
-  const { user, profile, loading } = useFirebase();
+  const { user, profile, loading, isTrainer, isAdmin } = useFirebase();
+  const navigate = useNavigate();
   const [currentIndex, setCurrentIndex] = React.useState(0);
   const [direction, setDirection] = React.useState(0);
 
@@ -149,10 +150,24 @@ const Home = () => {
               transition={{ duration: 0.8, delay: 0.6 }}
               className="flex flex-col sm:flex-row flex-wrap gap-4 sm:gap-5 items-center md:items-start justify-center md:justify-start"
             >
-              {user && profile?.role === 'trainer' && (
-                <Link to="/trainer" className="bg-white text-black px-6 sm:px-10 py-4 sm:py-5 rounded-full font-black text-base sm:text-lg hover:bg-brand-green transition-all flex items-center justify-center group shadow-2xl shadow-white/10 uppercase tracking-tight" id="hero-trainer-hub-btn">
+              {user && isTrainer && (
+                <button 
+                  onClick={() => navigate('/trainer')}
+                  className="bg-brand-green text-black px-6 sm:px-10 py-4 sm:py-5 rounded-full font-black text-base sm:text-lg hover:bg-white transition-all flex items-center justify-center group shadow-2xl shadow-brand-green/40 uppercase tracking-tight cursor-pointer" 
+                  id="hero-trainer-hub-btn"
+                >
                   Trainer Hub <LayoutDashboard className="ml-2 group-hover:rotate-12 transition-transform" size={20} />
-                </Link>
+                </button>
+              )}
+
+              {user && isAdmin && (
+                <button 
+                  onClick={() => navigate('/admin')}
+                  className="bg-brand-green text-black px-6 sm:px-10 py-4 sm:py-5 rounded-full font-black text-base sm:text-lg hover:bg-white transition-all flex items-center justify-center group shadow-2xl shadow-brand-green/40 uppercase tracking-tight cursor-pointer" 
+                  id="hero-admin-hub-btn"
+                >
+                  Admin Hub <LayoutDashboard className="ml-2 group-hover:rotate-12 transition-transform" size={20} />
+                </button>
               )}
 
               {user && profile?.role === 'client' && (
@@ -162,18 +177,15 @@ const Home = () => {
               )}
 
               {user ? (
-                <Link 
-                  to="/profile" 
-                  className={cn(
-                    "px-6 sm:px-10 py-4 sm:py-5 rounded-full font-black text-base sm:text-lg transition-all flex items-center justify-center group shadow-2xl uppercase tracking-tight",
-                    profile?.role === 'client' 
-                      ? "bg-white/10 backdrop-blur-md text-white border border-white/20 hover:bg-white hover:text-black" 
-                      : "bg-brand-green text-black hover:bg-white shadow-brand-green/20"
-                  )} 
-                  id="hero-profile-btn"
-                >
-                  My Profile <LayoutDashboard className="ml-2 group-hover:translate-x-1 transition-transform" size={20} />
-                </Link>
+                !isTrainer && !isAdmin && (
+                  <Link 
+                    to="/profile" 
+                    className="px-6 sm:px-10 py-4 sm:py-5 rounded-full font-black text-base sm:text-lg transition-all flex items-center justify-center group shadow-2xl uppercase tracking-tight bg-white/10 backdrop-blur-md text-white border border-white/20 hover:bg-white hover:text-black" 
+                    id="hero-profile-btn"
+                  >
+                    My Profile <LayoutDashboard className="ml-2 group-hover:translate-x-1 transition-transform" size={20} />
+                  </Link>
+                )
               ) : (
                 <Link to="/membership" className="bg-brand-green text-black px-6 sm:px-10 py-4 sm:py-5 rounded-full font-black text-base sm:text-lg hover:bg-white transition-all flex items-center justify-center group shadow-2xl shadow-brand-green/20 uppercase tracking-tight" id="hero-join-btn">
                   Join Now <ArrowRight className="ml-2 group-hover:translate-x-1 transition-transform" size={20} />
