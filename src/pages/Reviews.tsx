@@ -65,6 +65,7 @@ const ReviewPage = () => {
     try {
       await addDoc(collection(db, 'reviews'), {
         ...formData,
+        name: formData.name.trim() || 'Anonymous',
         status: 'pending',
         createdAt: serverTimestamp()
       });
@@ -158,11 +159,10 @@ const ReviewPage = () => {
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-2 md:gap-3">
               <div className="space-y-1">
-                <label className="text-[10px] font-bold text-white/40 uppercase tracking-widest ml-1">Full Name *</label>
+                <label className="text-[10px] font-bold text-white/40 uppercase tracking-widest ml-1">Full Name (Optional)</label>
                 <div className="relative group">
                   <User className="absolute left-3 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-brand-green transition-colors" size={16} />
                   <input
-                    required
                     type="text"
                     name="name"
                     value={formData.name}

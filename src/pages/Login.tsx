@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { auth, googleProvider, signInWithPopup, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendEmailVerification, signOut } from '../firebase';
+import { auth, googleProvider, signInWithPopup, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendEmailVerification, signOut, signInAnonymously } from '../firebase';
 import { useFirebase } from '../components/FirebaseProvider';
 import { toast } from 'sonner';
 import { motion } from 'motion/react';
-import { LogIn, ShieldCheck, Mail, Lock, UserPlus, CheckCircle, Loader2 } from 'lucide-react';
+import { LogIn, ShieldCheck, Mail, Lock, UserPlus, CheckCircle, Loader2, UserCircle } from 'lucide-react';
 
 const Login = () => {
   const { user, loading } = useFirebase();
@@ -17,6 +17,7 @@ const Login = () => {
   const [password, setPassword] = useState('');
   const [authLoading, setAuthLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [guestLoading, setGuestLoading] = useState(false);
   const [showVerificationMessage, setShowVerificationMessage] = useState(false);
   const [registeredEmail, setRegisteredEmail] = useState('');
 
@@ -141,6 +142,19 @@ const Login = () => {
     }
   };
 
+  const handleGuestLogin = async () => {
+    setGuestLoading(true);
+    try {
+      await signInAnonymously(auth);
+      toast.success('Signed in as guest!');
+    } catch (error: any) {
+      console.error('Guest login error:', error);
+      toast.error('Failed to sign in as guest.');
+    } finally {
+      setGuestLoading(false);
+    }
+  };
+
   if (loading) return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
 
   if (showVerificationMessage) {
@@ -237,8 +251,8 @@ const Login = () => {
 
         <button
           onClick={handleGoogleLogin}
-          disabled={googleLoading || authLoading}
-          className="w-full flex items-center justify-center space-x-3 bg-white border border-gray-200 py-3 rounded-xl font-semibold text-gray-700 hover:bg-gray-50 transition-all shadow-sm mb-6 disabled:opacity-50"
+          disabled={googleLoading || authLoading || guestLoading}
+          className="w-full flex items-center justify-center space-x-3 bg-white border border-gray-200 py-3 rounded-xl font-semibold text-gray-700 hover:bg-gray-50 transition-all shadow-sm mb-3 disabled:opacity-50"
         >
           {googleLoading ? (
             <Loader2 className="animate-spin text-gray-400" size={20} />
@@ -251,6 +265,19 @@ const Login = () => {
             />
           )}
           <span>{googleLoading ? 'Connecting...' : 'Google'}</span>
+        </button>
+
+        <button
+          onClick={handleGuestLogin}
+          disabled={guestLoading || googleLoading || authLoading}
+          className="w-full flex items-center justify-center space-x-3 bg-white border border-gray-200 py-3 rounded-xl font-semibold text-gray-700 hover:bg-gray-50 transition-all shadow-sm mb-6 disabled:opacity-50"
+        >
+          {guestLoading ? (
+            <Loader2 className="animate-spin text-gray-400" size={20} />
+          ) : (
+            <UserCircle size={20} className="text-gray-400" />
+          )}
+          <span>{guestLoading ? 'Connecting...' : 'Continue as Guest'}</span>
         </button>
 
         {window.location.hostname.includes('aistudio.google') || window.location.hostname.includes('run.app') ? (

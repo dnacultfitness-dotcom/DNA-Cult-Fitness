@@ -8,7 +8,8 @@ import {
   User,
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
-  sendEmailVerification
+  sendEmailVerification,
+  signInAnonymously
 } from 'firebase/auth';
 import { 
   getFirestore,
@@ -189,6 +190,7 @@ export {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   sendEmailVerification,
+  signInAnonymously,
   collection,
   getDocs,
   query,
