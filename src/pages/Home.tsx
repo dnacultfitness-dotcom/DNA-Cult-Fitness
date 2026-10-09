@@ -1,16 +1,60 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'motion/react';
-import { ArrowRight, CheckCircle2, Users, Dumbbell, Zap, Sparkles, LayoutDashboard, ChevronLeft, ChevronRight, Coffee, Activity, Droplets } from 'lucide-react';
+import { ArrowRight, CheckCircle2, Users, Dumbbell, Zap, Sparkles, LayoutDashboard, ChevronLeft, ChevronRight, Coffee, Activity, Droplets, Star } from 'lucide-react';
 import { useFirebase } from '../components/FirebaseProvider';
 import { AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
+import { db, collection, query, where, orderBy, getDocs, limit, handleFirestoreError, OperationType } from '../firebase';
+import { Review } from '../types';
 
 const Home = () => {
   const { user, profile, loading, isTrainer, isAdmin } = useFirebase();
   const navigate = useNavigate();
   const [currentIndex, setCurrentIndex] = React.useState(0);
   const [direction, setDirection] = React.useState(0);
+  const [reviews, setReviews] = React.useState<Review[]>([]);
+  const [stats, setStats] = React.useState({ average: 0, total: 0 });
+
+  React.useEffect(() => {
+    const fetchReviews = async () => {
+      const path = 'reviews';
+      try {
+        const projId = (db as any)._app.options.projectId;
+        const dbId = (db as any)._databaseId?.databaseId || '(default)';
+        console.log(`[Home] Fetching reviews. Project: ${projId}, DB: ${dbId}`);
+        
+        const q = query(
+          collection(db, path),
+          limit(30)
+        );
+        const snapshot = await getDocs(q);
+        console.log('[Home] Reviews fetched successfully. Count:', snapshot.size);
+        const allFetched = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Review[];
+        
+        // Filter for approved status client-side
+        const approvedReviews = allFetched.filter(r => r.status === 'approved');
+        
+        // Calculate stats
+        const totalRating = approvedReviews.reduce((acc, r) => acc + r.rating, 0);
+        const average = approvedReviews.length > 0 ? totalRating / approvedReviews.length : 0;
+        setStats({ average, total: approvedReviews.length });
+        
+        // Sort client-side by createdAt descending
+        const sorted = approvedReviews.sort((a, b) => {
+          const dateA = a.createdAt?.toMillis?.() || (a.createdAt instanceof Date ? a.createdAt.getTime() : 0);
+          const dateB = b.createdAt?.toMillis?.() || (b.createdAt instanceof Date ? b.createdAt.getTime() : 0);
+          return dateB - dateA;
+        });
+        
+        setReviews(sorted.slice(0, 3));
+      } catch (err) {
+        console.error('[Home] Error fetching reviews:', err);
+        handleFirestoreError(err, OperationType.LIST, path);
+      }
+    };
+    fetchReviews();
+  }, []);
 
   const [isPaused, setIsPaused] = React.useState(false);
 
@@ -353,6 +397,95 @@ const Home = () => {
                 </Link>
               </div>
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Reviews Section */}
+      <section className="py-20 bg-zinc-950 overflow-hidden relative">
+        <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_30%_20%,rgba(132,255,0,0.05),transparent_50%)]"></div>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
+          <div className="absolute -top-24 -left-24 opacity-20 pointer-events-none animate-pulse hidden lg:block">
+            <Star size={300} className="text-brand-green fill-brand-green blur-3xl" />
+          </div>
+          <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end mb-10 md:mb-16 gap-6 md:gap-8">
+            <div className="max-w-2xl text-left">
+              <div className="inline-flex flex-wrap items-center gap-3 md:gap-4 px-3 py-1.5 rounded-full bg-brand-green/10 text-brand-green text-[10px] md:text-xs font-bold uppercase tracking-widest mb-4 md:mb-6 border border-brand-green/20">
+                <div className="flex items-center gap-1.5 md:gap-2 border-r border-brand-green/20 pr-3 md:pr-4">
+                  <div className="flex gap-0.5">
+                    {[...Array(5)].map((_, i) => (
+                      <Star 
+                        key={i} 
+                        size={10} 
+                        className={cn(
+                          "md:w-3 md:h-3",
+                          i < Math.round(stats.average) ? "text-brand-green fill-brand-green" : "text-brand-green/20"
+                        )} 
+                      />
+                    ))}
+                  </div>
+                  <span className="text-xs md:text-sm">{stats.average.toFixed(1)}</span>
+                </div>
+                <div className="flex items-center gap-1.5 md:gap-2">
+                  <Users size={12} className="md:w-3.5 md:h-3.5" />
+                  <span>{stats.total} Reviews</span>
+                </div>
+              </div>
+              <h2 className="text-3xl md:text-4xl lg:text-5xl font-black text-white uppercase tracking-tighter italic leading-none">
+                What Our <span className="text-brand-green">Cult</span> Says
+              </h2>
+              <p className="mt-3 md:mt-4 text-white/40 text-sm md:text-base lg:text-lg">Real feedback from real people transforming their lives.</p>
+            </div>
+            <Link 
+              to="/reviews" 
+              className="group flex items-center gap-2 md:gap-3 bg-white/5 hover:bg-white text-white hover:text-black px-5 md:px-6 py-2.5 md:py-3 rounded-xl transition-all border border-white/10 hover:border-white font-bold uppercase tracking-tight text-xs md:text-sm w-full sm:w-auto justify-center"
+            >
+              Write a Review <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+            </Link>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 lg:gap-8">
+            {reviews.length > 0 ? (
+              reviews.map((review, idx) => (
+                <motion.div
+                  key={review.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  transition={{ delay: idx * 0.1 }}
+                  viewport={{ once: true }}
+                  className="bg-zinc-900/50 border border-white/5 p-5 md:p-6 lg:p-8 rounded-2xl md:rounded-3xl relative group hover:border-brand-green/30 transition-colors flex flex-col justify-between"
+                >
+                  <div>
+                    <div className="flex gap-0.5 mb-4 md:mb-6">
+                      {[...Array(5)].map((_, i) => (
+                        <Star 
+                          key={i} 
+                          size={14} 
+                          className={cn(
+                            "md:w-4 md:h-4",
+                            i < review.rating ? "text-brand-green fill-brand-green" : "text-white/10"
+                          )} 
+                        />
+                      ))}
+                    </div>
+                    <p className="text-white/70 italic mb-6 md:mb-8 text-xs md:text-sm leading-relaxed line-clamp-4">"{review.comment}"</p>
+                  </div>
+                  <div className="flex items-center gap-3 md:gap-4 pt-4 md:pt-6 border-t border-white/5">
+                    <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-brand-green/20 flex items-center justify-center text-brand-green font-black uppercase text-xs md:text-sm">
+                      {review.name.charAt(0)}
+                    </div>
+                    <div>
+                      <h4 className="text-white font-bold text-xs md:text-sm uppercase tracking-tight">{review.name}</h4>
+                      <p className="text-white/30 text-[10px] uppercase tracking-widest">Verified Member</p>
+                    </div>
+                  </div>
+                </motion.div>
+              ))
+            ) : (
+              <div className="col-span-full py-12 text-center bg-white/5 rounded-3xl border border-dashed border-white/10">
+                <p className="text-white/20 font-bold uppercase tracking-widest">Be the first to leave a review</p>
+              </div>
+            )}
           </div>
         </div>
       </section>

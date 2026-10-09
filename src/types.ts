@@ -51,3 +51,23 @@ export interface SiteSetting {
   key: string;
   value: string;
 }
+
+export interface Review {
+  id?: string;
+  name: string;
+  email: string;
+  phone?: string;
+  rating: number;
+  ambienceRating: number;
+  staffRating: number;
+  hygieneRating: number;
+  comment: string;
+  suggestions: {
+    staffBehavior?: string;
+    neatness?: string;
+    newFacilities?: string;
+    others?: string;
+  };
+  status: 'pending' | 'approved' | 'hidden';
+  createdAt: any;
+}

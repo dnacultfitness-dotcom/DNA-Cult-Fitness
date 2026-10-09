@@ -19,6 +19,7 @@ import TrainerDashboard from './pages/TrainerDashboard';
 import Login from './pages/Login';
 import AIAssistant from './pages/AIAssistant';
 import Profile from './pages/Profile';
+import Reviews from './pages/Reviews';
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = React.useState(false);
@@ -30,6 +31,7 @@ const Navbar = () => {
     { name: 'About', path: '/about' },
     { name: 'Programs', path: '/services' },
     { name: 'Membership', path: '/membership' },
+    { name: 'Reviews', path: '/reviews' },
     { name: 'Contact', path: '/contact' },
   ];
 
@@ -269,7 +271,7 @@ const Footer = () => {
         </div>
         
         <div className="pt-6 sm:pt-8 border-t border-gray-800 text-center text-gray-500 text-[10px] sm:text-xs uppercase font-black tracking-widest">
-          <p>&copy; {new Date().getFullYear()} DNA Cult Fitness. Optimized for Performance.</p>
+          <p>&copy; DNA Cult Fitness. Optimized for Performance.</p>
         </div>
       </div>
     </footer>
@@ -299,6 +301,7 @@ export default function App() {
               <Route path="/contact" element={<Contact />} />
               <Route path="/ai-assistant" element={<AIAssistant />} />
               <Route path="/login" element={<Login />} />
+              <Route path="/reviews" element={<Reviews />} />
               <Route path="/dashboard" element={<Profile />} />
               <Route path="/profile" element={<Profile />} />
               <Route path="/trainer/*" element={<TrainerDashboard />} />

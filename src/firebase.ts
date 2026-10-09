@@ -28,7 +28,8 @@ import {
   increment,
   where,
   writeBatch,
-  getDocFromServer
+  getDocFromServer,
+  limit
 } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 
@@ -49,14 +50,10 @@ if (!firebaseConfig.apiKey || !firebaseConfig.authDomain) {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 
-// Use initializeFirestore with settings for better connectivity in restricted environments
+// Use initializeFirestore with standard settings
 const db = (firebaseConfig as any).firestoreDatabaseId 
-  ? initializeFirestore(app, { 
-      experimentalForceLongPolling: true 
-    }, (firebaseConfig as any).firestoreDatabaseId)
-  : initializeFirestore(app, { 
-      experimentalForceLongPolling: true 
-    });
+  ? initializeFirestore(app, {}, (firebaseConfig as any).firestoreDatabaseId)
+  : initializeFirestore(app, {});
 
 console.log("[Firebase] DB Initialized for project:", firebaseConfig.projectId);
 if ((firebaseConfig as any).firestoreDatabaseId) {
@@ -207,6 +204,7 @@ export {
   increment,
   where,
   writeBatch,
+  limit,
   ref,
   uploadBytes,
   uploadBytesResumable,

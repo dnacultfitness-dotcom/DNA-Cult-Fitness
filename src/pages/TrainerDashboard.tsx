@@ -674,7 +674,7 @@ const ClientDetail = ({ client, onBack, initialTab = 'all' }: { client: any, onB
           experienceLevel: data.experienceLevel || prev.experienceLevel
         }));
       }
-    });
+    }, (err) => handleFirestoreError(err, OperationType.GET, `users/${client.id}`));
 
     // Fetch details subcollection separately for trauma/medical info
     const unsubDetails = onSnapshot(doc(db, 'users', client.id, 'details', 'personal'), (snap) => {
@@ -686,7 +686,7 @@ const ClientDetail = ({ client, onBack, initialTab = 'all' }: { client: any, onB
           lifestyleDisease: data.lifestyleDisease || prev.lifestyleDisease
         }));
       }
-    });
+    }, (err) => handleFirestoreError(err, OperationType.GET, `users/${client.id}/details/personal`));
 
     // Fetch AI Plan
     const q = query(collection(db, 'aiPlans'), where('userId', '==', client.id));
@@ -763,7 +763,7 @@ const ClientDetail = ({ client, onBack, initialTab = 'all' }: { client: any, onB
     const qPlans = query(collection(db, 'membershipPlans'), orderBy('order', 'asc'));
     const unsubPlansList = onSnapshot(qPlans, (snap) => {
       setMembershipPlans(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-    });
+    }, (err) => handleFirestoreError(err, OperationType.LIST, 'membershipPlans'));
 
     return () => { 
       unsubUser();
@@ -1611,7 +1611,7 @@ const PlanApprovals = () => {
       data.sort((a, b) => (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0));
       setRequests(data);
       setLoading(false);
-    });
+    }, (err) => handleFirestoreError(err, OperationType.LIST, 'planApprovalRequests'));
     return () => unsubscribe();
   }, [user]);
 

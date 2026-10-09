@@ -24,7 +24,8 @@ import {
   Search,
   Eye,
   X,
-  Edit3
+  Edit3,
+  Star
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
@@ -3280,15 +3281,215 @@ const TrainerManager = () => {
   );
 };
 
-const AdminSidebar = ({ isOpen, onClose }: { isOpen: boolean, onClose: () => void }) => {
-  const location = useLocation();
-  const [counts, setCounts] = useState({ workouts: 0, approvals: 0 });
+const ReviewManager = () => {
+  const [reviews, setReviews] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const { isAdmin } = useFirebase();
 
   useEffect(() => {
-    const unsubWorkouts = onSnapshot(query(collection(db, 'dailyWorkouts'), where('status', '==', 'pending')), s => setCounts(prev => ({ ...prev, workouts: s.size })));
-    const unsubApprovals = onSnapshot(query(collection(db, 'planApprovalRequests'), where('status', '==', 'pending')), s => setCounts(prev => ({ ...prev, approvals: s.size })));
-    return () => { unsubWorkouts(); unsubApprovals(); };
-  }, []);
+    if (!isAdmin) return;
+    const unsub = onSnapshot(collection(db, 'reviews'), (snapshot) => {
+      const fetched = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      const sorted = fetched.sort((a: any, b: any) => {
+        const dateA = a.createdAt?.toMillis?.() || 0;
+        const dateB = b.createdAt?.toMillis?.() || 0;
+        return dateB - dateA;
+      });
+      setReviews(sorted);
+      setLoading(false);
+    }, (error) => {
+      console.error('[Admin ReviewManager] Error fetching reviews:', error);
+      setLoading(false);
+      handleFirestoreError(error, OperationType.LIST, 'reviews');
+    });
+    return unsub;
+  }, [isAdmin]);
+
+  const updateReviewStatus = async (id: string, status: string) => {
+    try {
+      await updateDoc(doc(db, 'reviews', id), { status });
+      toast.success(`Review ${status}`);
+    } catch (err) {
+      handleFirestoreError(err, OperationType.UPDATE, `reviews/${id}`);
+    }
+  };
+
+  const deleteReview = async (id: string) => {
+    if (!window.confirm('Delete this review permanently?')) return;
+    try {
+      await deleteDoc(doc(db, 'reviews', id));
+      toast.success('Review deleted');
+    } catch (err) {
+      handleFirestoreError(err, OperationType.DELETE, `reviews/${id}`);
+    }
+  };
+
+  const filteredReviews = reviews.filter(r => 
+    r.name?.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    r.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    r.comment?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  return (
+    <div className="space-y-8">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h2 className="text-2xl font-black text-gray-900 uppercase tracking-tight">User Feedback & Reviews</h2>
+          <p className="text-sm text-gray-400 font-medium uppercase tracking-widest mt-1">Manage public testimonials and private feedback</p>
+        </div>
+        <div className="relative group w-full md:w-80">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-hover:text-green-500 transition-colors" size={18} />
+          <input
+            type="text"
+            placeholder="Search reviews..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-11 pr-4 py-3 bg-white border border-gray-100 rounded-2xl shadow-sm outline-none focus:border-green-500 focus:ring-4 focus:ring-green-500/5 transition-all text-sm font-medium"
+          />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 gap-6">
+        {loading ? (
+          <div className="p-12 text-center"><Loader2 className="animate-spin mx-auto text-green-600" /></div>
+        ) : filteredReviews.length === 0 ? (
+          <div className="p-12 text-center bg-white rounded-3xl border border-dashed border-gray-200 text-gray-400 italic">No reviews found</div>
+        ) : (
+          filteredReviews.map((review) => (
+            <motion.div 
+              key={review.id}
+              layout
+              className="bg-white p-6 sm:p-8 rounded-[2rem] border border-gray-100 shadow-sm hover:border-green-500/20 transition-all"
+            >
+              <div className="flex flex-col lg:flex-row gap-8">
+                <div className="flex-grow space-y-6">
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 rounded-2xl bg-green-50 flex items-center justify-center text-green-600 font-black text-lg border border-green-100">
+                        {review.name?.[0]}
+                      </div>
+                      <div>
+                        <h3 className="font-black text-gray-900 uppercase tracking-tight">{review.name}</h3>
+                        <p className="text-xs text-gray-400 font-medium">{review.email} • {review.phone || 'No phone'}</p>
+                      </div>
+                    </div>
+                    <div className="flex gap-1">
+                      {[...Array(5)].map((_, i) => (
+                        <Star key={i} size={16} className={cn(i < review.rating ? "text-amber-400 fill-amber-400" : "text-gray-200")} />
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="bg-gray-50/50 p-6 rounded-2xl border border-gray-100/50">
+                    <p className="text-gray-700 leading-relaxed italic">"{review.comment}"</p>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div className="p-3 bg-blue-50/50 rounded-xl border border-blue-100/30">
+                      <p className="text-[9px] font-black text-blue-600 uppercase tracking-widest mb-1">Ambience</p>
+                      <div className="flex gap-1">
+                        {[...Array(5)].map((_, i) => (
+                          <Star key={i} size={10} className={cn(i < review.ambienceRating ? "text-blue-500 fill-blue-500" : "text-blue-200")} />
+                        ))}
+                      </div>
+                    </div>
+                    <div className="p-3 bg-purple-50/50 rounded-xl border border-purple-100/30">
+                      <p className="text-[9px] font-black text-purple-600 uppercase tracking-widest mb-1">Staff</p>
+                      <div className="flex gap-1">
+                        {[...Array(5)].map((_, i) => (
+                          <Star key={i} size={10} className={cn(i < review.staffRating ? "text-purple-500 fill-purple-500" : "text-purple-200")} />
+                        ))}
+                      </div>
+                    </div>
+                    <div className="p-3 bg-emerald-50/50 rounded-xl border border-emerald-100/30">
+                      <p className="text-[9px] font-black text-emerald-600 uppercase tracking-widest mb-1">Hygiene</p>
+                      <div className="flex gap-1">
+                        {[...Array(5)].map((_, i) => (
+                          <Star key={i} size={10} className={cn(i < review.hygieneRating ? "text-emerald-500 fill-emerald-500" : "text-emerald-200")} />
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  {review.suggestions && (
+                    <div className="space-y-3">
+                      <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Suggestions</h4>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {Object.entries(review.suggestions).map(([key, value]) => (
+                          value && (
+                            <div key={key} className="flex items-start gap-2 text-xs">
+                              <span className="font-bold text-gray-900 uppercase min-w-[100px]">{key.replace(/([A-Z])/g, ' $1')}:</span>
+                              <span className="text-gray-500">{value as string}</span>
+                            </div>
+                          )
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="lg:w-48 flex flex-col gap-3">
+                  <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100 text-center">
+                    <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-2">Current Status</p>
+                    <span className={cn(
+                      "px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border block",
+                      review.status === 'approved' ? "bg-green-50 text-green-600 border-green-100" : 
+                      review.status === 'hidden' ? "bg-red-50 text-red-600 border-red-100" : "bg-amber-50 text-amber-600 border-amber-100"
+                    )}>
+                      {review.status}
+                    </span>
+                  </div>
+                  
+                  <button 
+                    onClick={() => updateReviewStatus(review.id, 'approved')}
+                    className="w-full py-3 bg-green-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-green-700 transition-all shadow-lg shadow-green-100 disabled:opacity-50"
+                    disabled={review.status === 'approved'}
+                  >
+                    Approve
+                  </button>
+                  <button 
+                    onClick={() => updateReviewStatus(review.id, 'hidden')}
+                    className="w-full py-3 bg-white text-gray-900 border border-gray-200 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-gray-50 transition-all disabled:opacity-50"
+                    disabled={review.status === 'hidden'}
+                  >
+                    Hide
+                  </button>
+                  <button 
+                    onClick={() => deleteReview(review.id)}
+                    className="w-full py-3 text-red-500 hover:bg-red-50 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all"
+                  >
+                    Delete
+                  </button>
+                  
+                  <div className="mt-auto pt-4 text-center">
+                    <p className="text-[9px] text-gray-300 font-medium">{review.createdAt?.toDate().toLocaleDateString()} {review.createdAt?.toDate().toLocaleTimeString()}</p>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          ))
+        )}
+      </div>
+    </div>
+  );
+};
+
+const AdminSidebar = ({ isOpen, onClose }: { isOpen: boolean, onClose: () => void }) => {
+  const location = useLocation();
+  const { isAdmin } = useFirebase();
+  const [counts, setCounts] = useState({ workouts: 0, approvals: 0, reviews: 0 });
+
+  useEffect(() => {
+    if (!isAdmin) return;
+    const unsubWorkouts = onSnapshot(query(collection(db, 'dailyWorkouts'), where('status', '==', 'pending')), s => setCounts(prev => ({ ...prev, workouts: s.size })), err => handleFirestoreError(err, OperationType.LIST, 'dailyWorkouts'));
+    const unsubApprovals = onSnapshot(query(collection(db, 'planApprovalRequests'), where('status', '==', 'pending')), s => setCounts(prev => ({ ...prev, approvals: s.size })), err => handleFirestoreError(err, OperationType.LIST, 'planApprovalRequests'));
+    const unsubReviews = onSnapshot(query(collection(db, 'reviews'), where('status', '==', 'pending')), s => setCounts(prev => ({ ...prev, reviews: s.size })), (err) => {
+      console.error('[AdminSidebar] Error counting reviews:', err);
+      handleFirestoreError(err, OperationType.LIST, 'reviews');
+    });
+    return () => { unsubWorkouts(); unsubApprovals(); unsubReviews(); };
+  }, [isAdmin]);
 
   const menuItems = [
     { name: 'Overview', path: '/admin', icon: <LayoutDashboard size={20} /> },
@@ -3297,6 +3498,7 @@ const AdminSidebar = ({ isOpen, onClose }: { isOpen: boolean, onClose: () => voi
     { name: 'Plan Approvals', path: '/admin/approvals', icon: <CheckCircle size={20} />, badge: counts.approvals },
     { name: 'Today\'s Workouts', path: '/admin/workouts', icon: <Activity size={20} />, badge: counts.workouts },
     { name: 'Trainers', path: '/admin/trainers', icon: <Briefcase size={20} /> },
+    { name: 'User Reviews', path: '/admin/reviews', icon: <Star size={20} />, badge: counts.reviews },
     { name: 'Plans', path: '/admin/plans', icon: <ShieldCheck size={20} /> },
     { name: 'Services', path: '/admin/services', icon: <Dumbbell size={20} /> },
     { name: 'AI Plans', path: '/admin/ai-plans', icon: <Sparkles size={20} /> },
@@ -3381,32 +3583,33 @@ const AdminSidebar = ({ isOpen, onClose }: { isOpen: boolean, onClose: () => voi
 };
 
 const Overview = () => {
-  const [stats, setStats] = useState({ members: 0, plans: 0, memberships: 0, activeMembers: 0, workouts: 0, trainers: 0, pendingApprovals: 0 });
+  const [stats, setStats] = useState({ members: 0, plans: 0, memberships: 0, activeMembers: 0, workouts: 0, trainers: 0, pendingApprovals: 0, reviews: 0 });
   const [recentApprovals, setRecentApprovals] = useState<any[]>([]);
   const { isAdmin } = useFirebase();
 
   useEffect(() => {
     if (!isAdmin) return;
-    const unsubUsers = onSnapshot(collection(db, 'users'), s => setStats(prev => ({ ...prev, members: s.size })));
-    const unsubPlans = onSnapshot(collection(db, 'aiPlans'), s => setStats(prev => ({ ...prev, plans: s.size })));
-    const unsubTrainers = onSnapshot(collection(db, 'trainers'), s => setStats(prev => ({ ...prev, trainers: s.size })));
+    const unsubUsers = onSnapshot(collection(db, 'users'), s => setStats(prev => ({ ...prev, members: s.size })), err => handleFirestoreError(err, OperationType.LIST, 'users'));
+    const unsubPlans = onSnapshot(collection(db, 'aiPlans'), s => setStats(prev => ({ ...prev, plans: s.size })), err => handleFirestoreError(err, OperationType.LIST, 'aiPlans'));
+    const unsubTrainers = onSnapshot(collection(db, 'trainers'), s => setStats(prev => ({ ...prev, trainers: s.size })), err => handleFirestoreError(err, OperationType.LIST, 'trainers'));
+    const unsubReviews = onSnapshot(collection(db, 'reviews'), s => setStats(prev => ({ ...prev, reviews: s.size })), err => handleFirestoreError(err, OperationType.LIST, 'reviews'));
     const unsubMems = onSnapshot(collection(db, 'memberships'), s => {
       const all = s.docs.map(d => d.data());
       const approved = all.filter(m => m.status === 'approved').length;
       setStats(prev => ({ ...prev, memberships: s.size, activeMembers: approved }));
-    });
+    }, err => handleFirestoreError(err, OperationType.LIST, 'memberships'));
     const unsubWorkouts = onSnapshot(collection(db, 'dailyWorkouts'), s => {
       const pending = s.docs.filter(d => d.data().status === 'pending').length;
       setStats(prev => ({ ...prev, workouts: pending }));
-    });
+    }, err => handleFirestoreError(err, OperationType.LIST, 'dailyWorkouts'));
     const unsubApprovals = onSnapshot(query(collection(db, 'planApprovalRequests'), where('status', '==', 'pending')), s => {
       setStats(prev => ({ ...prev, pendingApprovals: s.size }));
       let data = s.docs.map(d => ({ id: d.id, ...d.data() } as any));
       data.sort((a, b) => (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0));
       setRecentApprovals(data.slice(0, 5));
-    });
+    }, err => handleFirestoreError(err, OperationType.LIST, 'planApprovalRequests'));
 
-    return () => { unsubUsers(); unsubPlans(); unsubTrainers(); unsubMems(); unsubWorkouts(); unsubApprovals(); };
+    return () => { unsubUsers(); unsubPlans(); unsubTrainers(); unsubMems(); unsubWorkouts(); unsubApprovals(); unsubReviews(); };
   }, [isAdmin]);
 
   const statCards = [
@@ -3414,7 +3617,7 @@ const Overview = () => {
     { name: 'Active Subscriptions', value: stats.activeMembers, icon: <ShieldCheck className="text-purple-600" />, color: 'bg-purple-50' },
     { name: 'AI Plans', value: stats.plans, icon: <Sparkles className="text-green-600" />, color: 'bg-green-50' },
     { name: 'Today\'s Workouts', value: stats.workouts, icon: <Activity className="text-red-600" />, color: 'bg-red-50' },
-    { name: 'Pending Approvals', value: stats.pendingApprovals, icon: <Clock className="text-yellow-600" />, color: 'bg-yellow-50' },
+    { name: 'User Reviews', value: stats.reviews, icon: <Star className="text-amber-600" />, color: 'bg-amber-50' },
     { name: 'Trainers', value: stats.trainers || 0, icon: <Briefcase className="text-cyan-600" />, color: 'bg-cyan-50' },
   ];
 
@@ -3546,6 +3749,7 @@ const AdminDashboard = () => {
             <Route path="services" element={<ServiceManager />} />
             <Route path="ai-plans" element={<AIPlanManager />} />
             <Route path="trainers" element={<TrainerManager />} />
+            <Route path="reviews" element={<ReviewManager />} />
             <Route path="approvals" element={<div className="sm:p-0"><h1 className="text-2xl sm:text-3xl font-black mb-6 sm:mb-8 uppercase tracking-tight">Plan Modification Approvals</h1><PlanApprovalManager /></div>} />
             <Route path="memberships" element={<MembershipManager />} />
             <Route path="workouts" element={<DailyWorkoutManager />} />

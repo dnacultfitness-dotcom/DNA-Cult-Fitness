@@ -192,6 +192,33 @@
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["userId", "title", "message", "read", "createdAt"]
+    },
+    "Review": {
+      "title": "User Review",
+      "description": "Stores user feedback and ratings.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "phone": { "type": "string" },
+        "rating": { "type": "integer", "minimum": 1, "maximum": 5 },
+        "ambienceRating": { "type": "integer", "minimum": 1, "maximum": 5 },
+        "staffRating": { "type": "integer", "minimum": 1, "maximum": 5 },
+        "hygieneRating": { "type": "integer", "minimum": 1, "maximum": 5 },
+        "comment": { "type": "string" },
+        "suggestions": {
+          "type": "object",
+          "properties": {
+            "staffBehavior": { "type": "string" },
+            "neatness": { "type": "string" },
+            "newFacilities": { "type": "string" },
+            "others": { "type": "string" }
+          }
+        },
+        "status": { "type": "string", "enum": ["pending", "approved", "hidden"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "email", "rating", "createdAt"]
     }
   },
   "firestore": {
@@ -242,6 +269,10 @@
     "/appointments/{appointmentId}": {
       "schema": "Appointment",
       "description": "Appointment bookings"
+    },
+    "/reviews/{reviewId}": {
+      "schema": "Review",
+      "description": "User reviews and feedback"
     }
   }
 }
