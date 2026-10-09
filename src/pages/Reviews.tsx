@@ -79,9 +79,9 @@ const ReviewPage = () => {
     }
   };
 
-  const renderStars = (category: string, currentRating: number, size = 22) => {
+  const renderStars = (category: string, currentRating: number, size = 18) => {
     return (
-      <div className="flex gap-1">
+      <div className="flex gap-0.5">
         {[1, 2, 3, 4, 5].map((star) => (
           <button
             key={star}
@@ -159,7 +159,7 @@ const ReviewPage = () => {
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-2 md:gap-3">
               <div className="space-y-1">
-                <label className="text-[10px] font-bold text-white/40 uppercase tracking-widest ml-1">Full Name (Optional)</label>
+                <label className="text-[10px] font-bold text-white uppercase tracking-widest ml-1">Full Name (Optional)</label>
                 <div className="relative group">
                   <User className="absolute left-3 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-brand-green transition-colors" size={16} />
                   <input
@@ -168,35 +168,35 @@ const ReviewPage = () => {
                     value={formData.name}
                     onChange={handleInputChange}
                     placeholder="Your name"
-                    className="w-full bg-white/5 border border-white/10 rounded-lg py-1.5 pl-9 pr-3 text-[11px] text-white focus:outline-none focus:border-brand-green focus:ring-1 focus:ring-brand-green/20 transition-all"
+                    className="w-full bg-white/5 border border-white/10 rounded-lg py-1 px-8 text-[10px] text-white focus:outline-none focus:border-brand-green focus:ring-1 focus:ring-brand-green/20 transition-all"
                   />
                 </div>
               </div>
-              <div className="space-y-1">
-                <label className="text-[10px] font-bold text-white/40 uppercase tracking-widest ml-1">Email Address (Optional)</label>
+              <div className="space-y-0.5">
+                <label className="text-[10px] font-bold text-white uppercase tracking-widest ml-1">Email Address (Optional)</label>
                 <div className="relative group">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-brand-green transition-colors" size={16} />
+                  <Mail className="absolute left-2.5 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-brand-green transition-colors" size={14} />
                   <input
                     type="email"
                     name="email"
                     value={formData.email}
                     onChange={handleInputChange}
                     placeholder="your@email.com"
-                    className="w-full bg-white/5 border border-white/10 rounded-lg py-1.5 pl-9 pr-3 text-[11px] text-white focus:outline-none focus:border-brand-green focus:ring-1 focus:ring-brand-green/20 transition-all"
+                    className="w-full bg-white/5 border border-white/10 rounded-lg py-1 px-8 text-[10px] text-white focus:outline-none focus:border-brand-green focus:ring-1 focus:ring-brand-green/20 transition-all"
                   />
                 </div>
               </div>
-              <div className="space-y-1 md:col-span-2">
-                <label className="text-[10px] font-bold text-white/40 uppercase tracking-widest ml-1">Phone Number (Optional)</label>
+              <div className="space-y-0.5 md:col-span-2">
+                <label className="text-[10px] font-bold text-white uppercase tracking-widest ml-1">Phone Number (Optional)</label>
                 <div className="relative group">
-                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-brand-green transition-colors" size={16} />
+                  <Phone className="absolute left-2.5 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-brand-green transition-colors" size={14} />
                   <input
                     type="tel"
                     name="phone"
                     value={formData.phone}
                     onChange={handleInputChange}
                     placeholder="+91 XXX XXX XXXX"
-                    className="w-full bg-white/5 border border-white/10 rounded-lg py-1.5 pl-9 pr-3 text-[11px] text-white focus:outline-none focus:border-brand-green focus:ring-1 focus:ring-brand-green/20 transition-all"
+                    className="w-full bg-white/5 border border-white/10 rounded-lg py-1 px-8 text-[10px] text-white focus:outline-none focus:border-brand-green focus:ring-1 focus:ring-brand-green/20 transition-all"
                   />
                 </div>
               </div>
@@ -214,21 +214,21 @@ const ReviewPage = () => {
                   <h3 className="text-xs font-bold text-white">Overall Experience</h3>
                   <p className="text-[8px] text-white/40">How would you rate your total time with us?</p>
                 </div>
-                {renderStars('rating', formData.rating, 24)}
+                {renderStars('rating', formData.rating, 20)}
               </div>
               
               <div className="grid grid-cols-1 md:grid-cols-3 gap-2 md:gap-3">
-                <div className="p-2 md:p-2.5 bg-white/5 rounded-xl border border-white/5 space-y-1.5">
+                <div className="p-1.5 md:p-2 bg-white/5 rounded-lg border border-white/5 space-y-1">
                   <h3 className="text-[10px] font-bold text-white uppercase tracking-tight">Ambience</h3>
-                  {renderStars('ambienceRating', formData.ambienceRating, 16)}
+                  {renderStars('ambienceRating', formData.ambienceRating, 14)}
                 </div>
-                <div className="p-2 md:p-2.5 bg-white/5 rounded-xl border border-white/5 space-y-1.5">
+                <div className="p-1.5 md:p-2 bg-white/5 rounded-lg border border-white/5 space-y-1">
                   <h3 className="text-[10px] font-bold text-white uppercase tracking-tight">Staff Helpfulness</h3>
-                  {renderStars('staffRating', formData.staffRating, 16)}
+                  {renderStars('staffRating', formData.staffRating, 14)}
                 </div>
-                <div className="p-2 md:p-2.5 bg-white/5 rounded-xl border border-white/5 space-y-1.5">
+                <div className="p-1.5 md:p-2 bg-white/5 rounded-lg border border-white/5 space-y-1">
                   <h3 className="text-[10px] font-bold text-white uppercase tracking-tight">Hygiene & Safety</h3>
-                  {renderStars('hygieneRating', formData.hygieneRating, 16)}
+                  {renderStars('hygieneRating', formData.hygieneRating, 14)}
                 </div>
               </div>
             </div>
@@ -239,8 +239,8 @@ const ReviewPage = () => {
             <h2 className="text-sm md:text-base font-bold text-white mb-3 md:mb-5 flex items-center gap-2 uppercase tracking-tight italic">
               <MessageSquare size={16} className="text-brand-green" /> Your Review
             </h2>
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-bold text-white/40 uppercase tracking-widest ml-1">Write your detailed feedback</label>
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold text-white uppercase tracking-widest ml-1">Write your detailed feedback</label>
               <textarea
                 required
                 name="comment"
@@ -248,7 +248,7 @@ const ReviewPage = () => {
                 onChange={handleInputChange}
                 rows={3}
                 placeholder="Share your thoughts about DNA Cult Fitness..."
-                className="w-full bg-white/5 border border-white/10 rounded-lg p-2 text-[11px] text-white focus:outline-none focus:border-brand-green focus:ring-1 focus:ring-brand-green/20 transition-all resize-none"
+                className="w-full bg-white/5 border border-white/10 rounded-lg p-2 text-[10px] text-white focus:outline-none focus:border-brand-green focus:ring-1 focus:ring-brand-green/20 transition-all resize-none"
               ></textarea>
             </div>
           </div>
@@ -258,49 +258,49 @@ const ReviewPage = () => {
             <h2 className="text-xs md:text-sm font-bold text-white mb-2 md:mb-3 flex items-center gap-1.5 uppercase tracking-tight italic">
               <ShieldCheck size={14} className="text-brand-green" /> Suggestions for Improvement
             </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
-              <div className="space-y-1">
-                <label className="text-[9px] font-bold text-white/40 uppercase tracking-widest ml-1">Staff Behavior</label>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 md:gap-3">
+              <div className="space-y-0.5">
+                <label className="text-[9px] font-bold text-white uppercase tracking-widest ml-1">Staff Behavior</label>
                 <input
                   type="text"
                   name="suggestions.staffBehavior"
                   value={formData.suggestions.staffBehavior}
                   onChange={handleInputChange}
                   placeholder="E.g., More trainers needed"
-                  className="w-full bg-white/5 border border-white/10 rounded-lg py-1.5 px-3 text-[11px] text-white focus:outline-none focus:border-brand-green focus:ring-1 focus:ring-brand-green/20 transition-all"
+                  className="w-full bg-white/5 border border-white/10 rounded-lg py-1 px-3 text-[10px] text-white focus:outline-none focus:border-brand-green focus:ring-1 focus:ring-brand-green/20 transition-all"
                 />
               </div>
-              <div className="space-y-1">
-                <label className="text-[9px] font-bold text-white/40 uppercase tracking-widest ml-1">Neatness / Cleanliness</label>
+              <div className="space-y-0.5">
+                <label className="text-[9px] font-bold text-white uppercase tracking-widest ml-1">Neatness / Cleanliness</label>
                 <input
                   type="text"
                   name="suggestions.neatness"
                   value={formData.suggestions.neatness}
                   onChange={handleInputChange}
                   placeholder="E.g., Floor cleaning frequency"
-                  className="w-full bg-white/5 border border-white/10 rounded-lg py-1.5 px-3 text-[11px] text-white focus:outline-none focus:border-brand-green focus:ring-1 focus:ring-brand-green/20 transition-all"
+                  className="w-full bg-white/5 border border-white/10 rounded-lg py-1 px-3 text-[10px] text-white focus:outline-none focus:border-brand-green focus:ring-1 focus:ring-brand-green/20 transition-all"
                 />
               </div>
-              <div className="space-y-1">
-                <label className="text-[9px] font-bold text-white/40 uppercase tracking-widest ml-1">New Facilities / Equipment</label>
+              <div className="space-y-0.5">
+                <label className="text-[9px] font-bold text-white uppercase tracking-widest ml-1">New Facilities / Equipment</label>
                 <input
                   type="text"
                   name="suggestions.newFacilities"
                   value={formData.suggestions.newFacilities}
                   onChange={handleInputChange}
                   placeholder="E.g., More squat racks"
-                  className="w-full bg-white/5 border border-white/10 rounded-lg py-1.5 px-3 text-[11px] text-white focus:outline-none focus:border-brand-green focus:ring-1 focus:ring-brand-green/20 transition-all"
+                  className="w-full bg-white/5 border border-white/10 rounded-lg py-1 px-3 text-[10px] text-white focus:outline-none focus:border-brand-green focus:ring-1 focus:ring-brand-green/20 transition-all"
                 />
               </div>
-              <div className="space-y-1">
-                <label className="text-[9px] font-bold text-white/40 uppercase tracking-widest ml-1">Others</label>
+              <div className="space-y-0.5">
+                <label className="text-[9px] font-bold text-white uppercase tracking-widest ml-1">Others</label>
                 <input
                   type="text"
                   name="suggestions.others"
                   value={formData.suggestions.others}
                   onChange={handleInputChange}
                   placeholder="Any other suggestion..."
-                  className="w-full bg-white/5 border border-white/10 rounded-lg py-1.5 px-3 text-[11px] text-white focus:outline-none focus:border-brand-green focus:ring-1 focus:ring-brand-green/20 transition-all"
+                  className="w-full bg-white/5 border border-white/10 rounded-lg py-1 px-3 text-[10px] text-white focus:outline-none focus:border-brand-green focus:ring-1 focus:ring-brand-green/20 transition-all"
                 />
               </div>
             </div>
@@ -320,7 +320,7 @@ const ReviewPage = () => {
             type="submit"
             disabled={isSubmitting}
             className={cn(
-              "w-full bg-brand-green text-black font-black py-3 md:py-4 rounded-lg md:rounded-xl transition-all uppercase tracking-tight text-sm md:text-base flex items-center justify-center gap-2",
+              "w-full bg-brand-green text-black font-black py-2.5 md:py-3 rounded-lg md:rounded-xl transition-all uppercase tracking-tight text-xs md:text-sm flex items-center justify-center gap-2",
               isSubmitting ? "opacity-50 cursor-not-allowed" : "hover:bg-white hover:scale-[1.01] active:scale-95 shadow-xl shadow-brand-green/10"
             )}
           >
